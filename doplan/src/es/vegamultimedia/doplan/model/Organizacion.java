@@ -5,13 +5,15 @@ import java.io.Serializable;
 @SuppressWarnings("serial")
 public class Organizacion implements Serializable {
 	
-	private int id;
+	public static final String NOMBRE_VISTA = "vista_organizacion";
+	
+	private long id;
 	private Localidad localidad;
 	private String nombre;
 	private String personaContacto;
 	private String emailContacto;
 	
-	public Organizacion(int id, Localidad localidad, String nombre,
+	public Organizacion(long id, Localidad localidad, String nombre,
 			String personaContacto, String emailContacto) {
 		setId(id);
 		setLocalidadId(localidad);
@@ -20,10 +22,10 @@ public class Organizacion implements Serializable {
 		setEmailContacto(emailContacto);
 	}
 	
-	public int getId() {
+	public long getId() {
 		return id;
 	}
-	public void setId(int id) {
+	public void setId(long id) {
 		this.id = id;
 	}
 	public Localidad getLocalidad() {

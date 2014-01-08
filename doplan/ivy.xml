@@ -40,5 +40,11 @@
 		<!-- Compiler for custom widget sets. Should not be deployed -->
 		<dependency org="com.vaadin" name="vaadin-client-compiler"
 			rev="&vaadin.version;" conf="widgetset-compile->default" />
+		
+		<!-- ConfirmDialog Add-on -->	
+		<dependency org="org.vaadin.addon" name="confirmdialog" rev="2.0.4" />
+		
+		<!-- Connector MySQL -->
+		<dependency org="mysql" name="mysql-connector-java" rev="5.1.6"/>
 	</dependencies>
 </ivy-module>

@@ -5,18 +5,18 @@ import java.io.Serializable;
 @SuppressWarnings("serial")
 public class Localidad implements Serializable {
 	
-	private int id;
+	private long id;
 	private String nombre;
 	
-	public Localidad(int id, String nombre) {
+	public Localidad(long id, String nombre) {
 		setId(id);
 		setNombre(nombre);
 	}
 	
-	public int getId() {
+	public long getId() {
 		return id;
 	}
-	public void setId(int id) {
+	public void setId(long id) {
 		this.id = id;
 	}
 	public String getNombre() {

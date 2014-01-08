@@ -25,7 +25,7 @@ public class DoplanUI extends UI {
 	
 	private static final long serialVersionUID = 8674520219333051040L;
 	private Navigator navigator;
-	private JDBCConnectionPool pool;
+	private transient JDBCConnectionPool pool;
 
 	@WebServlet(value = "/*", asyncSupported = true)
 	@VaadinServletConfiguration(productionMode = false, ui = DoplanUI.class)
@@ -73,8 +73,9 @@ public class DoplanUI extends UI {
 	public JDBCConnectionPool getPool() throws SQLException {
 		if (pool == null) {
 			pool = new SimpleJDBCConnectionPool(
-			        "org.hsqldb.jdbc.JDBCDriver",
-			        "jdbc:hsqldb:mem:sqlcontainer", "SA", "", 2, 5);
+					"com.mysql.jdbc.Driver",
+					"jdbc:mysql://localhost:3306/doplan",
+			        "root", "kaizen", 2, 5);
 		}
 		return pool;
 	}
