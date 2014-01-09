@@ -33,8 +33,6 @@ public class OrganizacionView extends FormLayout implements View {
 
 	public static final String NOMBRE = "organizacion";
 	
-	//private final BeanItemContainer<Organizacion> container;
-	// private BeanFieldGroup<Organizacion> binder;
 	private SQLContainer container;
 	private BeanFieldGroup<Organizacion> binder;
 	private FormLayout formulario;
@@ -51,9 +49,33 @@ public class OrganizacionView extends FormLayout implements View {
 		tabla.addGeneratedColumn("Editar", new EditarColumnGenerator());
 		tabla.addGeneratedColumn("Eliminar", new EliminarColumnGenerator());
 		
+		// Botón Alta
+		Button botónAlta = new Button("Alta");
+		botónAlta.addClickListener(new ClickListener(){
+
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void buttonClick(ClickEvent event) {
+				Localidad localidad = new Localidad(
+						1,
+						"Sevilla");
+				organizacion = new Organizacion(
+						0,
+						localidad,
+						"",
+						"",
+						"");
+				binder.setItemDataSource(organizacion);
+				formulario.setVisible(true);
+			}
+			
+		});
+		
 		// Formulario
 		formulario = new FormLayout();
 		binder = new BeanFieldGroup<Organizacion>(Organizacion.class);
+		
 		formulario.addComponent(binder.buildAndBind("Nombre", "nombre"));
 		formulario.addComponent(binder.buildAndBind("Persona de Contacto", "personaContacto"));
 		formulario.addComponent(binder.buildAndBind("Email de Contacto", "emailContacto"));
@@ -70,12 +92,26 @@ public class OrganizacionView extends FormLayout implements View {
 					organizacion = binder.getItemDataSource().getBean();
 					JDBCConnectionPool pool = ((DoplanUI)getUI()).getPool();
 					Connection connection = pool.reserveConnection();
-					PreparedStatement statement = connection.prepareStatement(
-							"UPDATE organizacion "
-							+ "SET nombre = '" + organizacion.getNombre() + "'"
-							+ ", persona_contacto = '" + organizacion.getPersonaContacto() + "'"
-							+ ", email_contacto = '" + organizacion.getEmailContacto() + "'"
-							+ " WHERE id = " + organizacion.getId());
+					PreparedStatement statement;
+					if (organizacion.getId() == 0) {
+						// Alta
+						statement = connection.prepareStatement(
+								"INSERT INTO organizacion "
+								+ "(nombre, localidad_id, persona_contacto, email_contacto) "
+								+ "VALUES (?,?,?,?)");
+						statement.setString(1, organizacion.getNombre());
+						statement.setLong(2, organizacion.getLocalidad().getId());
+						statement.setString(3, organizacion.getPersonaContacto());
+						statement.setString(4, organizacion.getEmailContacto());
+					} else {
+						// Modificación
+						statement = connection.prepareStatement(
+								"UPDATE organizacion "
+								+ "SET nombre = '" + organizacion.getNombre() + "'"
+								+ ", persona_contacto = '" + organizacion.getPersonaContacto() + "'"
+								+ ", email_contacto = '" + organizacion.getEmailContacto() + "'"
+								+ " WHERE id = " + organizacion.getId());
+					}
 					int rows = statement.executeUpdate();
 					connection.setAutoCommit(true);
 					if (rows == 1) {
@@ -111,6 +147,7 @@ public class OrganizacionView extends FormLayout implements View {
 		formulario.setVisible(false);
 		
 		layout.addComponent(tabla);
+		layout.addComponent(botónAlta);
 		layout.addComponent(formulario);
 	}
 
@@ -149,7 +186,6 @@ public class OrganizacionView extends FormLayout implements View {
 
 				@Override
 				public void buttonClick(ClickEvent event) {
-					//binder.setItemDataSource((Organizacion) itemId);
 					Item item = container.getItem(itemId);
 					Localidad localidad = new Localidad(
 							(Long)item.getItemProperty("localidad_id").getValue(),
