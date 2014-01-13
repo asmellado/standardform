@@ -80,4 +80,8 @@ public class DoplanUI extends UI {
 		return pool;
 	}
 
+	public Navigator getNavigator() {
+		return navigator;
+	}
+
 }

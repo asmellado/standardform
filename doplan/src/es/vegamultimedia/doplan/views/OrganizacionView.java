@@ -8,10 +8,10 @@ import org.vaadin.dialogs.ConfirmDialog;
 
 import com.vaadin.data.Item;
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
-import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.sqlcontainer.SQLContainer;
 import com.vaadin.data.util.sqlcontainer.connection.JDBCConnectionPool;
 import com.vaadin.data.util.sqlcontainer.query.FreeformQuery;
+import com.vaadin.navigator.Navigator;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
 import com.vaadin.ui.Button;
@@ -31,11 +31,10 @@ public class OrganizacionView extends FormLayout implements View {
 	
 	private static final long serialVersionUID = 1L;
 
-	public static final String NOMBRE = "organizacion";
+	public static final String NOMBRE = "organizaciones";
 	
 	private SQLContainer container;
 	private BeanFieldGroup<Organizacion> binder;
-	private FormLayout formulario;
 	private Table tabla;
 	private Organizacion organizacion;
 	
@@ -66,89 +65,13 @@ public class OrganizacionView extends FormLayout implements View {
 						"",
 						"",
 						"");
-				binder.setItemDataSource(organizacion);
-				formulario.setVisible(true);
+				mostrarDetalle(organizacion);
 			}
 			
 		});
 		
-		// Formulario
-		formulario = new FormLayout();
-		binder = new BeanFieldGroup<Organizacion>(Organizacion.class);
-		
-		formulario.addComponent(binder.buildAndBind("Nombre", "nombre"));
-		formulario.addComponent(binder.buildAndBind("Persona de Contacto", "personaContacto"));
-		formulario.addComponent(binder.buildAndBind("Email de Contacto", "emailContacto"));
-
-		Button botónGuardar = new Button("Guardar");
-		botónGuardar.addClickListener(new ClickListener(){
-
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public void buttonClick(ClickEvent event) {
-				try {
-					binder.commit();
-					organizacion = binder.getItemDataSource().getBean();
-					JDBCConnectionPool pool = ((DoplanUI)getUI()).getPool();
-					Connection connection = pool.reserveConnection();
-					PreparedStatement statement;
-					if (organizacion.getId() == 0) {
-						// Alta
-						statement = connection.prepareStatement(
-								"INSERT INTO organizacion "
-								+ "(nombre, localidad_id, persona_contacto, email_contacto) "
-								+ "VALUES (?,?,?,?)");
-						statement.setString(1, organizacion.getNombre());
-						statement.setLong(2, organizacion.getLocalidad().getId());
-						statement.setString(3, organizacion.getPersonaContacto());
-						statement.setString(4, organizacion.getEmailContacto());
-					} else {
-						// Modificación
-						statement = connection.prepareStatement(
-								"UPDATE organizacion "
-								+ "SET nombre = '" + organizacion.getNombre() + "'"
-								+ ", persona_contacto = '" + organizacion.getPersonaContacto() + "'"
-								+ ", email_contacto = '" + organizacion.getEmailContacto() + "'"
-								+ " WHERE id = " + organizacion.getId());
-					}
-					int rows = statement.executeUpdate();
-					connection.setAutoCommit(true);
-					if (rows == 1) {
-						Notification.show("El elemento se ha actualizado correctamente");
-						cargarDatos();
-					}
-					else {
-						Notification.show("El elemento no se ha podido actualizar");
-					}
-					statement.close();
-				} catch (SQLException e) {
-					Notification.show("Se ha producido un error:\n" + e.getMessage());
-					e.printStackTrace();
-				} catch (CommitException e) {
-					Notification.show("No se ha podido guardar");
-				}
-				formulario.setVisible(false);
-				cargarDatos();
-			}
-		});
-		formulario.addComponent(botónGuardar);
-		Button botónCancelar = new Button("Cancelar");
-		botónCancelar.addClickListener(new ClickListener(){
-
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public void buttonClick(ClickEvent event) {
-				formulario.setVisible(false);
-			}
-		});
-		formulario.addComponent(botónCancelar);
-		formulario.setVisible(false);
-		
 		layout.addComponent(tabla);
 		layout.addComponent(botónAlta);
-		layout.addComponent(formulario);
 	}
 
 	@Override
@@ -196,8 +119,7 @@ public class OrganizacionView extends FormLayout implements View {
 							(String)item.getItemProperty("nombre").getValue(),
 							(String)item.getItemProperty("persona_contacto").getValue(),
 							(String)item.getItemProperty("email_contacto").getValue());
-					binder.setItemDataSource(organizacion);
-					formulario.setVisible(true);
+					mostrarDetalle(organizacion);
 				}
 			});
 			return button;
@@ -254,6 +176,12 @@ public class OrganizacionView extends FormLayout implements View {
 			});
 			return button;
 		}
+	}
+	
+	private void mostrarDetalle(Organizacion organizacion) {
+		Navigator navigator = ((DoplanUI)getUI()).getNavigator();
+		navigator.addView(OrganizacionDetalleView.NOMBRE, new OrganizacionDetalleView(organizacion));
+		navigator.navigateTo(OrganizacionDetalleView.NOMBRE);
 	}
 
 }
