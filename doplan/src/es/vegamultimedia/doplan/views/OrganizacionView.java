@@ -1,16 +1,14 @@
 package es.vegamultimedia.doplan.views;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.util.List;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityTransaction;
+import javax.persistence.Query;
 
 import org.vaadin.dialogs.ConfirmDialog;
 
-import com.vaadin.data.Item;
-import com.vaadin.data.fieldgroup.BeanFieldGroup;
-import com.vaadin.data.util.sqlcontainer.SQLContainer;
-import com.vaadin.data.util.sqlcontainer.connection.JDBCConnectionPool;
-import com.vaadin.data.util.sqlcontainer.query.FreeformQuery;
+import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.navigator.Navigator;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
@@ -20,11 +18,11 @@ import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Notification;
+import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
 import es.vegamultimedia.doplan.DoplanUI;
-import es.vegamultimedia.doplan.model.Localidad;
 import es.vegamultimedia.doplan.model.Organizacion;
 
 public class OrganizacionView extends FormLayout implements View {
@@ -33,10 +31,8 @@ public class OrganizacionView extends FormLayout implements View {
 
 	public static final String NOMBRE = "organizaciones";
 	
-	private SQLContainer container;
-	private BeanFieldGroup<Organizacion> binder;
+	private BeanItemContainer<Organizacion> container;
 	private Table tabla;
-	private Organizacion organizacion;
 	
 	public OrganizacionView() {
 		HorizontalLayout layout = new HorizontalLayout();
@@ -56,16 +52,7 @@ public class OrganizacionView extends FormLayout implements View {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				Localidad localidad = new Localidad(
-						1,
-						"Sevilla");
-				organizacion = new Organizacion(
-						0,
-						localidad,
-						"",
-						"",
-						"");
-				mostrarDetalle(organizacion);
+				mostrarDetalle(new Organizacion());
 			}
 			
 		});
@@ -81,15 +68,16 @@ public class OrganizacionView extends FormLayout implements View {
 	
 	private void cargarDatos() {
 		try {
-			JDBCConnectionPool pool = ((DoplanUI)getUI()).getPool();
-			FreeformQuery query = new FreeformQuery("SELECT * FROM " + Organizacion.NOMBRE_VISTA, pool, "id");
-			container = new SQLContainer(query);
+			EntityManager entityManager = ((DoplanUI)getUI()).getEntityManager();
+			Query query = entityManager.createNamedQuery(Organizacion.QUERY_OBTENER_TODAS);
+			List<Organizacion> listaOrganizaciones = query.getResultList();
+			container = new BeanItemContainer<Organizacion>(Organizacion.class, listaOrganizaciones);
 			tabla.setContainerDataSource(container);
-			tabla.setVisibleColumns(new Object[]{"nombre", "localidad", "persona_contacto", "email_contacto",
+			tabla.setVisibleColumns(new Object[]{"nombre", "localidad", "personaContacto", "emailContacto",
 					"Editar", "Eliminar"});
-		} catch (SQLException e) {
-			Notification.show("No se pudo realizar una conexión con la base de datos");
-		}
+		} catch (Exception e) {
+			Notification.show("No se pueden obtener los elementos", e.getMessage(), Type.ERROR_MESSAGE);
+		}		
 	}
 	
 	/*
@@ -109,17 +97,8 @@ public class OrganizacionView extends FormLayout implements View {
 
 				@Override
 				public void buttonClick(ClickEvent event) {
-					Item item = container.getItem(itemId);
-					Localidad localidad = new Localidad(
-							(Long)item.getItemProperty("localidad_id").getValue(),
-							(String)item.getItemProperty("localidad").getValue());
-					organizacion = new Organizacion(
-							(Long)item.getItemProperty("id").getValue(),
-							localidad,
-							(String)item.getItemProperty("nombre").getValue(),
-							(String)item.getItemProperty("persona_contacto").getValue(),
-							(String)item.getItemProperty("email_contacto").getValue());
-					mostrarDetalle(organizacion);
+					Organizacion organizacionSeleccionada = container.getItem(itemId).getBean();
+					mostrarDetalle(organizacionSeleccionada);
 				}
 			});
 			return button;
@@ -150,25 +129,18 @@ public class OrganizacionView extends FormLayout implements View {
 
 						public void onClose(ConfirmDialog dialog) {
 			                if (dialog.isConfirmed()) {
-			    				try {
-			    					JDBCConnectionPool pool = ((DoplanUI)getUI()).getPool();
-			    					Connection connection = pool.reserveConnection();
-			    					PreparedStatement statement = connection.prepareStatement(
-			    							"DELETE FROM organizacion WHERE id="+itemId);
-			    					int rows = statement.executeUpdate();
-			    					connection.setAutoCommit(true);
-			    					if (rows == 1) {
-			    						Notification.show("El elemento se ha eliminado correctamente");
-			    						cargarDatos();
-			    					}
-			    					else {
-			    						Notification.show("El elemento no se ha podido eliminar");
-			    					}
-			    					statement.close();
-			    				} catch (SQLException e) {
-			    					Notification.show("Se ha producido un error:\n" + e.getMessage());
-			    					e.printStackTrace();
-			    				}
+			                	Organizacion organizacionSeleccionada = container.getItem(itemId).getBean();
+			                	try {
+				                	EntityManager entityManager = ((DoplanUI)getUI()).getEntityManager();
+				                	EntityTransaction transaction = entityManager.getTransaction();
+									transaction.begin();
+				                	entityManager.remove(organizacionSeleccionada);
+				                	transaction.commit();
+				                	Notification.show("El elemento se ha eliminado correctamente");
+				                	cargarDatos();
+			                	} catch (Exception e) {
+			    					Notification.show("No se ha podido eliminar el elemento", e.getMessage(), Type.ERROR_MESSAGE);
+			    				}			                	
 			                }
 			            }
 			        });

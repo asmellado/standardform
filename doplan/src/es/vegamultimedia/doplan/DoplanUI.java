@@ -1,13 +1,12 @@
 package es.vegamultimedia.doplan;
 
-import java.sql.SQLException;
-
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 import javax.servlet.annotation.WebServlet;
 
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.VaadinServletConfiguration;
-import com.vaadin.data.util.sqlcontainer.connection.JDBCConnectionPool;
-import com.vaadin.data.util.sqlcontainer.connection.SimpleJDBCConnectionPool;
 import com.vaadin.navigator.Navigator;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
@@ -25,11 +24,13 @@ public class DoplanUI extends UI {
 	
 	private static final long serialVersionUID = 8674520219333051040L;
 	private Navigator navigator;
-	private transient JDBCConnectionPool pool;
+	private transient EntityManager entityManager;
 
 	@WebServlet(value = "/*", asyncSupported = true)
 	@VaadinServletConfiguration(productionMode = false, ui = DoplanUI.class)
 	public static class Servlet extends VaadinServlet {
+
+		private static final long serialVersionUID = -4452007484858639919L;
 	}
 
 	@Override
@@ -70,18 +71,15 @@ public class DoplanUI extends UI {
 		
 	}
 
-	public JDBCConnectionPool getPool() throws SQLException {
-		if (pool == null) {
-			pool = new SimpleJDBCConnectionPool(
-					"com.mysql.jdbc.Driver",
-					"jdbc:mysql://localhost:3306/doplan",
-			        "root", "kaizen", 2, 5);
-		}
-		return pool;
-	}
-
 	public Navigator getNavigator() {
 		return navigator;
 	}
 
+	public EntityManager getEntityManager() throws IllegalStateException {
+		if (entityManager == null) {
+			EntityManagerFactory emf = Persistence.createEntityManagerFactory("doplan");
+			entityManager = emf.createEntityManager();
+		}
+		return entityManager;
+	}
 }

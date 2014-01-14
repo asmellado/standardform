@@ -1,22 +1,25 @@
 package es.vegamultimedia.doplan.model;
 
-import java.io.Serializable;
+import javax.persistence.Basic;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 
-@SuppressWarnings("serial")
-public class Localidad implements Serializable {
+@Entity
+public class Localidad {
 	
-	private long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.TABLE)
+	private int id;
+	
+	@Basic(optional=false)
 	private String nombre;
 	
-	public Localidad(long id, String nombre) {
-		setId(id);
-		setNombre(nombre);
-	}
-	
-	public long getId() {
+	public int getId() {
 		return id;
 	}
-	public void setId(long id) {
+	public void setId(int id) {
 		this.id = id;
 	}
 	public String getNombre() {
@@ -25,7 +28,4 @@ public class Localidad implements Serializable {
 	public void setNombre(String nombre) {
 		this.nombre = nombre;
 	}
-	
-	
-
 }

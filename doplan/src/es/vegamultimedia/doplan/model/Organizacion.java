@@ -1,31 +1,37 @@
 package es.vegamultimedia.doplan.model;
 
-import java.io.Serializable;
+import javax.persistence.Basic;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.NamedQuery;
 
-@SuppressWarnings("serial")
-public class Organizacion implements Serializable {
+@Entity
+@NamedQuery(name = Organizacion.QUERY_OBTENER_TODAS, query = "SELECT o FROM Organizacion o")
+public class Organizacion {
 	
-	public static final String NOMBRE_VISTA = "vista_organizacion";
+	public static final String QUERY_OBTENER_TODAS = "Organizacion.obtenerTodas";
 	
-	private long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.TABLE)
+	private int id;
+
 	private Localidad localidad;
+	
+	@Basic(optional=false)
 	private String nombre;
+	
+	@Basic(optional=false)
 	private String personaContacto;
+	
+	@Basic(optional=false)
 	private String emailContacto;
 	
-	public Organizacion(long id, Localidad localidad, String nombre,
-			String personaContacto, String emailContacto) {
-		setId(id);
-		setLocalidadId(localidad);
-		setNombre(nombre);
-		setPersonaContacto(personaContacto);
-		setEmailContacto(emailContacto);
-	}
-	
-	public long getId() {
+	public int getId() {
 		return id;
 	}
-	public void setId(long id) {
+	public void setId(int id) {
 		this.id = id;
 	}
 	public Localidad getLocalidad() {

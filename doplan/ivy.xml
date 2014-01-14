@@ -46,5 +46,8 @@
 		
 		<!-- Connector MySQL -->
 		<dependency org="mysql" name="mysql-connector-java" rev="5.1.6"/>
+		
+		<!-- EclipseLink -->
+		<dependency org="org.eclipse.persistence" name="eclipselink" rev="2.5.2-M1"/>
 	</dependencies>
 </ivy-module>
