@@ -6,6 +6,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.NamedQuery;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
+import org.hibernate.validator.constraints.Email;
 
 @Entity
 @NamedQuery(name = Organizacion.QUERY_OBTENER_TODAS, query = "SELECT o FROM Organizacion o")
@@ -20,12 +24,19 @@ public class Organizacion {
 	private Localidad localidad;
 	
 	@Basic(optional=false)
+	@NotNull
+	@Size(min=1,max=100)
 	private String nombre;
 	
 	@Basic(optional=false)
+	@NotNull
+	@Size(min=1,max=100)
 	private String personaContacto;
 	
 	@Basic(optional=false)
+	@NotNull
+	@Size(min=1,max=100)
+	@Email
 	private String emailContacto;
 	
 	public int getId() {

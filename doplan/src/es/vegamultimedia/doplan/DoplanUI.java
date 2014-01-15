@@ -17,7 +17,7 @@ import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
 import es.vegamultimedia.doplan.views.InicioView;
-import es.vegamultimedia.doplan.views.OrganizacionView;
+import es.vegamultimedia.doplan.views.OrganizacionListadoView;
 
 @Theme("doplan")
 public class DoplanUI extends UI {
@@ -59,8 +59,8 @@ public class DoplanUI extends UI {
 
 			@Override
 			public void menuSelected(MenuItem selectedItem) {
-				navigator.addView(OrganizacionView.NOMBRE, new OrganizacionView());
-				navigator.navigateTo(OrganizacionView.NOMBRE);
+				navigator.addView(OrganizacionListadoView.NOMBRE, new OrganizacionListadoView());
+				navigator.navigateTo(OrganizacionListadoView.NOMBRE);
 			}
 			
 		};

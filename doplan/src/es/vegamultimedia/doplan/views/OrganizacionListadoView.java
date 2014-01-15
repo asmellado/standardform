@@ -25,7 +25,7 @@ import com.vaadin.ui.themes.BaseTheme;
 import es.vegamultimedia.doplan.DoplanUI;
 import es.vegamultimedia.doplan.model.Organizacion;
 
-public class OrganizacionView extends FormLayout implements View {
+public class OrganizacionListadoView extends FormLayout implements View {
 	
 	private static final long serialVersionUID = 1L;
 
@@ -34,7 +34,7 @@ public class OrganizacionView extends FormLayout implements View {
 	private BeanItemContainer<Organizacion> container;
 	private Table tabla;
 	
-	public OrganizacionView() {
+	public OrganizacionListadoView() {
 		HorizontalLayout layout = new HorizontalLayout();
 		addComponent(layout);
 		// Tabla

@@ -4,12 +4,16 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
+import com.vaadin.data.fieldgroup.DefaultFieldGroupFieldFactory;
+import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.navigator.Navigator;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.ui.AbstractTextField;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.Field;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
@@ -31,6 +35,23 @@ public class OrganizacionDetalleView extends FormLayout implements View {
 		binder = new BeanFieldGroup<Organizacion>(Organizacion.class);
 		binder.setItemDataSource(organizacion);
 		
+		// Creamos un FieldFactory personalizado para personalizar los campos 
+		binder.setFieldFactory(new DefaultFieldGroupFieldFactory(){
+
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public <T extends Field> T createField(Class<?> type,
+					Class<T> fieldType) {
+				T campo = super.createField(type, fieldType);
+				// Si es un campo de texto se establece el NullRepresentation
+				if (campo instanceof AbstractTextField) {
+					((AbstractTextField)campo).setNullRepresentation("");
+				}
+				return campo;
+			}
+		});
+		
 		addComponent(binder.buildAndBind("Nombre", "nombre"));
 		addComponent(binder.buildAndBind("Persona de Contacto", "personaContacto"));
 		addComponent(binder.buildAndBind("Email de Contacto", "emailContacto"));
@@ -51,10 +72,13 @@ public class OrganizacionDetalleView extends FormLayout implements View {
 					entityManager.persist(organizacion);
 					transaction.commit();
 					Notification.show("El elemento se ha actualizado correctamente");
+					mostrarListado();
+				} catch (CommitException e) {
+					Notification.show("No se puede guardar\n",
+							"Algún campo no supera las validaciones. Por favor, revise el formulario", Type.WARNING_MESSAGE);
 				} catch (Exception e) {
 					Notification.show("No se ha podido realizar la operación", e.getMessage(), Type.ERROR_MESSAGE);
 				}
-				mostrarListado();
 			}
 
 			
@@ -82,8 +106,8 @@ public class OrganizacionDetalleView extends FormLayout implements View {
 	
 	private void mostrarListado() {
 		Navigator navigator = ((DoplanUI)getUI()).getNavigator();
-		navigator.addView(OrganizacionView.NOMBRE, new OrganizacionView());
-		navigator.navigateTo(OrganizacionView.NOMBRE);
+		navigator.addView(OrganizacionListadoView.NOMBRE, new OrganizacionListadoView());
+		navigator.navigateTo(OrganizacionListadoView.NOMBRE);
 	}
 
 }

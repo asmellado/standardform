@@ -49,5 +49,8 @@
 		
 		<!-- EclipseLink -->
 		<dependency org="org.eclipse.persistence" name="eclipselink" rev="2.5.2-M1"/>
+		
+		<!-- Hibernate Validator -->
+		<dependency org="org.hibernate" name="hibernate-validator" rev="5.0.2.Final"/>
 	</dependencies>
 </ivy-module>
