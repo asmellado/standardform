@@ -12,10 +12,7 @@ import javax.validation.constraints.Size;
 import org.hibernate.validator.constraints.Email;
 
 @Entity
-@NamedQuery(name = Organizacion.QUERY_OBTENER_TODAS, query = "SELECT o FROM Organizacion o")
 public class Organizacion {
-	
-	public static final String QUERY_OBTENER_TODAS = "Organizacion.obtenerTodas";
 	
 	@Id
 	@GeneratedValue(strategy = GenerationType.TABLE)

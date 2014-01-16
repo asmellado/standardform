@@ -10,11 +10,8 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 @Entity
-@NamedQuery(name = Localidad.QUERY_OBTENER_TODAS, query = "SELECT l FROM Localidad l")
 public class Localidad {
 
-	public static final String QUERY_OBTENER_TODAS = "Localidad.obtenerTodas";
-	
 	@Id
 	@GeneratedValue(strategy = GenerationType.TABLE)
 	private int id;

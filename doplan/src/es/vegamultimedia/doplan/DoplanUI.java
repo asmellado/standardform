@@ -59,8 +59,9 @@ public class DoplanUI extends UI {
 
 			@Override
 			public void menuSelected(MenuItem selectedItem) {
-				navigator.addView(OrganizacionListadoView.NOMBRE, new OrganizacionListadoView());
-				navigator.navigateTo(OrganizacionListadoView.NOMBRE);
+				OrganizacionListadoView vista = new OrganizacionListadoView();
+				navigator.addView(vista.getNombre(), vista);
+				navigator.navigateTo(vista.getNombre());
 			}
 			
 		};
