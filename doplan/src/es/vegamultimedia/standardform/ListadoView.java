@@ -1,4 +1,4 @@
-package es.vegamultimedia.doplan.formularioestandar;
+package es.vegamultimedia.standardform;
 
 import java.util.List;
 

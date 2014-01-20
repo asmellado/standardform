@@ -1,9 +1,9 @@
 package es.vegamultimedia.doplan.views;
 
-import es.vegamultimedia.doplan.formularioestandar.Campo;
-import es.vegamultimedia.doplan.formularioestandar.DetalleView;
-import es.vegamultimedia.doplan.formularioestandar.ListadoView;
 import es.vegamultimedia.doplan.model.Localidad;
+import es.vegamultimedia.standardform.Campo;
+import es.vegamultimedia.standardform.DetalleView;
+import es.vegamultimedia.standardform.ListadoView;
 
 public class LocalidadDetalleView extends DetalleView<Localidad> {
 

@@ -1,4 +1,4 @@
-package es.vegamultimedia.doplan.formularioestandar;
+package es.vegamultimedia.standardform;
 
 public class Campo {
 	

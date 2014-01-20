@@ -1,4 +1,4 @@
-package es.vegamultimedia.doplan.formularioestandar;
+package es.vegamultimedia.standardform;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;

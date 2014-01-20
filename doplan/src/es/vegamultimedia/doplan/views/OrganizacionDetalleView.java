@@ -2,9 +2,9 @@ package es.vegamultimedia.doplan.views;
 
 import com.vaadin.navigator.View;
 
-import es.vegamultimedia.doplan.formularioestandar.Campo;
-import es.vegamultimedia.doplan.formularioestandar.DetalleView;
 import es.vegamultimedia.doplan.model.Organizacion;
+import es.vegamultimedia.standardform.Campo;
+import es.vegamultimedia.standardform.DetalleView;
 
 public class OrganizacionDetalleView extends DetalleView<Organizacion> implements View {
 	

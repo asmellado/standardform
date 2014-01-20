@@ -2,8 +2,8 @@ package es.vegamultimedia.doplan.views;
 
 import com.vaadin.navigator.View;
 
-import es.vegamultimedia.doplan.formularioestandar.ListadoView;
 import es.vegamultimedia.doplan.model.Organizacion;
+import es.vegamultimedia.standardform.ListadoView;
 
 public class OrganizacionListadoView extends ListadoView<Organizacion> implements View {
 	
