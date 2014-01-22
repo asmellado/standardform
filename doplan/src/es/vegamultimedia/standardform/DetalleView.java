@@ -15,11 +15,13 @@ import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Field;
 import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 
 import es.vegamultimedia.doplan.DoplanUI;
-import es.vegamultimedia.doplan.model.Organizacion;
+import es.vegamultimedia.standardform.annotations.StandardFormField;
+import es.vegamultimedia.standardform.annotations.StandardForm;
 
 @SuppressWarnings("serial")
 public abstract class DetalleView<T> extends FormLayout implements View {
@@ -56,10 +58,23 @@ public abstract class DetalleView<T> extends FormLayout implements View {
 			}
 		});
 		
-		Campo[] campos = getCampos();
+		// Obtenemos los campos del bean elemento
+		java.lang.reflect.Field[] fields = elemento.getClass().getDeclaredFields();
 		
-		for (Campo campo : campos) {
-			addComponent(binder.buildAndBind(campo.getCaption(), campo.getName()));
+		// Recorremos los campos del bean 
+		for (java.lang.reflect.Field field : fields) {
+			// Obtenemos la anotación DetailField
+			StandardFormField detailField = field.getAnnotation(StandardFormField.class);
+			// Si hay anotación DetailField
+			if (detailField instanceof StandardFormField) {
+				// Añadimos el campo
+				addComponent(binder.buildAndBind(detailField.caption(), field.getName()));
+				// Si hay ayuda
+				if (!detailField.help().isEmpty()) {
+					// Añadimos etiqueta con la ayuda
+					addComponent(new Label(detailField.help()));
+				}
+			}
 		}
 
 		Button botónGuardar = new Button("Guardar");
@@ -107,8 +122,9 @@ public abstract class DetalleView<T> extends FormLayout implements View {
 	private void mostrarListado() {
 		Navigator navigator = ((DoplanUI)getUI()).getNavigator();
 		ListadoView<T> vistaListado = getListadoView();
-		navigator.addView(vistaListado.getNombre(), vistaListado);
-		navigator.navigateTo(vistaListado.getNombre());
+		String name = getBeanClass().getAnnotation(StandardForm.class).listViewName();
+		navigator.addView(name, vistaListado);
+		navigator.navigateTo(name);
 	}
 	
 	/**
@@ -122,18 +138,6 @@ public abstract class DetalleView<T> extends FormLayout implements View {
 	 * @return
 	 */
 	abstract protected T getBeanVacio();
-	
-	/**
-	 * Obtiene el nombre de la vista, que se muestra en la URL
-	 * @return
-	 */
-	abstract public String getNombre();
-	
-	/**
-	 * Retorna un array con los campos del formulario en el orden en el que deben mostrarse
-	 * @return
-	 */
-	abstract protected Campo[] getCampos();
 	
 	/**
 	 * Retorna la View que muestra el detalle

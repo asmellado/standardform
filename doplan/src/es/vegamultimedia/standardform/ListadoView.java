@@ -1,5 +1,8 @@
 package es.vegamultimedia.standardform;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -23,6 +26,7 @@ import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
 import es.vegamultimedia.doplan.DoplanUI;
+import es.vegamultimedia.standardform.annotations.StandardForm;
 
 @SuppressWarnings("serial")
 public abstract class ListadoView<T> extends FormLayout implements View {
@@ -32,31 +36,81 @@ public abstract class ListadoView<T> extends FormLayout implements View {
 
 	@Override
 	public void enter(ViewChangeEvent event) {
+		// Columnas de la tabla
+		List<String> visibledColumns;
+
+		// Obtenemos la anotación ListForm del bean
+		StandardForm listForm = getBeanClass().getAnnotation(StandardForm.class);
+
+		// Si el bean NO tiene anotación ListForm
+		if (!(listForm instanceof StandardForm)) {
+			Notification.show("Faltan metadatos",
+					"El bean " + getBeanClass().getSimpleName() +" no permite formulario de listado",
+					Type.ERROR_MESSAGE);
+			return;
+		}
+		
+		// Layout
 		HorizontalLayout layout = new HorizontalLayout();
 		addComponent(layout);
+		
 		// Tabla
 		tabla = new Table();
-		//tabla.setSelectable(true);
 		tabla.setImmediate(true);
-		tabla.addGeneratedColumn("Editar", new EditarColumnGenerator());
-		tabla.addGeneratedColumn("Eliminar", new EliminarColumnGenerator());
 		
-		// Botón Alta
-		Button botónAlta = new Button("Alta");
-		botónAlta.addClickListener(new ClickListener(){
-
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public void buttonClick(ClickEvent event) {
-				mostrarDetalle(null);
-			}
-			
-		});
-		
-		layout.addComponent(tabla);
-		layout.addComponent(botónAlta);
+		// Obtenemos los elementos
 		cargarDatos();
+		
+		// Si no se especifican las columnas visibles
+		if (listForm.columns()[0].isEmpty()) {
+			// Se muestran todas excepto el id
+			visibledColumns = new ArrayList<String>();
+			// Obtenemos todos los campos del bean
+			Field[] fields = getBeanClass().getDeclaredFields();
+			// Recorremos los campos
+			for (int i=0;i<fields.length;i++) {
+				// Si no es el id
+				if (!fields[i].getName().equals("id")) {
+					// Añadimos el campo a las columnas visibles
+					visibledColumns.add(fields[i].getName());
+				}
+			}
+		}
+		else {
+			// Hacemos visibles las columnas especificadas
+			visibledColumns = new ArrayList<String>(Arrays.asList(listForm.columns()));
+		}
+		// Si se permite edición
+		if (listForm.allowsEditing()) {
+			// Añadimos columna para editar
+			tabla.addGeneratedColumn("Editar", new EditarColumnGenerator());
+			visibledColumns.add("Editar");
+		}
+		// Si se permite eliminar
+		if (listForm.allowsDeleting()) {
+			// Añadimos columna para eliminar
+			tabla.addGeneratedColumn("Eliminar", new EliminarColumnGenerator());
+			visibledColumns.add("Eliminar");
+		}
+		tabla.setVisibleColumns(visibledColumns.toArray());
+		layout.addComponent(tabla);
+	
+		// Si se permite añadir
+		if (listForm.allowsAdding()) {
+			// Botón Alta
+			Button botónAlta = new Button("Alta");
+			botónAlta.addClickListener(new ClickListener(){
+	
+				private static final long serialVersionUID = 1L;
+	
+				@Override
+				public void buttonClick(ClickEvent event) {
+					mostrarDetalle(null);
+				}
+				
+			});
+			layout.addComponent(botónAlta);
+		}
 	}
 	
 	protected void cargarDatos() {
@@ -67,17 +121,18 @@ public abstract class ListadoView<T> extends FormLayout implements View {
 			List<T> listaElementos = query.getResultList();
 			container = new BeanItemContainer<T>(getBeanClass(), listaElementos);
 			tabla.setContainerDataSource(container);
-			tabla.setVisibleColumns(this.getVisibledColumns());
 		} catch (Exception e) {
-			Notification.show("No se pueden obtener los elementos", e.getMessage(), Type.ERROR_MESSAGE);
+			Notification.show("No se pueden obtener los elementos",
+					e.getMessage(), Type.ERROR_MESSAGE);
 		}
 	}
 	
 	protected void mostrarDetalle(T elemento) {
 		Navigator navigator = ((DoplanUI)getUI()).getNavigator();
 		DetalleView<T> vistaDetalle = getDetalleView(elemento);
-		navigator.addView(vistaDetalle.getNombre(), vistaDetalle);
-		navigator.navigateTo(vistaDetalle.getNombre());
+		String name = getBeanClass().getAnnotation(StandardForm.class).detailViewName();
+		navigator.addView(name, vistaDetalle);
+		navigator.navigateTo(name);
 	}
 	
 	/**
@@ -85,19 +140,6 @@ public abstract class ListadoView<T> extends FormLayout implements View {
 	 * @return
 	 */
 	abstract protected Class<T> getBeanClass();
-
-	
-	/**
-	 * Obtiene el nombre de la vista, que se muestra en la URL
-	 * @return
-	 */
-	abstract public String getNombre();
-	
-	/**
-	 * Retorna un array con los nombres de las columnas de la tabla
-	 * @return
-	 */
-	abstract protected Object[] getVisibledColumns();
 	
 	/**
 	 * Retorna la View que muestra el detalle

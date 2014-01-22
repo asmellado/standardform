@@ -5,13 +5,17 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.NamedQuery;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import org.hibernate.validator.constraints.Email;
 
+import es.vegamultimedia.standardform.annotations.StandardFormField;
+import es.vegamultimedia.standardform.annotations.StandardForm;
+
 @Entity
+@StandardForm(listViewName = "organizaciones", detailViewName = "organizacion",
+	columns = {"nombre", "personaContacto", "emailContacto"})
 public class Organizacion {
 	
 	@Id
@@ -23,17 +27,22 @@ public class Organizacion {
 	@Basic(optional=false)
 	@NotNull
 	@Size(min=1,max=100)
+	@StandardFormField(caption = "Nombre")
 	private String nombre;
 	
 	@Basic(optional=false)
 	@NotNull
 	@Size(min=1,max=100)
+	@StandardFormField(caption = "Persona de contacto",
+		help = "Principal persona de contacto dentro de la organización")
 	private String personaContacto;
 	
 	@Basic(optional=false)
 	@NotNull
 	@Size(min=1,max=100)
 	@Email
+	@StandardFormField(caption = "E-mail de contacto",
+		help = "E-mail de la persona de contacto")
 	private String emailContacto;
 	
 	public int getId() {

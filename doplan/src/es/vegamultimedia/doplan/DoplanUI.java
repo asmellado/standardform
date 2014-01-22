@@ -22,9 +22,12 @@ import com.vaadin.ui.Tree;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
+import es.vegamultimedia.doplan.model.Localidad;
+import es.vegamultimedia.doplan.model.Organizacion;
 import es.vegamultimedia.doplan.views.InicioView;
 import es.vegamultimedia.doplan.views.LocalidadListadoView;
 import es.vegamultimedia.doplan.views.OrganizacionListadoView;
+import es.vegamultimedia.standardform.annotations.StandardForm;
 
 @Theme("doplan")
 public class DoplanUI extends UI {
@@ -89,9 +92,11 @@ public class DoplanUI extends UI {
 		@SuppressWarnings("rawtypes")
 		final MenuItemDoplan[][] menuItem = new MenuItemDoplan[][]{
 			new MenuItemDoplan[]{
-					new MenuItemDoplan<View>("Administración", null, null),
-					new MenuItemDoplan<OrganizacionListadoView>("Organizaciones", OrganizacionListadoView.class, "organizaciones"),
-					new MenuItemDoplan<LocalidadListadoView>("Localidades", LocalidadListadoView.class, "localidades")
+					new MenuItemDoplan<Object, View>("Administración", null, null),
+					new MenuItemDoplan<Organizacion, OrganizacionListadoView>(
+							"Organizaciones", Organizacion.class, OrganizacionListadoView.class),
+					new MenuItemDoplan<Localidad, LocalidadListadoView>(
+							"Localidades", Localidad.class, LocalidadListadoView.class)
 			}
 		};
 		Tree tree = new Tree();
@@ -125,10 +130,13 @@ public class DoplanUI extends UI {
 						if (elementoSeleccionadoId.equals(menuItem[i][j].getCaption())) {
 							try {
 								@SuppressWarnings("unchecked")
-								Class<View> classView = menuItem[i][j].getViewClass();
+								Class<View> classView = (Class<View>)menuItem[i][j].getViewClass();
+								@SuppressWarnings("unchecked")
+								Class<Object> classBean = (Class<Object>)menuItem[i][j].getBeanClass();
 								View vista = classView.newInstance();
-								navigator.addView( menuItem[i][j].getName(), vista);
-								navigator.navigateTo( menuItem[i][j].getName());
+								String name = classBean.getAnnotation(StandardForm.class).listViewName();
+								navigator.addView(name, vista);
+								navigator.navigateTo(name);
 							} catch (Exception e) {
 								Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
 							}

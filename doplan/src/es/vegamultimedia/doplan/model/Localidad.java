@@ -5,11 +5,14 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.NamedQuery;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import es.vegamultimedia.standardform.annotations.StandardFormField;
+import es.vegamultimedia.standardform.annotations.StandardForm;
+
 @Entity
+@StandardForm(listViewName = "localidades", detailViewName = "localidad")
 public class Localidad {
 
 	@Id
@@ -19,6 +22,7 @@ public class Localidad {
 	@Basic(optional=false)
 	@NotNull
 	@Size(min=1,max=100)
+	@StandardFormField(caption = "Nombre")
 	private String nombre;
 	
 	public int getId() {

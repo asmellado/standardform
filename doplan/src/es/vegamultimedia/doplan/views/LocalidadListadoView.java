@@ -14,16 +14,6 @@ public class LocalidadListadoView extends ListadoView<Localidad> {
 	}
 
 	@Override
-	public String getNombre() {
-		return "localidad";
-	}
-
-	@Override
-	protected Object[] getVisibledColumns() {
-		return new Object[]{"nombre", "Editar", "Eliminar"};
-	}
-
-	@Override
 	protected DetalleView<Localidad> getDetalleView(Localidad elemento) {
 		return new LocalidadDetalleView(elemento);
 	}

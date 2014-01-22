@@ -1,16 +1,20 @@
 package es.vegamultimedia.doplan;
 
+import java.io.Serializable;
+
 import com.vaadin.navigator.View;
 
-public class MenuItemDoplan<T extends View> {
-	private String caption;
-	private Class<T> viewClass;
-	private String name;
+public class MenuItemDoplan<B, V extends View> implements Serializable {
+	private static final long serialVersionUID = -7124725317154698242L;
 	
-	public MenuItemDoplan(String caption, Class<T> viewClass, String name) {
+	private String caption;
+	private Class<B> beanClass;
+	private Class<V> viewClass;
+	
+	public MenuItemDoplan(String caption, Class<B> beanClass, Class<V> viewClass) {
 		setCaption(caption);
+		setBeanClass(beanClass);
 		setViewClass(viewClass);
-		setName(name);
 	}
 	
 	public String getCaption() {
@@ -19,18 +23,16 @@ public class MenuItemDoplan<T extends View> {
 	public void setCaption(String caption) {
 		this.caption = caption;
 	}
-	public Class<T> getViewClass() {
+	public Class<B> getBeanClass() {
+		return beanClass;
+	}
+	public void setBeanClass(Class<B> beanClass) {
+		this.beanClass = beanClass;
+	}
+	public Class<V> getViewClass() {
 		return viewClass;
 	}
-	public void setViewClass(Class<T> viewClass) {
+	public void setViewClass(Class<V> viewClass) {
 		this.viewClass = viewClass;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
 	}
 }

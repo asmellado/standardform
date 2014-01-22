@@ -15,17 +15,6 @@ public class OrganizacionListadoView extends ListadoView<Organizacion> implement
 	}
 
 	@Override
-	public String getNombre() {
-		return "organizaciones";
-	}
-
-	@Override
-	protected Object[] getVisibledColumns() {
-		return new Object[]{"nombre", "localidad", "personaContacto", "emailContacto",
-				"Editar", "Eliminar"};
-	}
-
-	@Override
 	protected OrganizacionDetalleView getDetalleView(Organizacion elemento) {
 		return new OrganizacionDetalleView(elemento);
 	}

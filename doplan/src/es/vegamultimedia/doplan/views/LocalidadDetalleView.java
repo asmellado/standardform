@@ -1,7 +1,6 @@
 package es.vegamultimedia.doplan.views;
 
 import es.vegamultimedia.doplan.model.Localidad;
-import es.vegamultimedia.standardform.Campo;
 import es.vegamultimedia.standardform.DetalleView;
 import es.vegamultimedia.standardform.ListadoView;
 
@@ -21,17 +20,6 @@ public class LocalidadDetalleView extends DetalleView<Localidad> {
 	@Override
 	protected Localidad getBeanVacio() {
 		return new Localidad();
-	}
-
-	@Override
-	public String getNombre() {
-		return "localidad";
-	}
-
-	@Override
-	protected Campo[] getCampos() {
-		return new Campo[]{
-				new Campo("Nombre", "nombre")};
 	}
 
 	@Override
