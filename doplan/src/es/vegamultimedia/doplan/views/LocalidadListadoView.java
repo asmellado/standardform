@@ -1,10 +1,10 @@
 package es.vegamultimedia.doplan.views;
 
 import es.vegamultimedia.doplan.model.Localidad;
-import es.vegamultimedia.standardform.DetalleView;
-import es.vegamultimedia.standardform.ListadoView;
+import es.vegamultimedia.standardform.DetailView;
+import es.vegamultimedia.standardform.ListView;
 
-public class LocalidadListadoView extends ListadoView<Localidad> {
+public class LocalidadListadoView extends ListView<Localidad> {
 
 	private static final long serialVersionUID = 6572100088833480615L;
 
@@ -14,7 +14,7 @@ public class LocalidadListadoView extends ListadoView<Localidad> {
 	}
 
 	@Override
-	protected DetalleView<Localidad> getDetalleView(Localidad elemento) {
+	protected DetailView<Localidad> getDetalleView(Localidad elemento) {
 		return new LocalidadDetalleView(elemento);
 	}
 

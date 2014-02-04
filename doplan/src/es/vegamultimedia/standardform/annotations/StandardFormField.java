@@ -14,6 +14,12 @@ import java.lang.annotation.Target;
  *
  */
 public @interface StandardFormField {
+	enum Type {TEXT_FIELD, TEXT_AREA, COMBO_BOX}
+	/**
+	 * Field type
+	 * @return
+	 */
+	public Type type();
 	/**
 	 * Caption showed in the field in the standard form
 	 * @return

@@ -13,7 +13,7 @@ import es.vegamultimedia.standardform.annotations.StandardForm;
 
 @Entity
 @StandardForm(listViewName = "localidades", detailViewName = "localidad")
-public class Localidad {
+public class Localidad implements Bean {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.TABLE)
@@ -22,12 +22,14 @@ public class Localidad {
 	@Basic(optional=false)
 	@NotNull
 	@Size(min=1,max=100)
-	@StandardFormField(caption = "Nombre")
+	@StandardFormField(type = StandardFormField.Type.TEXT_FIELD, caption = "Nombre")
 	private String nombre;
 	
+	@Override
 	public int getId() {
 		return id;
 	}
+	@Override
 	public void setId(int id) {
 		this.id = id;
 	}
@@ -37,4 +39,15 @@ public class Localidad {
 	public void setNombre(String nombre) {
 		this.nombre = nombre;
 	}
+	@Override
+	public int hashCode() {
+		return id;
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if (obj==null)
+			return false;
+		return (id==((Localidad)obj).getId());
+	}
+	
 }

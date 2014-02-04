@@ -26,10 +26,11 @@ import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
 import es.vegamultimedia.doplan.DoplanUI;
+import es.vegamultimedia.doplan.model.Bean;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 
 @SuppressWarnings("serial")
-public abstract class ListadoView<T> extends FormLayout implements View {
+public abstract class ListView<T extends Bean> extends FormLayout implements View {
 	
 	protected BeanItemContainer<T> container;
 	protected Table tabla;
@@ -129,7 +130,7 @@ public abstract class ListadoView<T> extends FormLayout implements View {
 	
 	protected void mostrarDetalle(T elemento) {
 		Navigator navigator = ((DoplanUI)getUI()).getNavigator();
-		DetalleView<T> vistaDetalle = getDetalleView(elemento);
+		DetailView<T> vistaDetalle = getDetalleView(elemento);
 		String name = getBeanClass().getAnnotation(StandardForm.class).detailViewName();
 		navigator.addView(name, vistaDetalle);
 		navigator.navigateTo(name);
@@ -145,7 +146,7 @@ public abstract class ListadoView<T> extends FormLayout implements View {
 	 * Retorna la View que muestra el detalle
 	 * @return
 	 */
-	abstract protected DetalleView<T> getDetalleView(T elemento);
+	abstract protected DetailView<T> getDetalleView(T elemento);
 	
 	/*
 	 * Clase para la columna Editar 
@@ -196,15 +197,18 @@ public abstract class ListadoView<T> extends FormLayout implements View {
 
 						public void onClose(ConfirmDialog dialog) {
 			                if (dialog.isConfirmed()) {
-			                	T elementoSeleccionada = container.getItem(itemId).getBean();
+			                	T elementoSeleccionado = container.getItem(itemId).getBean();
 			                	try {
 				                	EntityManager entityManager = ((DoplanUI)getUI()).getEntityManager();
 				                	EntityTransaction transaction = entityManager.getTransaction();
 									transaction.begin();
-				                	entityManager.remove(elementoSeleccionada);
+//									entityManager.merge(elementoSeleccionado);
+				                	entityManager.remove(elementoSeleccionado);
 				                	transaction.commit();
 				                	Notification.show("El elemento se ha eliminado correctamente");
-				                	cargarDatos();
+				                	// Volvemos a cargar la tabla con los elementos
+				                	removeAllComponents();
+				                	enter(null);
 			                	} catch (Exception e) {
 			    					Notification.show("No se ha podido eliminar el elemento", e.getMessage(), Type.ERROR_MESSAGE);
 			    				}			                	

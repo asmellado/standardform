@@ -3,9 +3,9 @@ package es.vegamultimedia.doplan.views;
 import com.vaadin.navigator.View;
 
 import es.vegamultimedia.doplan.model.Organizacion;
-import es.vegamultimedia.standardform.DetalleView;
+import es.vegamultimedia.standardform.DetailView;
 
-public class OrganizacionDetalleView extends DetalleView<Organizacion> implements View {
+public class OrganizacionDetalleView extends DetailView<Organizacion> implements View {
 	
 	private static final long serialVersionUID = -4207660147800182949L;
 

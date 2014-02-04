@@ -16,24 +16,26 @@ import es.vegamultimedia.standardform.annotations.StandardForm;
 @Entity
 @StandardForm(listViewName = "organizaciones", detailViewName = "organizacion",
 	columns = {"nombre", "personaContacto", "emailContacto"})
-public class Organizacion {
+public class Organizacion implements Bean {
 	
 	@Id
 	@GeneratedValue(strategy = GenerationType.TABLE)
 	private int id;
 
-	private Localidad localidad;
+	@NotNull
+	@StandardFormField(type = StandardFormField.Type.COMBO_BOX, caption = "Localidad")
+	public Localidad localidad;
 	
 	@Basic(optional=false)
 	@NotNull
 	@Size(min=1,max=100)
-	@StandardFormField(caption = "Nombre")
+	@StandardFormField(type = StandardFormField.Type.TEXT_FIELD, caption = "Nombre")
 	private String nombre;
 	
 	@Basic(optional=false)
 	@NotNull
 	@Size(min=1,max=100)
-	@StandardFormField(caption = "Persona de contacto",
+	@StandardFormField(type = StandardFormField.Type.TEXT_FIELD, caption = "Persona de contacto",
 		help = "Principal persona de contacto dentro de la organización")
 	private String personaContacto;
 	
@@ -41,20 +43,22 @@ public class Organizacion {
 	@NotNull
 	@Size(min=1,max=100)
 	@Email
-	@StandardFormField(caption = "E-mail de contacto",
+	@StandardFormField(type = StandardFormField.Type.TEXT_FIELD, caption = "E-mail de contacto",
 		help = "E-mail de la persona de contacto")
 	private String emailContacto;
 	
+	@Override
 	public int getId() {
 		return id;
 	}
+	@Override
 	public void setId(int id) {
 		this.id = id;
 	}
 	public Localidad getLocalidad() {
 		return localidad;
 	}
-	public void setLocalidadId(Localidad localidad) {
+	public void setLocalidad(Localidad localidad) {
 		this.localidad = localidad;
 	}
 
