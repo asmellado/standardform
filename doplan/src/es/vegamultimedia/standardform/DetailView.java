@@ -7,8 +7,8 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Query;
+import javax.validation.constraints.NotNull;
 
-import com.vaadin.data.Item;
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItemContainer;
@@ -198,27 +198,29 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 	// TODO COMBO BOXES NO INCLUIDAS EN EL BINDER 
 	// Dado que los combo boxes no están incluídos en el binder, tenemos que hacer commit a mano
 	private void commitComboBoxes() throws NoSuchMethodException,
-			IllegalAccessException, InvocationTargetException {
+			IllegalAccessException, InvocationTargetException, CommitException {
 		for (int i=0;i<fields.length;i++) {
 			// Obtenemos la anotación DetailField
 			StandardFormField detailField = fields[i].getAnnotation(StandardFormField.class);
-			// Si hay anotación DetailField
-			if (detailField instanceof StandardFormField) {
-				// Comprobamos el tipo de campo
-				if (detailField.type() == StandardFormField.Type.COMBO_BOX) {
-					// Obtenemos el nombre del campo actual
-					String nombreCampo = fields[i].getName();
-					// Ponemos la primera letra en mayúscula
-					nombreCampo = nombreCampo.substring(0, 1).toUpperCase() + nombreCampo.substring(1);
-					// Obtenemos el método "set" del campo actual
-					Method getMethod = elemento.getClass().getDeclaredMethod("set"+nombreCampo, fields[i].getType());
-					// Obtenemos el elemento seleccionado en el combo box
-					Object elementoSeleccionadoCombo = ((ComboBox)formFields[i]).getValue();
-					// Obtenemos el bean del binder
-					T binderBean = binder.getItemDataSource().getBean();
-					// Asignamos el bean del binder el elemento seleccionado en el combo box
-					getMethod.invoke(binderBean, elementoSeleccionadoCombo);
+			// Si el tipo de campo es ComboBox
+			if (detailField instanceof StandardFormField && detailField.type() == StandardFormField.Type.COMBO_BOX) {
+				// Obtenemos el nombre del campo actual
+				String nombreCampo = fields[i].getName();
+				// Ponemos la primera letra en mayúscula
+				nombreCampo = nombreCampo.substring(0, 1).toUpperCase() + nombreCampo.substring(1);
+				// Obtenemos el método "set" del campo actual
+				Method getMethod = elemento.getClass().getDeclaredMethod("set"+nombreCampo, fields[i].getType());
+				// Obtenemos el elemento seleccionado en el combo box
+				Object elementoSeleccionadoCombo = ((ComboBox)formFields[i]).getValue();
+				// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
+				if (fields[i].getAnnotation(NotNull.class) instanceof NotNull
+						&& elementoSeleccionadoCombo==null) {
+					throw new CommitException("El campo es obligatorio");
 				}
+				// Obtenemos el bean del binder
+				T binderBean = binder.getItemDataSource().getBean();
+				// Asignamos el bean del binder el elemento seleccionado en el combo box
+				getMethod.invoke(binderBean, elementoSeleccionadoCombo);
 			}
 		}
 	}
