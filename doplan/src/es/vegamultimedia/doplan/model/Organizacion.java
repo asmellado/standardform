@@ -23,19 +23,22 @@ public class Organizacion implements Bean {
 	private int id;
 
 	@NotNull
-	@StandardFormField(type = StandardFormField.Type.COMBO_BOX, caption = "Localidad")
-	public Localidad localidad;
+	@StandardFormField(type = StandardFormField.Type.COMBO_BOX, caption = "Localidad 1")
+	public Localidad localidad1;
+	
+	@NotNull
+	@StandardFormField(type = StandardFormField.Type.OPTION_GROUP, caption = "Localidad 2")
+	public Localidad localidad2;
 	
 	@Basic(optional=false)
 	@NotNull
-	@Size(min=1,max=100)
+	@Size(min=1,max=20)
 	@StandardFormField(type = StandardFormField.Type.TEXT_FIELD, caption = "Nombre")
 	private String nombre;
 	
 	@Basic(optional=false)
 	@NotNull
-	@Size(min=1,max=100)
-	@StandardFormField(type = StandardFormField.Type.TEXT_FIELD, caption = "Persona de contacto",
+	@StandardFormField(type = StandardFormField.Type.TEXT_AREA, caption = "Persona de contacto",
 		help = "Principal persona de contacto dentro de la organización")
 	private String personaContacto;
 	
@@ -47,6 +50,12 @@ public class Organizacion implements Bean {
 		help = "E-mail de la persona de contacto")
 	private String emailContacto;
 	
+	@Basic(optional=false)
+	@NotNull
+	@StandardFormField(type = StandardFormField.Type.CHECK_BOX, caption = "Interesado",
+		help = "Indica si está interesado")
+	private boolean interesado;
+	
 	@Override
 	public int getId() {
 		return id;
@@ -55,11 +64,11 @@ public class Organizacion implements Bean {
 	public void setId(int id) {
 		this.id = id;
 	}
-	public Localidad getLocalidad() {
-		return localidad;
+	public Localidad getLocalidad1() {
+		return localidad1;
 	}
-	public void setLocalidad(Localidad localidad) {
-		this.localidad = localidad;
+	public void setLocalidad1(Localidad localidad) {
+		this.localidad1 = localidad;
 	}
 
 	public String getNombre() {
@@ -79,5 +88,17 @@ public class Organizacion implements Bean {
 	}
 	public void setEmailContacto(String emailContacto) {
 		this.emailContacto = emailContacto;
+	}
+	public boolean isInteresado() {
+		return interesado;
+	}
+	public void setInteresado(boolean interesado) {
+		this.interesado = interesado;
+	}
+	public Localidad getLocalidad2() {
+		return localidad2;
+	}
+	public void setLocalidad2(Localidad localidad2) {
+		this.localidad2 = localidad2;
 	}
 }

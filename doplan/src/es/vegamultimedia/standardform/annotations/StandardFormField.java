@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
  *
  */
 public @interface StandardFormField {
-	enum Type {TEXT_FIELD, TEXT_AREA, COMBO_BOX}
+	enum Type {TEXT_FIELD, TEXT_AREA, COMBO_BOX, CHECK_BOX, OPTION_GROUP}
 	/**
 	 * Field type
 	 * @return
