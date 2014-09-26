@@ -42,15 +42,15 @@
 			rev="&vaadin.version;" conf="widgetset-compile->default" />
 		
 		<!-- ConfirmDialog Add-on -->	
-		<dependency org="org.vaadin.addon" name="confirmdialog" rev="2.0.4" />
+		<dependency org="org.vaadin.addon" name="confirmdialog" rev="2.1.1" />
 		
 		<!-- Connector MySQL -->
-		<dependency org="mysql" name="mysql-connector-java" rev="5.1.6"/>
+		<dependency org="mysql" name="mysql-connector-java" rev="5.1.33"/>
 		
 		<!-- EclipseLink -->
 		<dependency org="org.eclipse.persistence" name="eclipselink" rev="2.5.2-M1"/>
 		
 		<!-- Hibernate Validator -->
-		<dependency org="org.hibernate" name="hibernate-validator" rev="5.0.2.Final"/>
+		<dependency org="org.hibernate" name="hibernate-validator" rev="5.1.2.Final"/>
 	</dependencies>
 </ivy-module>
