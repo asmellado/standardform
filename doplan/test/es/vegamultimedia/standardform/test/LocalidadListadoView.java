@@ -1,6 +1,5 @@
-package es.vegamultimedia.doplan.views;
+package es.vegamultimedia.standardform.test;
 
-import es.vegamultimedia.doplan.model.Localidad;
 import es.vegamultimedia.standardform.DetailView;
 import es.vegamultimedia.standardform.ListView;
 

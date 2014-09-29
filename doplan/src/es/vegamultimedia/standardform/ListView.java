@@ -25,9 +25,9 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
-import es.vegamultimedia.doplan.DoplanUI;
 import es.vegamultimedia.doplan.model.Bean;
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.test.DoplanUI;
 
 @SuppressWarnings("serial")
 public abstract class ListView<T extends Bean> extends FormLayout implements View {

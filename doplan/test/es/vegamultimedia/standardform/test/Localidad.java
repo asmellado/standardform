@@ -1,4 +1,4 @@
-package es.vegamultimedia.doplan.model;
+package es.vegamultimedia.standardform.test;
 
 import javax.persistence.Basic;
 import javax.persistence.Entity;
@@ -8,6 +8,7 @@ import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import es.vegamultimedia.doplan.model.Bean;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 

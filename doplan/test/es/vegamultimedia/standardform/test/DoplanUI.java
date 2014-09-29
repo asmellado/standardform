@@ -1,4 +1,4 @@
-package es.vegamultimedia.doplan;
+package es.vegamultimedia.standardform.test;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -22,11 +22,7 @@ import com.vaadin.ui.Tree;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
-import es.vegamultimedia.doplan.model.Localidad;
-import es.vegamultimedia.doplan.model.Organizacion;
 import es.vegamultimedia.doplan.views.InicioView;
-import es.vegamultimedia.doplan.views.LocalidadListadoView;
-import es.vegamultimedia.doplan.views.OrganizacionListadoView;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 
 @Theme("doplan")
@@ -81,7 +77,7 @@ public class DoplanUI extends UI {
 
 	public EntityManager getEntityManager() throws IllegalStateException {
 		if (entityManager == null) {
-			EntityManagerFactory emf = Persistence.createEntityManagerFactory("doplan");
+			EntityManagerFactory emf = Persistence.createEntityManagerFactory("standardform");
 			entityManager = emf.createEntityManager();
 		}
 		return entityManager;

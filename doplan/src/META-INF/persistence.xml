@@ -2,14 +2,14 @@
 <persistence xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
   version="2.0" xmlns="http://java.sun.com/xml/ns/persistence">
-  <persistence-unit name="doplan" transaction-type="RESOURCE_LOCAL">
-    <class>es.vegamultimedia.doplan.model.Organizacion</class>
-    <class>es.vegamultimedia.doplan.model.Localidad</class>
+  <persistence-unit name="standardform" transaction-type="RESOURCE_LOCAL">
+    <class>es.vegamultimedia.standardform.test.Organizacion</class>
+    <class>es.vegamultimedia.standardform.test.Localidad</class>
     
     <properties>
       <property name="javax.persistence.jdbc.driver" value="com.mysql.jdbc.Driver" />
       <property name="javax.persistence.jdbc.url"
-        value="jdbc:mysql://localhost:3306/doplan" />
+        value="jdbc:mysql://localhost:3306/standardform" />
       <property name="javax.persistence.jdbc.user" value="root" />
       <property name="javax.persistence.jdbc.password" value="kaizen" />
 

@@ -33,10 +33,10 @@ import com.vaadin.ui.OptionGroup;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
-import es.vegamultimedia.doplan.DoplanUI;
 import es.vegamultimedia.doplan.model.Bean;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
+import es.vegamultimedia.standardform.test.DoplanUI;
 
 @SuppressWarnings("serial")
 public abstract class DetailView<T extends Bean> extends FormLayout implements View {

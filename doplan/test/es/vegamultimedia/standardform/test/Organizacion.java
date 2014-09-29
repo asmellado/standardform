@@ -1,4 +1,4 @@
-package es.vegamultimedia.doplan.model;
+package es.vegamultimedia.standardform.test;
 
 import javax.persistence.Basic;
 import javax.persistence.Entity;
@@ -10,6 +10,7 @@ import javax.validation.constraints.Size;
 
 import org.hibernate.validator.constraints.Email;
 
+import es.vegamultimedia.doplan.model.Bean;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 

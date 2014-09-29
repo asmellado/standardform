@@ -1,4 +1,4 @@
-package es.vegamultimedia.doplan;
+package es.vegamultimedia.standardform.test;
 
 import java.io.Serializable;
 

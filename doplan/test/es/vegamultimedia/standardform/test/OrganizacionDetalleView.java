@@ -1,8 +1,7 @@
-package es.vegamultimedia.doplan.views;
+package es.vegamultimedia.standardform.test;
 
 import com.vaadin.navigator.View;
 
-import es.vegamultimedia.doplan.model.Organizacion;
 import es.vegamultimedia.standardform.DetailView;
 
 public class OrganizacionDetalleView extends DetailView<Organizacion> implements View {
