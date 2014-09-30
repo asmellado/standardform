@@ -1,4 +1,4 @@
-package es.vegamultimedia.doplan.views;
+package es.vegamultimedia.standardform.test;
 
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;

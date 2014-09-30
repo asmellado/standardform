@@ -1,4 +1,4 @@
-package es.vegamultimedia.doplan.model;
+package es.vegamultimedia.standardform.model;
 
 public interface Bean {
 	public int getId();

@@ -2,7 +2,7 @@ package es.vegamultimedia.standardform.test;
 
 import com.vaadin.navigator.View;
 
-import es.vegamultimedia.standardform.DetailView;
+import es.vegamultimedia.standardform.views.DetailView;
 
 public class OrganizacionDetalleView extends DetailView<Organizacion> implements View {
 	

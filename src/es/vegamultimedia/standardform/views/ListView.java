@@ -1,4 +1,4 @@
-package es.vegamultimedia.standardform;
+package es.vegamultimedia.standardform.views;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -25,8 +25,8 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
-import es.vegamultimedia.doplan.model.Bean;
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.test.DoplanUI;
 
 @SuppressWarnings("serial")

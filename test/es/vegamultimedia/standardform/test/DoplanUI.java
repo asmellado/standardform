@@ -22,7 +22,6 @@ import com.vaadin.ui.Tree;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
-import es.vegamultimedia.doplan.views.InicioView;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 
 @Theme("doplan")

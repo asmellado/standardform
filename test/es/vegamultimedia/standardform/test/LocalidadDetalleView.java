@@ -1,7 +1,7 @@
 package es.vegamultimedia.standardform.test;
 
-import es.vegamultimedia.standardform.DetailView;
-import es.vegamultimedia.standardform.ListView;
+import es.vegamultimedia.standardform.views.DetailView;
+import es.vegamultimedia.standardform.views.ListView;
 
 public class LocalidadDetalleView extends DetailView<Localidad> {
 

@@ -10,9 +10,9 @@ import javax.validation.constraints.Size;
 
 import org.hibernate.validator.constraints.Email;
 
-import es.vegamultimedia.doplan.model.Bean;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.model.Bean;
 
 @Entity
 @StandardForm(listViewName = "organizaciones", detailViewName = "organizacion",

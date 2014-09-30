@@ -1,4 +1,4 @@
-package es.vegamultimedia.standardform;
+package es.vegamultimedia.standardform.views;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -33,9 +33,9 @@ import com.vaadin.ui.OptionGroup;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
-import es.vegamultimedia.doplan.model.Bean;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
+import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.test.DoplanUI;
 
 @SuppressWarnings("serial")
