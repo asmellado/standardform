@@ -1,5 +1,7 @@
 package es.vegamultimedia.standardform.test;
 
+import java.lang.reflect.Constructor;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -23,6 +25,7 @@ import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.views.ListView;
 
 @Theme("standardform")
 public class StandardFormUI extends UI {
@@ -114,21 +117,34 @@ public class StandardFormUI extends UI {
 		tree.addItemClickListener(new ItemClickListener() {
 			private static final long serialVersionUID = -837890934570017036L;
 
+			// Método llamado cuando se pulsa un elemento del menú
 			@Override
 			public void itemClick(ItemClickEvent event) {
 				String elementoSeleccionadoId = (String) event.getItemId();
+				// Recorremos todo el menú para localizar el elemento seleccionado
 				for (int i=0;i<menuItem.length;i++) {
+					// Si es un elemento padre (de primer nivel del árbol)
 					if (elementoSeleccionadoId.equals(menuItem[i][0].getCaption())) {
+						// No hacemos nada
 						return;
 					}
+					// Recorremos los elementos hijos (segundo nivel del árbol) 
 					for (int j=1;j<menuItem[i].length;j++) {
+						// Si encontramos el elemento
 						if (elementoSeleccionadoId.equals(menuItem[i][j].getCaption())) {
+							// Obtenemos los datos del elemento para navegar hasta la vista de listado
 							try {
+								// Obtenemos la clase de la ListView
 								@SuppressWarnings("unchecked")
 								Class<View> classView = (Class<View>)menuItem[i][j].getViewClass();
+								// Obtenemos la clase del bean
 								@SuppressWarnings("unchecked")
 								Class<Object> classBean = (Class<Object>)menuItem[i][j].getBeanClass();
-								View vista = classView.newInstance();
+								// Obtenemos el constructor de la ListView
+								Constructor constructor = classView.getConstructor(EntityManager.class, Navigator.class);
+								// Creamos un objeto de la vista
+								@SuppressWarnings("rawtypes")
+								View vista = (ListView)constructor.newInstance(getEntityManager(), getNavigator());
 								String name = classBean.getAnnotation(StandardForm.class).listViewName();
 								navigator.addView(name, vista);
 								navigator.navigateTo(name);

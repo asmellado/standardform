@@ -1,15 +1,20 @@
 package es.vegamultimedia.standardform.test;
 
+import javax.persistence.EntityManager;
+
+import com.vaadin.navigator.Navigator;
+
 import es.vegamultimedia.standardform.views.DetailView;
 import es.vegamultimedia.standardform.views.ListView;
 
 public class LocalidadDetalleView extends DetailView<Localidad> {
 
-	private static final long serialVersionUID = 2993841191220612788L;
-
-	public LocalidadDetalleView(Localidad elementoActual) {
-		super(elementoActual);
+	public LocalidadDetalleView(EntityManager entityManager,
+			Navigator navigator, Localidad elementoActual) {
+		super(entityManager, navigator, elementoActual);
 	}
+
+	private static final long serialVersionUID = 2993841191220612788L;
 
 	@Override
 	protected Class<Localidad> getBeanClass() {
@@ -23,6 +28,6 @@ public class LocalidadDetalleView extends DetailView<Localidad> {
 
 	@Override
 	protected ListView<Localidad> getListadoView() {
-		return new LocalidadListadoView();
+		return new LocalidadListadoView(entityManager, navigator);
 	}
 }

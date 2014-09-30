@@ -32,8 +32,22 @@ import es.vegamultimedia.standardform.test.StandardFormUI;
 @SuppressWarnings("serial")
 public abstract class ListView<T extends Bean> extends FormLayout implements View {
 	
+	// EntityManager
+	protected EntityManager entityManager;
+	
+	// Navigator
+	protected Navigator navigator;
+	
+	// Container del formulario
 	protected BeanItemContainer<T> container;
+	
+	// Tabla del formulario
 	protected Table tabla;
+	
+	public ListView(EntityManager entityManager, Navigator navigator) {
+		this.entityManager = entityManager;
+		this.navigator = navigator;
+	}
 
 	@Override
 	public void enter(ViewChangeEvent event) {
