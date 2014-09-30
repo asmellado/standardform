@@ -4,14 +4,14 @@ import java.io.Serializable;
 
 import com.vaadin.navigator.View;
 
-public class MenuItemDoplan<B, V extends View> implements Serializable {
+public class MenuItemStandardForm<B, V extends View> implements Serializable {
 	private static final long serialVersionUID = -7124725317154698242L;
 	
 	private String caption;
 	private Class<B> beanClass;
 	private Class<V> viewClass;
 	
-	public MenuItemDoplan(String caption, Class<B> beanClass, Class<V> viewClass) {
+	public MenuItemStandardForm(String caption, Class<B> beanClass, Class<V> viewClass) {
 		setCaption(caption);
 		setBeanClass(beanClass);
 		setViewClass(viewClass);

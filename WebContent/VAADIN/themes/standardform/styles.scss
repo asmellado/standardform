@@ -1,9 +1,9 @@
 @import "addons.scss";
-@import "doplan.scss";
+@import "standardform.scss";
 
 /* This file prefixes all rules with the theme name to avoid causing conflicts with other themes. */
 /* The actual styles should be defined in doplan.scss */
-.doplan {
+.standardform {
   @include addons;
-  @include doplan;
+  @include standardform;
 }

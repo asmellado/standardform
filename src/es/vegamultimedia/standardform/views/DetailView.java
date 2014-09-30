@@ -36,7 +36,7 @@ import com.vaadin.ui.TextField;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
-import es.vegamultimedia.standardform.test.DoplanUI;
+import es.vegamultimedia.standardform.test.StandardFormUI;
 
 @SuppressWarnings("serial")
 public abstract class DetailView<T extends Bean> extends FormLayout implements View {
@@ -159,7 +159,7 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 	}
 
 	private void mostrarListado() {
-		Navigator navigator = ((DoplanUI)getUI()).getNavigator();
+		Navigator navigator = ((StandardFormUI)getUI()).getNavigator();
 		ListView<T> vistaListado = getListadoView();
 		String name = getBeanClass().getAnnotation(StandardForm.class).listViewName();
 		navigator.addView(name, vistaListado);
@@ -175,7 +175,7 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 			binder.commit();
 			// Almacenamos la entidad en base de datos de forma persistente
 			elemento = binder.getItemDataSource().getBean();
-			EntityManager entityManager = ((DoplanUI)getUI()).getEntityManager();
+			EntityManager entityManager = ((StandardFormUI)getUI()).getEntityManager();
 			transaction = entityManager.getTransaction();
 			transaction.begin();
 			entityManager.persist(elemento);
@@ -207,7 +207,7 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 		}
 		AbstractSelect campoSelect;
 		// Obtenemos todos los elementos del bean anidado
-		EntityManager entityManager = ((DoplanUI)getUI()).getEntityManager();
+		EntityManager entityManager = ((StandardFormUI)getUI()).getEntityManager();
 		// Obtenemos el Bean anidado
 		Class<Object> claseBeanAnidado = (Class<Object>)field.getType();
 		// Obtenemos los elementos del bean anidado

@@ -27,7 +27,7 @@ import com.vaadin.ui.themes.BaseTheme;
 
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.model.Bean;
-import es.vegamultimedia.standardform.test.DoplanUI;
+import es.vegamultimedia.standardform.test.StandardFormUI;
 
 @SuppressWarnings("serial")
 public abstract class ListView<T extends Bean> extends FormLayout implements View {
@@ -116,7 +116,7 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 	
 	protected void cargarDatos() {
 		try {
-			EntityManager entityManager = ((DoplanUI)getUI()).getEntityManager();
+			EntityManager entityManager = ((StandardFormUI)getUI()).getEntityManager();
 			String consulta = "SELECT e FROM " + getBeanClass().getSimpleName() + " e";
 			Query query = entityManager.createQuery(consulta);
 			List<T> listaElementos = query.getResultList();
@@ -129,7 +129,7 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 	}
 	
 	protected void mostrarDetalle(T elemento) {
-		Navigator navigator = ((DoplanUI)getUI()).getNavigator();
+		Navigator navigator = ((StandardFormUI)getUI()).getNavigator();
 		DetailView<T> vistaDetalle = getDetalleView(elemento);
 		String name = getBeanClass().getAnnotation(StandardForm.class).detailViewName();
 		navigator.addView(name, vistaDetalle);
@@ -199,7 +199,7 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 			                if (dialog.isConfirmed()) {
 			                	T elementoSeleccionado = container.getItem(itemId).getBean();
 			                	try {
-				                	EntityManager entityManager = ((DoplanUI)getUI()).getEntityManager();
+				                	EntityManager entityManager = ((StandardFormUI)getUI()).getEntityManager();
 				                	EntityTransaction transaction = entityManager.getTransaction();
 									transaction.begin();
 //									entityManager.merge(elementoSeleccionado);

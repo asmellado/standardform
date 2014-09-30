@@ -24,15 +24,15 @@ import com.vaadin.ui.VerticalLayout;
 
 import es.vegamultimedia.standardform.annotations.StandardForm;
 
-@Theme("doplan")
-public class DoplanUI extends UI {
+@Theme("standardform")
+public class StandardFormUI extends UI {
 	
 	private static final long serialVersionUID = 8674520219333051040L;
 	private Navigator navigator;
 	private transient EntityManager entityManager;
 
 	@WebServlet(value = "/*", asyncSupported = true)
-	@VaadinServletConfiguration(productionMode = false, ui = DoplanUI.class)
+	@VaadinServletConfiguration(productionMode = false, ui = StandardFormUI.class)
 	public static class Servlet extends VaadinServlet {
 
 		private static final long serialVersionUID = -4452007484858639919L;
@@ -85,12 +85,12 @@ public class DoplanUI extends UI {
 	private Tree initMenu() {
 		// Array de menú items del árbol
 		@SuppressWarnings("rawtypes")
-		final MenuItemDoplan[][] menuItem = new MenuItemDoplan[][]{
-			new MenuItemDoplan[]{
-					new MenuItemDoplan<Object, View>("Administración", null, null),
-					new MenuItemDoplan<Organizacion, OrganizacionListadoView>(
+		final MenuItemStandardForm[][] menuItem = new MenuItemStandardForm[][]{
+			new MenuItemStandardForm[]{
+					new MenuItemStandardForm<Object, View>("Administración", null, null),
+					new MenuItemStandardForm<Organizacion, OrganizacionListadoView>(
 							"Organizaciones", Organizacion.class, OrganizacionListadoView.class),
-					new MenuItemDoplan<Localidad, LocalidadListadoView>(
+					new MenuItemStandardForm<Localidad, LocalidadListadoView>(
 							"Localidades", Localidad.class, LocalidadListadoView.class)
 			}
 		};
