@@ -2,26 +2,20 @@ package es.vegamultimedia.standardform.test;
 
 import javax.persistence.Basic;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import org.hibernate.validator.constraints.Email;
 
-import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
+@SuppressWarnings("serial")
 @Entity
 @StandardForm(listViewName = "organizaciones", detailViewName = "organizacion",
 	columns = {"nombre", "personaContacto", "emailContacto"})
-public class Organizacion implements Bean {
-	
-	@Id
-	@GeneratedValue(strategy = GenerationType.TABLE)
-	private int id;
+public class Organizacion extends Bean {
 
 	@NotNull
 	@StandardFormField(type = StandardFormField.Type.COMBO_BOX, caption = "Localidad 1")
@@ -57,14 +51,6 @@ public class Organizacion implements Bean {
 		help = "Indica si está interesado")
 	private boolean interesado;
 	
-	@Override
-	public int getId() {
-		return id;
-	}
-	@Override
-	public void setId(int id) {
-		this.id = id;
-	}
 	public Localidad getLocalidad1() {
 		return localidad1;
 	}
