@@ -27,7 +27,7 @@ public abstract class Bean implements Serializable {
 	}
 	@Override
 	public boolean equals(Object obj) {
-		if (obj==null)
+		if (obj==null || !(obj instanceof Bean))
 			return false;
 		return (id==((Bean)obj).getId());
 	}
