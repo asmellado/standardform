@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
+import javax.persistence.Lob;
 import javax.persistence.Query;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -82,31 +83,43 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 		try {
 		// Recorremos los campos del bean 
 			for (int i=0;i<beanFields.length;i++) {
+				String caption;
 				// Obtenemos la anotación DetailField
 				StandardFormField detailField = beanFields[i].getAnnotation(StandardFormField.class);
-				// Si hay anotación DetailField
-				if (detailField instanceof StandardFormField) {
+				// Obtenemos el tipo de campo en función de los metadatos
+				StandardFormField.Type tipo = getTypeFormField(beanFields[i], detailField);
+				// Si se ha encontrado un tipo
+				if (tipo != null) {
+					// Si no hay anotación DetailField para este campo o el caption es ""
+					if (!(detailField instanceof StandardFormField) ||
+							detailField.caption().length() == 0) {
+						// Asignamos como caption el nombre del campo con la primera letra en mayúscula
+						caption = capitalizeFirstLetter(beanFields[i].getName());
+					}
+					else {
+						caption = detailField.caption();
+					}
 					// Comprobamos el tipo de campo
-					switch (detailField.type()) {
+					switch (tipo) {
 					// Si es un campo de selección con un bean anidado
 					case COMBO_BOX:
 					case OPTION_GROUP:
 						// En el caso de un campo con bean anidado, tenemos que crear el campo a mano
 						// con todas las opciones y seleccionar el elemento actual
-						formFields[i] = obtenerCampoSelección(beanFields[i], detailField);
+						formFields[i] = obtenerCampoSelección(beanFields[i], tipo, caption);
 						// No añadimos el campo al binder porque no funciona correctamente en este caso
 						break;
 					// Si es un área de texto
 					case TEXT_AREA:
 						// Creamos el campo a mano y lo añadimos al binder
-						formFields[i] = new TextArea(detailField.caption());
+						formFields[i] = new TextArea(caption);
 						binder.bind(formFields[i], beanFields[i].getName());
 						break;
 					// Si es un campo "normal"
 					case TEXT_FIELD:
 					case CHECK_BOX:
 						// Construimos el campo directamente con el binder
-						formFields[i] = binder.buildAndBind(detailField.caption(), beanFields[i].getName());
+						formFields[i] = binder.buildAndBind(caption, beanFields[i].getName());
 						// Si es un campo de texto TextField, especificamos la longitud máxima (Vaadin no lo hace)
 						if (formFields[i] instanceof TextField) {
 							// Obtenemos la anotación Size del campo del bean
@@ -116,6 +129,8 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 								((TextField)formFields[i]).setMaxLength(size.max());
 							}
 						}
+						break;
+					default:
 						break;
 					}
 					// Comprobamos por precaución si se ha creado el campo
@@ -127,7 +142,7 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 						// Añadimos el campo al formulario
 						addComponent(formFields[i]);
 						// Si hay ayuda
-						if (!detailField.help().isEmpty()) {
+						if (detailField instanceof StandardFormField && !detailField.help().isEmpty()) {
 							// Añadimos etiqueta con la ayuda
 							addComponent(new Label(detailField.help()));
 						}
@@ -163,6 +178,35 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
+	}
+
+	private StandardFormField.Type getTypeFormField(
+			java.lang.reflect.Field beanField, StandardFormField detailField) {
+		// Si hay anotación DetailField para este campo y el type no es DEFAULT
+		if ((detailField instanceof StandardFormField) &&
+				detailField.type() != StandardFormField.Type.DEFAULT) {
+			// Retornamos el tipo especificado
+			return detailField.type();
+		}
+		// En caso contrario obtenemos el tipo por defecto según el tipo de bean
+		// Si el tipo de campos es un String
+		else if (beanField.getType() == String.class) {
+			// Si tiene anotación Lob
+			if (beanField.getAnnotation(Lob.class) != null)
+				// retorna el tipo TEXT_AREA
+				return StandardFormField.Type.TEXT_AREA;
+			// En caso contrario retorna el tipo TEXT_FIELD 
+			return StandardFormField.Type.TEXT_FIELD;
+		}
+		// Si el tipo de campo es boolean
+		else if (beanField.getType() == Boolean.TYPE)
+			return StandardFormField.Type.CHECK_BOX;
+		// Si el tipo de campo es otro Bean
+		try {
+			Class<? extends Bean> clase = beanField.getType().asSubclass(Bean.class);
+			return StandardFormField.Type.COMBO_BOX;
+		} catch (ClassCastException ignorada) { }
+		return null;
 	}
 
 	private void mostrarListado() {
@@ -203,11 +247,15 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 	
 	// En el caso de un campo con bean anidado, tenemos que crear el campo a mano
 	// con todas las opciones y seleccionar el elemento actual
-	private AbstractSelect obtenerCampoSelección(java.lang.reflect.Field field, StandardFormField detailField)
-			throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+	@SuppressWarnings("unchecked")
+	private AbstractSelect obtenerCampoSelección(
+				java.lang.reflect.Field field, 
+				es.vegamultimedia.standardform.annotations.StandardFormField.Type tipo, 
+				String caption)
+				throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
 		// El tipo de campo debe ser COMBO_BOX u OPTION_GROUP
-		if (detailField.type() != StandardFormField.Type.COMBO_BOX &&
-			detailField.type() != StandardFormField.Type.OPTION_GROUP) {
+		if (tipo != StandardFormField.Type.COMBO_BOX &&
+			tipo != StandardFormField.Type.OPTION_GROUP) {
 			return null;
 		}
 		AbstractSelect campoSelect;
@@ -222,13 +270,13 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 		BeanItemContainer<Object> container = new BeanItemContainer<Object>(claseBeanAnidado, listaElementos);
 		
 		// Creamos el campo en función del tipo
-		if (detailField.type() == StandardFormField.Type.COMBO_BOX) {
+		if (tipo == StandardFormField.Type.COMBO_BOX) {
 			// Creamos un combo box con el contenedor 
-			campoSelect = new ComboBox(detailField.caption(), container);
+			campoSelect = new ComboBox(caption, container);
 		}
 		else {
 			// Creamos un Option Group con el contenedor 
-			campoSelect = new OptionGroup(detailField.caption(), container);
+			campoSelect = new OptionGroup(caption, container);
 		}
 		// Establecemos la propiedad que se muestra
 		campoSelect.setItemCaptionMode(ItemCaptionMode.PROPERTY);
@@ -238,10 +286,8 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 		campoSelect.addValidator(new BeanValidator(getBeanClass(), field.getName()));
 		
 		// Obtenemos el valor del elemento actual del bean anidado para seleccionarlo
-		// Obtenemos el nombre del campo
-		String nombreCampo = field.getName();
-		// Ponemos la primera letra en mayúscula
-		nombreCampo = nombreCampo.substring(0, 1).toUpperCase() + nombreCampo.substring(1);
+		// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
+		String nombreCampo = capitalizeFirstLetter(field.getName());
 		// Obtenemos el método "get" del campo actual
 		Method getMethod = elemento.getClass().getDeclaredMethod("get"+nombreCampo, null);
 		// Llamamos al método
@@ -252,6 +298,11 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 		}
 		return campoSelect;
 	}
+	
+	// Retorna el string que se le pasa como argumento con la primera letra en mayúscula
+	private String capitalizeFirstLetter(String string) {
+		return string.substring(0, 1).toUpperCase() + string.substring(1);
+	}
 
 	// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
 	private void commitCamposSelección() throws NoSuchMethodException,
@@ -260,9 +311,8 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 			// Obtenemos la anotación DetailField
 			StandardFormField detailField = beanFields[i].getAnnotation(StandardFormField.class);
 			// Si el tipo de campo es COMBO_BOX u OPTION_GROUP
-			if (detailField instanceof StandardFormField && 
-					(detailField.type() == StandardFormField.Type.COMBO_BOX ||
-						detailField.type() == StandardFormField.Type.OPTION_GROUP)) {
+			if (formFields[i] instanceof ComboBox ||
+					formFields[i] instanceof OptionGroup) {
 				// Obtenemos el nombre del campo actual
 				String nombreCampo = beanFields[i].getName();
 				// Ponemos la primera letra en mayúscula
