@@ -34,6 +34,7 @@ import com.vaadin.ui.OptionGroup;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
+import es.vegamultimedia.standardform.Utils;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
@@ -94,7 +95,7 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 					if (!(detailField instanceof StandardFormField) ||
 							detailField.caption().length() == 0) {
 						// Asignamos como caption el nombre del campo con la primera letra en mayúscula
-						caption = capitalizeFirstLetter(beanFields[i].getName());
+						caption = Utils.capitalizeFirstLetter(beanFields[i].getName());
 					}
 					else {
 						caption = detailField.caption();
@@ -287,7 +288,7 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 		
 		// Obtenemos el valor del elemento actual del bean anidado para seleccionarlo
 		// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
-		String nombreCampo = capitalizeFirstLetter(field.getName());
+		String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
 		// Obtenemos el método "get" del campo actual
 		Method getMethod = elemento.getClass().getDeclaredMethod("get"+nombreCampo, null);
 		// Llamamos al método
@@ -297,11 +298,6 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 			campoSelect.setValue(beanAnidado);
 		}
 		return campoSelect;
-	}
-	
-	// Retorna el string que se le pasa como argumento con la primera letra en mayúscula
-	private String capitalizeFirstLetter(String string) {
-		return string.substring(0, 1).toUpperCase() + string.substring(1);
 	}
 
 	// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano

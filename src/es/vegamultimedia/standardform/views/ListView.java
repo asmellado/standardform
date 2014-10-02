@@ -25,7 +25,9 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
+import es.vegamultimedia.standardform.Utils;
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
@@ -56,7 +58,7 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 		// Obtenemos la anotación ListForm del bean
 		StandardForm listForm = getBeanClass().getAnnotation(StandardForm.class);
 
-		// Si el bean NO tiene anotación ListForm
+		// Si el bean NO tiene anotación StandardForm
 		if (!(listForm instanceof StandardForm)) {
 			Notification.show("Faltan metadatos",
 					"El bean " + getBeanClass().getSimpleName() +" no permite formulario de listado",
@@ -87,12 +89,31 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 				if (!fields[i].getName().equals("id")) {
 					// Añadimos el campo a las columnas visibles
 					visibledColumns.add(fields[i].getName());
+					// Añadimos la cabecera de la columna
+					addHeaderColumn(fields[i]);
 				}
 			}
 		}
+		// Si se especifican las columnas visibles
 		else {
 			// Hacemos visibles las columnas especificadas
 			visibledColumns = new ArrayList<String>(Arrays.asList(listForm.columns()));
+			// Para cada columna, añadimos su cabecera
+			for(String nombreColumn : visibledColumns) {
+				try {
+					// Obtenemos el campo que coincide con el nombre de la columna
+					Field beanField = getBeanClass().getDeclaredField(nombreColumn);
+					// Lo añadimos a la cabecera
+					addHeaderColumn(beanField);
+				} catch (Exception e) {
+					Notification.show("Metadatos incorrectos", 
+							"No existe en el bean " + getBeanClass().getName() + 
+							" un campo " + nombreColumn + " que se ha especificado como columna visible.",
+							Type.ERROR_MESSAGE);
+					e.printStackTrace();
+					return;
+				}
+			}
 		}
 		// Si se permite edición
 		if (listForm.allowsEditing()) {
@@ -126,11 +147,24 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 			layout.addComponent(botónAlta);
 		}
 	}
+
+	private void addHeaderColumn(Field beanField) {
+		// Obtnemos la anotación StandarFormField del campo
+		StandardFormField standardFormField = beanField.getAnnotation(StandardFormField.class);
+		// Si la columna tiene caption
+		if (standardFormField != null && standardFormField.caption().length() != 0)
+			// Ponemos el caption como cabecera
+			tabla.setColumnHeader(beanField.getName(), standardFormField.caption());
+		else
+			// Si no, ponemos el nombre del campo con la primera letra en mayúscula
+			tabla.setColumnHeader(beanField.getName(), Utils.capitalizeFirstLetter(beanField.getName()));
+	}
 	
 	protected void cargarDatos() {
 		try {
 			String consulta = "SELECT e FROM " + getBeanClass().getSimpleName() + " e";
 			Query query = entityManager.createQuery(consulta);
+			@SuppressWarnings("unchecked")
 			List<T> listaElementos = query.getResultList();
 			container = new BeanItemContainer<T>(getBeanClass(), listaElementos);
 			tabla.setContainerDataSource(container);
