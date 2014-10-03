@@ -2,12 +2,15 @@ package es.vegamultimedia.standardform.views;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Lob;
 import javax.persistence.Query;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
@@ -31,6 +34,7 @@ import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.OptionGroup;
+import com.vaadin.ui.PopupDateField;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
@@ -131,6 +135,14 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 							}
 						}
 						break;
+					// Si es un campo de fecha
+					case DATE:
+						// Creamos el campo a mano y lo añadimos al binder
+						formFields[i] = new PopupDateField(caption);
+						// Deshabilitamos el campo de texto
+						((PopupDateField)formFields[i]).setTextFieldEnabled(false);
+						binder.bind(formFields[i], beanFields[i].getName());
+						break;
 					default:
 						break;
 					}
@@ -202,10 +214,21 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 		// Si el tipo de campo es boolean
 		else if (beanField.getType() == Boolean.TYPE)
 			return StandardFormField.Type.CHECK_BOX;
+		// Si el tipo de campo el Date
+		else if (beanField.getType() == Date.class)
+			// Si tiene anotación Temporal con el valor TemporalType.DATE
+			if (beanField.getAnnotation(Temporal.class) != null &&
+				beanField.getAnnotation(Temporal.class).value() == TemporalType.DATE)
+				// Retorna el tipo DATE
+				return StandardFormField.Type.DATE;
+			// TODO No se soporta de momento TemporalType.TIME ni TemporalType.TIMESTAMP
+			else
+				return null;
 		// Si el tipo de campo es otro Bean
 		try {
-			Class<? extends Bean> clase = beanField.getType().asSubclass(Bean.class);
-			return StandardFormField.Type.COMBO_BOX;
+			if (beanField.getType().asSubclass(Bean.class) != null);
+				// Retorna el tipo COMBO_BOX
+				return StandardFormField.Type.COMBO_BOX;
 		} catch (ClassCastException ignorada) { }
 		return null;
 	}

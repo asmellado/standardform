@@ -1,8 +1,10 @@
 package es.vegamultimedia.standardform.views;
 
 import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -11,6 +13,7 @@ import javax.persistence.Query;
 
 import org.vaadin.dialogs.ConfirmDialog;
 
+import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.navigator.Navigator;
 import com.vaadin.navigator.View;
@@ -71,7 +74,17 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 		addComponent(layout);
 		
 		// Tabla
-		tabla = new Table();
+		tabla = new Table(){
+			// Damos formato de sólo fecha a los campos de tipo Date 
+		    @Override
+		    protected String formatPropertyValue(Object rowId, Object colId, Property<?> property) {
+		        if (property.getType() == Date.class) {
+		            SimpleDateFormat df = new SimpleDateFormat("dd-MM-yyyy");
+		            return df.format((Date)property.getValue());
+		        }
+		        return super.formatPropertyValue(rowId, colId, property);
+		    }
+		};
 		tabla.setImmediate(true);
 		
 		// Obtenemos los elementos
@@ -107,8 +120,8 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 					addHeaderColumn(beanField);
 				} catch (Exception e) {
 					Notification.show("Metadatos incorrectos", 
-							"No existe en el bean " + getBeanClass().getName() + 
-							" un campo " + nombreColumn + " que se ha especificado como columna visible.",
+							"No existe en el bean " + getBeanClass().getSimpleName() + 
+							" el campo " + nombreColumn + " y se ha especificado como columna visible.",
 							Type.ERROR_MESSAGE);
 					e.printStackTrace();
 					return;

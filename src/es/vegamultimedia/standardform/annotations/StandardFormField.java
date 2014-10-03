@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
  *
  */
 public @interface StandardFormField {
-	enum Type {DEFAULT, TEXT_FIELD, TEXT_AREA, COMBO_BOX, CHECK_BOX, OPTION_GROUP}
+	enum Type {DEFAULT, TEXT_FIELD, TEXT_AREA, COMBO_BOX, CHECK_BOX, OPTION_GROUP, DATE}
 	/**
 	 * It indicates weather the field must be shown in the form of not
 	 * If you don't specify it, the field will be shown 
