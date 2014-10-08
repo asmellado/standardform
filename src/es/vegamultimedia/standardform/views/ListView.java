@@ -15,12 +15,10 @@ import org.vaadin.dialogs.ConfirmDialog;
 
 import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanItemContainer;
-import com.vaadin.navigator.Navigator;
-import com.vaadin.navigator.View;
-import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Notification;
@@ -34,13 +32,10 @@ import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
-public abstract class ListView<T extends Bean> extends FormLayout implements View {
+public abstract class ListView<T extends Bean> extends FormLayout {
 	
 	// EntityManager
 	protected EntityManager entityManager;
-	
-	// Navigator
-	protected Navigator navigator;
 	
 	// Container del formulario
 	protected BeanItemContainer<T> container;
@@ -48,13 +43,9 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 	// Tabla del formulario
 	protected Table tabla;
 	
-	public ListView(EntityManager entityManager, Navigator navigator) {
+	public ListView(EntityManager entityManager) {
 		this.entityManager = entityManager;
-		this.navigator = navigator;
-	}
-
-	@Override
-	public void enter(ViewChangeEvent event) {
+		
 		// Columnas de la tabla
 		List<String> visibledColumns;
 
@@ -188,10 +179,9 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 	}
 	
 	protected void mostrarDetalle(T elemento) {
-		DetailView<T> vistaDetalle = getDetalleView(elemento);
-		String name = getBeanClass().getAnnotation(StandardForm.class).detailViewName();
-		navigator.addView(name, vistaDetalle);
-		navigator.navigateTo(name);
+		FormLayout vistaDetalle = getDetalleView(elemento);
+		ComponentContainer contentPanel = (ComponentContainer)getParent();
+		contentPanel.replaceComponent(this, vistaDetalle);
 	}
 	
 	/**
@@ -259,13 +249,11 @@ public abstract class ListView<T extends Bean> extends FormLayout implements Vie
 			                	try {
 				                	EntityTransaction transaction = entityManager.getTransaction();
 									transaction.begin();
-//									entityManager.merge(elementoSeleccionado);
 				                	entityManager.remove(elementoSeleccionado);
 				                	transaction.commit();
 				                	Notification.show("El elemento se ha eliminado correctamente");
 				                	// Volvemos a cargar la tabla con los elementos
 				                	removeAllComponents();
-				                	enter(null);
 			                	} catch (Exception e) {
 			    					Notification.show("No se ha podido eliminar el elemento", e.getMessage(), Type.ERROR_MESSAGE);
 			    				}			                	

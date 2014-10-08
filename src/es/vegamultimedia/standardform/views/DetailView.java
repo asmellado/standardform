@@ -18,9 +18,6 @@ import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.validator.BeanValidator;
-import com.vaadin.navigator.Navigator;
-import com.vaadin.navigator.View;
-import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
 import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 import com.vaadin.ui.AbstractTextField;
@@ -28,6 +25,7 @@ import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.ComboBox;
+import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.Field;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.Label;
@@ -39,18 +37,14 @@ import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
 import es.vegamultimedia.standardform.Utils;
-import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
-public abstract class DetailView<T extends Bean> extends FormLayout implements View {
+public abstract class DetailView<T extends Bean> extends FormLayout {
 	
 	// EntityManager
 	protected EntityManager entityManager;
-	
-	// Navigator
-	protected Navigator navigator;
 	
 	// Binder del formulario
 	protected BeanFieldGroup<T> binder;
@@ -65,14 +59,9 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 	@SuppressWarnings("rawtypes")
 	protected Field[] formFields;
 	
-	public DetailView(EntityManager entityManager, Navigator navigator, T elementoActual) {
+	public DetailView(EntityManager entityManager, T elementoActual) {
 		this.entityManager = entityManager;
-		this.navigator = navigator;
 		elemento = elementoActual;
-	}
-
-	@Override
-	public void enter(ViewChangeEvent event) {
 		if (elemento == null) {
 			elemento = getBeanVacio();
 		}
@@ -234,10 +223,9 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 	}
 
 	private void mostrarListado() {
-		ListView<T> vistaListado = getListadoView();
-		String name = getBeanClass().getAnnotation(StandardForm.class).listViewName();
-		navigator.addView(name, vistaListado);
-		navigator.navigateTo(name);
+		FormLayout vistaListado = getListadoView();
+		ComponentContainer contentPanel = (ComponentContainer)getParent();
+		contentPanel.replaceComponent(this, vistaListado);
 	}
 	
 	private void guardar(ClickEvent event) {
@@ -327,8 +315,6 @@ public abstract class DetailView<T extends Bean> extends FormLayout implements V
 	private void commitCamposSelección() throws NoSuchMethodException,
 			IllegalAccessException, InvocationTargetException, CommitException {
 		for (int i=0;i<beanFields.length;i++) {
-			// Obtenemos la anotación DetailField
-			StandardFormField detailField = beanFields[i].getAnnotation(StandardFormField.class);
 			// Si el tipo de campo es COMBO_BOX u OPTION_GROUP
 			if (formFields[i] instanceof ComboBox ||
 					formFields[i] instanceof OptionGroup) {
