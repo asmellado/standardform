@@ -18,6 +18,7 @@ import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.validator.BeanValidator;
+import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 import com.vaadin.ui.AbstractTextField;
@@ -153,6 +154,7 @@ public abstract class DetailView<T extends Bean> extends FormLayout {
 			}
 	
 			Button botónGuardar = new Button("Guardar");
+			botónGuardar.setClickShortcut(KeyCode.ENTER);
 			botónGuardar.addClickListener(new ClickListener(){
 	
 				private static final long serialVersionUID = 1L;
