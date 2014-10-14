@@ -7,10 +7,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
-import javax.persistence.Query;
-
 import org.vaadin.dialogs.ConfirmDialog;
 
 import com.vaadin.data.Property;
@@ -26,6 +22,7 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
+import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
@@ -33,8 +30,8 @@ import es.vegamultimedia.standardform.model.Bean;
 @SuppressWarnings("serial")
 public abstract class ListForm<T extends Bean> extends FormLayout {
 	
-	// EntityManager
-	protected EntityManager entityManager;
+	// DAO del bean
+	protected BeanDAO<T> dao;
 	
 	// Container del formulario
 	protected BeanItemContainer<T> container;
@@ -42,8 +39,8 @@ public abstract class ListForm<T extends Bean> extends FormLayout {
 	// Tabla del formulario
 	protected Table tabla;
 	
-	public ListForm(EntityManager entityManager) {
-		this.entityManager = entityManager;
+	public ListForm(BeanDAO<T> dao) {
+		this.dao = dao;
 		
 		// Columnas de la tabla
 		List<String> visibledColumns;
@@ -165,10 +162,7 @@ public abstract class ListForm<T extends Bean> extends FormLayout {
 	
 	protected void cargarDatos() {
 		try {
-			String consulta = "SELECT e FROM " + getBeanClass().getSimpleName() + " e";
-			Query query = entityManager.createQuery(consulta);
-			@SuppressWarnings("unchecked")
-			List<T> listaElementos = query.getResultList();
+			List<T> listaElementos = dao.getAllElements();
 			container = new BeanItemContainer<T>(getBeanClass(), listaElementos);
 			tabla.setContainerDataSource(container);
 		} catch (Exception e) {
@@ -246,10 +240,7 @@ public abstract class ListForm<T extends Bean> extends FormLayout {
 			                if (dialog.isConfirmed()) {
 			                	T elementoSeleccionado = container.getItem(itemId).getBean();
 			                	try {
-				                	EntityTransaction transaction = entityManager.getTransaction();
-									transaction.begin();
-				                	entityManager.remove(elementoSeleccionado);
-				                	transaction.commit();
+				                	dao.remove(elementoSeleccionado);
 				                	Notification.show("El elemento se ha eliminado correctamente");
 				                	// Volvemos a cargar la tabla con los elementos
 				                	removeAllComponents();

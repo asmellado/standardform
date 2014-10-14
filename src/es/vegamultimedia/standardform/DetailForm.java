@@ -2,13 +2,12 @@ package es.vegamultimedia.standardform;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
 import javax.persistence.Lob;
-import javax.persistence.Query;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.validation.constraints.NotNull;
@@ -37,20 +36,21 @@ import com.vaadin.ui.PopupDateField;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
+import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
 public abstract class DetailForm<T extends Bean> extends FormLayout {
 	
-	// EntityManager
-	protected EntityManager entityManager;
-	
 	// Binder del formulario
 	protected BeanFieldGroup<T> binder;
 
 	// Bean actual
 	protected T elemento;
+	
+	// DAO del bean
+	protected BeanDAO<T> dao;
 	
 	// Campos del bean actual
 	protected java.lang.reflect.Field[] beanFields;
@@ -59,9 +59,9 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 	@SuppressWarnings("rawtypes")
 	protected Field[] formFields;
 	
-	public DetailForm(EntityManager entityManager, T elementoActual) {
-		this.entityManager = entityManager;
-		elemento = elementoActual;
+	public DetailForm(BeanDAO<T> dao, T currenElement) {
+		this.dao = dao;
+		elemento = currenElement;
 		if (elemento == null) {
 			elemento = getBeanVacio();
 		}
@@ -230,18 +230,13 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 	}
 	
 	private void guardar(ClickEvent event) {
-		EntityTransaction transaction = null;
 		try {
 			// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
 			commitCamposSelección();
 			// Hacemos commit del resto de campos
 			binder.commit();
 			// Almacenamos la entidad en base de datos de forma persistente
-			elemento = binder.getItemDataSource().getBean();
-			transaction = entityManager.getTransaction();
-			transaction.begin();
-			entityManager.persist(elemento);
-			transaction.commit();
+			dao.save(elemento);
 			// Si todo ha ido bien, mostramos mensaje informativo
 			Notification.show("El elemento se ha actualizado correctamente");
 			// Y mostramos el listado
@@ -252,9 +247,6 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 		} catch (Exception e) {
 			Notification.show("No se ha podido realizar la operación", e.getMessage(), Type.ERROR_MESSAGE);
 			e.printStackTrace();
-			if (transaction!=null) {
-				transaction.rollback();
-			}
 		}
 	}
 	
@@ -275,10 +267,13 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 		// Obtenemos todos los elementos del bean anidado
 		// Obtenemos el Bean anidado
 		Class<Object> claseBeanAnidado = (Class<Object>)field.getType();
-		// Obtenemos los elementos del bean anidado
-		String consulta = "SELECT e FROM " + claseBeanAnidado.getSimpleName() + " e";
-		Query query = entityManager.createQuery(consulta);
-		List<Object> listaElementos = query.getResultList();
+		// TODO SEPARAR CAPA DAO
+//		// Obtenemos los elementos del bean anidado
+//		String consulta = "SELECT e FROM " + claseBeanAnidado.getSimpleName() + " e";
+//		Query query = entityManager.createQuery(consulta);
+//		List<Object> listaElementos = query.getResultList();
+		List<Object> listaElementos = new ArrayList<Object>();
+		// TODO SEPARAR CAPA DAO FIN
 		// Creamos un contenedor con todos los elementos
 		BeanItemContainer<Object> container = new BeanItemContainer<Object>(claseBeanAnidado, listaElementos);
 		
