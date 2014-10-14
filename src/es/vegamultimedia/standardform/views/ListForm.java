@@ -32,7 +32,7 @@ import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
-public abstract class ListView<T extends Bean> extends FormLayout {
+public abstract class ListForm<T extends Bean> extends FormLayout {
 	
 	// EntityManager
 	protected EntityManager entityManager;
@@ -43,7 +43,7 @@ public abstract class ListView<T extends Bean> extends FormLayout {
 	// Tabla del formulario
 	protected Table tabla;
 	
-	public ListView(EntityManager entityManager) {
+	public ListForm(EntityManager entityManager) {
 		this.entityManager = entityManager;
 		
 		// Columnas de la tabla
@@ -194,7 +194,7 @@ public abstract class ListView<T extends Bean> extends FormLayout {
 	 * Retorna la View que muestra el detalle
 	 * @return
 	 */
-	abstract protected DetailView<T> getDetalleView(T elemento);
+	abstract protected DetailForm<T> getDetalleView(T elemento);
 	
 	/*
 	 * Clase para la columna Editar 

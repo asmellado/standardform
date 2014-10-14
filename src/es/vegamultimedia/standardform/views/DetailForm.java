@@ -42,7 +42,7 @@ import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
-public abstract class DetailView<T extends Bean> extends FormLayout {
+public abstract class DetailForm<T extends Bean> extends FormLayout {
 	
 	// EntityManager
 	protected EntityManager entityManager;
@@ -60,7 +60,7 @@ public abstract class DetailView<T extends Bean> extends FormLayout {
 	@SuppressWarnings("rawtypes")
 	protected Field[] formFields;
 	
-	public DetailView(EntityManager entityManager, T elementoActual) {
+	public DetailForm(EntityManager entityManager, T elementoActual) {
 		this.entityManager = entityManager;
 		elemento = elementoActual;
 		if (elemento == null) {
@@ -358,6 +358,6 @@ public abstract class DetailView<T extends Bean> extends FormLayout {
 	 * Retorna la View que muestra el detalle
 	 * @return
 	 */
-	abstract protected ListView<T> getListadoView();
+	abstract protected ListForm<T> getListadoView();
 
 }
