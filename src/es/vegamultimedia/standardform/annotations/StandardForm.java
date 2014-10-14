@@ -15,6 +15,13 @@ import java.lang.annotation.Target;
  */
 public @interface StandardForm {
 	/**
+	 * BeanDAO Class name, qualified name containing package
+	 * If empty, standard form try to get the name replacing ".model" for ".dao" from the package
+	 * and adding "DAO" to the bean class name
+	 * @return
+	 */
+	public String beanDAOClassName() default "";
+	/**
 	 * List View Name showed in the URL
 	 * @return
 	 */

@@ -1,5 +1,6 @@
 package es.vegamultimedia.standardform;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -252,30 +253,32 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 	
 	// En el caso de un campo con bean anidado, tenemos que crear el campo a mano
 	// con todas las opciones y seleccionar el elemento actual
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private AbstractSelect obtenerCampoSelección(
 				java.lang.reflect.Field field, 
 				es.vegamultimedia.standardform.annotations.StandardFormField.Type tipo, 
 				String caption)
-				throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+				throws NoSuchMethodException, IllegalAccessException,
+				InvocationTargetException, ClassNotFoundException,
+				IllegalArgumentException, InstantiationException {
 		// El tipo de campo debe ser COMBO_BOX u OPTION_GROUP
 		if (tipo != StandardFormField.Type.COMBO_BOX &&
 			tipo != StandardFormField.Type.OPTION_GROUP) {
 			return null;
 		}
 		AbstractSelect campoSelect;
+		
 		// Obtenemos todos los elementos del bean anidado
-		// Obtenemos el Bean anidado
+		// Obtenemos la clase del Bean anidado
 		Class<Object> claseBeanAnidado = (Class<Object>)field.getType();
-		// TODO SEPARAR CAPA DAO
-//		// Obtenemos los elementos del bean anidado
-//		String consulta = "SELECT e FROM " + claseBeanAnidado.getSimpleName() + " e";
-//		Query query = entityManager.createQuery(consulta);
-//		List<Object> listaElementos = query.getResultList();
-		List<Object> listaElementos = new ArrayList<Object>();
-		// TODO SEPARAR CAPA DAO FIN
+		// Obtenemos una instancia del BeanDAO anidado
+		BeanDAO beanDAO = Utils.getBeanDAO(claseBeanAnidado, dao.getEntityManager());
+		// Obtenemos todos los elementos del bean anidado
+		List<Object> listaElementos = beanDAO.getAllElements();
+		
 		// Creamos un contenedor con todos los elementos
-		BeanItemContainer<Object> container = new BeanItemContainer<Object>(claseBeanAnidado, listaElementos);
+		BeanItemContainer<Object> container =
+				new BeanItemContainer<Object>(claseBeanAnidado, listaElementos);
 		
 		// Creamos el campo en función del tipo
 		if (tipo == StandardFormField.Type.COMBO_BOX) {

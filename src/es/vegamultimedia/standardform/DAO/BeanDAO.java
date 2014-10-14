@@ -22,7 +22,7 @@ public abstract class BeanDAO<T extends Bean> {
 	
 	// EntityManager
 	protected EntityManager entityManager;
-	
+
 	/**
 	 * Create an instance of this Data Object Access (DAO)
 	 * @param beanClass
@@ -31,6 +31,14 @@ public abstract class BeanDAO<T extends Bean> {
 	public BeanDAO(Class<T> beanClass, EntityManager entityManager) {
 		this.beanClass = beanClass;
 		this.entityManager = entityManager;
+	}
+	
+	/**
+	 * Get the entity manager
+	 * @return
+	 */
+	public EntityManager getEntityManager() {
+		return entityManager;
 	}
 	
 	/**
