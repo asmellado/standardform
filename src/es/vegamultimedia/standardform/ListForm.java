@@ -1,4 +1,4 @@
-package es.vegamultimedia.standardform.views;
+package es.vegamultimedia.standardform;
 
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
@@ -26,7 +26,6 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
-import es.vegamultimedia.standardform.Utils;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
