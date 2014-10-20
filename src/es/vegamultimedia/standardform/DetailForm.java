@@ -1,13 +1,9 @@
 package es.vegamultimedia.standardform;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
-import javax.persistence.EntityManager;
 import javax.persistence.Lob;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -16,11 +12,8 @@ import javax.validation.constraints.Size;
 
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
-import com.vaadin.data.util.BeanItemContainer;
-import com.vaadin.data.validator.BeanValidator;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.ui.AbstractSelect;
-import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 import com.vaadin.ui.AbstractTextField;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
@@ -37,21 +30,20 @@ import com.vaadin.ui.PopupDateField;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
-import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
-public abstract class DetailForm<T extends Bean> extends FormLayout {
+public class DetailForm<T extends Bean> extends FormLayout {
+	
+	// BeanUI that created this standard detail form
+	protected BeanUI<T> beanUI;
 	
 	// Binder del formulario
 	protected BeanFieldGroup<T> binder;
-
+	
 	// Bean actual
 	protected T elemento;
-	
-	// DAO del bean
-	protected BeanDAO<T> dao;
 	
 	// Campos del bean actual
 	protected java.lang.reflect.Field[] beanFields;
@@ -60,13 +52,14 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 	@SuppressWarnings("rawtypes")
 	protected Field[] formFields;
 	
-	public DetailForm(BeanDAO<T> dao, T currenElement) {
-		this.dao = dao;
+	public DetailForm(BeanUI<T> beanUI, T currenElement)
+			throws InstantiationException, IllegalAccessException {
+		this.beanUI = beanUI;
 		elemento = currenElement;
 		if (elemento == null) {
-			elemento = getBeanVacio();
+			elemento = beanUI.getBeanClass().newInstance();
 		}
-		binder = new BeanFieldGroup<T>(getBeanClass());
+		binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
 		binder.setItemDataSource(elemento);
 		
 		// Obtenemos los campos del bean elemento
@@ -225,7 +218,7 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 	}
 
 	private void mostrarListado() {
-		FormLayout vistaListado = getListadoView();
+		FormLayout vistaListado = beanUI.getListForm();
 		ComponentContainer contentPanel = (ComponentContainer)getParent();
 		contentPanel.replaceComponent(this, vistaListado);
 	}
@@ -237,7 +230,7 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 			// Hacemos commit del resto de campos
 			binder.commit();
 			// Almacenamos la entidad en base de datos de forma persistente
-			dao.save(elemento);
+			beanUI.getBeanDAO().save(elemento);
 			// Si todo ha ido bien, mostramos mensaje informativo
 			Notification.show("El elemento se ha actualizado correctamente");
 			// Y mostramos el listado
@@ -253,7 +246,7 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 	
 	// En el caso de un campo con bean anidado, tenemos que crear el campo a mano
 	// con todas las opciones y seleccionar el elemento actual
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings({ })
 	private AbstractSelect obtenerCampoSelección(
 				java.lang.reflect.Field field, 
 				es.vegamultimedia.standardform.annotations.StandardFormField.Type tipo, 
@@ -261,53 +254,54 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 				throws NoSuchMethodException, IllegalAccessException,
 				InvocationTargetException, ClassNotFoundException,
 				IllegalArgumentException, InstantiationException {
-		// El tipo de campo debe ser COMBO_BOX u OPTION_GROUP
-		if (tipo != StandardFormField.Type.COMBO_BOX &&
-			tipo != StandardFormField.Type.OPTION_GROUP) {
-			return null;
-		}
-		AbstractSelect campoSelect;
-		
-		// Obtenemos todos los elementos del bean anidado
-		// Obtenemos la clase del Bean anidado
-		Class<Object> claseBeanAnidado = (Class<Object>)field.getType();
-		// Obtenemos una instancia del BeanDAO anidado
-		BeanDAO beanDAO = Utils.getBeanDAO(claseBeanAnidado, dao.getEntityManager());
-		// Obtenemos todos los elementos del bean anidado
-		List<Object> listaElementos = beanDAO.getAllElements();
-		
-		// Creamos un contenedor con todos los elementos
-		BeanItemContainer<Object> container =
-				new BeanItemContainer<Object>(claseBeanAnidado, listaElementos);
-		
-		// Creamos el campo en función del tipo
-		if (tipo == StandardFormField.Type.COMBO_BOX) {
-			// Creamos un combo box con el contenedor 
-			campoSelect = new ComboBox(caption, container);
-		}
-		else {
-			// Creamos un Option Group con el contenedor 
-			campoSelect = new OptionGroup(caption, container);
-		}
-		// Establecemos la propiedad que se muestra
-		campoSelect.setItemCaptionMode(ItemCaptionMode.PROPERTY);
-		campoSelect.setItemCaptionPropertyId("nombre");
-		
-		// Añadimos un validador de tipo BeanValidator para el campo
-		campoSelect.addValidator(new BeanValidator(getBeanClass(), field.getName()));
-		
-		// Obtenemos el valor del elemento actual del bean anidado para seleccionarlo
-		// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
-		String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
-		// Obtenemos el método "get" del campo actual
-		Method getMethod = elemento.getClass().getDeclaredMethod("get"+nombreCampo, null);
-		// Llamamos al método
-		Object beanAnidado = getMethod.invoke(elemento, null);
-		// Seleccionamos el elemento actual del bean anidado
-		if (beanAnidado != null) {
-			campoSelect.setValue(beanAnidado);
-		}
-		return campoSelect;
+//		// El tipo de campo debe ser COMBO_BOX u OPTION_GROUP
+//		if (tipo != StandardFormField.Type.COMBO_BOX &&
+//			tipo != StandardFormField.Type.OPTION_GROUP) {
+//			return null;
+//		}
+//		AbstractSelect campoSelect;
+//		
+//		// Obtenemos todos los elementos del bean anidado
+//		// Obtenemos la clase del Bean anidado
+//		Class<Object> claseBeanAnidado = (Class<Object>)field.getType();
+//		// Obtenemos una instancia del BeanDAO anidado
+//		BeanDAO beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO().getEntityManager());
+//		// Obtenemos todos los elementos del bean anidado
+//		List<Object> listaElementos = beanDAO.getAllElements();
+//		
+//		// Creamos un contenedor con todos los elementos
+//		BeanItemContainer<T> container =
+//				new BeanItemContainer<T>(claseBeanAnidado, listaElementos);
+//		
+//		// Creamos el campo en función del tipo
+//		if (tipo == StandardFormField.Type.COMBO_BOX) {
+//			// Creamos un combo box con el contenedor 
+//			campoSelect = new ComboBox(caption, container);
+//		}
+//		else {
+//			// Creamos un Option Group con el contenedor 
+//			campoSelect = new OptionGroup(caption, container);
+//		}
+//		// Establecemos la propiedad que se muestra
+//		campoSelect.setItemCaptionMode(ItemCaptionMode.PROPERTY);
+//		campoSelect.setItemCaptionPropertyId("nombre");
+//		
+//		// Añadimos un validador de tipo BeanValidator para el campo
+//		campoSelect.addValidator(new BeanValidator(beanUI.getBeanClass(), field.getName()));
+//		
+//		// Obtenemos el valor del elemento actual del bean anidado para seleccionarlo
+//		// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
+//		String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
+//		// Obtenemos el método "get" del campo actual
+//		Method getMethod = elemento.getClass().getDeclaredMethod("get"+nombreCampo, null);
+//		// Llamamos al método
+//		Object beanAnidado = getMethod.invoke(elemento, null);
+//		// Seleccionamos el elemento actual del bean anidado
+//		if (beanAnidado != null) {
+//			campoSelect.setValue(beanAnidado);
+//		}
+//		return campoSelect;
+		return new ComboBox("Pendiente");
 	}
 
 	// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
@@ -338,23 +332,4 @@ public abstract class DetailForm<T extends Bean> extends FormLayout {
 			}
 		}
 	}
-	
-	/**
-	 * Retorna la clase del bean (T)
-	 * @return
-	 */
-	abstract protected Class<T> getBeanClass();
-
-	/**
-	 * Retorna un Bean (T) vacío
-	 * @return
-	 */
-	abstract protected T getBeanVacio();
-	
-	/**
-	 * Retorna la View que muestra el detalle
-	 * @return
-	 */
-	abstract protected ListForm<T> getListadoView();
-
 }

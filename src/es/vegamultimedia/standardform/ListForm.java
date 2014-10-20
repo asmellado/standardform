@@ -28,10 +28,10 @@ import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
-public abstract class ListForm<T extends Bean> extends FormLayout {
+public class ListForm<T extends Bean> extends FormLayout {
 	
-	// DAO del bean
-	protected BeanDAO<T> dao;
+	// BeanUI that created this standard list form
+	protected BeanUI<T> beanUI;
 	
 	// Container del formulario
 	protected BeanItemContainer<T> container;
@@ -39,19 +39,19 @@ public abstract class ListForm<T extends Bean> extends FormLayout {
 	// Tabla del formulario
 	protected Table tabla;
 	
-	public ListForm(BeanDAO<T> dao) {
-		this.dao = dao;
+	public ListForm(BeanUI<T> beanUI) {
+		this.beanUI = beanUI;
 		
 		// Columnas de la tabla
 		List<String> visibledColumns;
 
 		// Obtenemos la anotación ListForm del bean
-		StandardForm listForm = getBeanClass().getAnnotation(StandardForm.class);
+		StandardForm listForm = beanUI.getBeanClass().getAnnotation(StandardForm.class);
 
 		// Si el bean NO tiene anotación StandardForm
 		if (!(listForm instanceof StandardForm)) {
 			Notification.show("Faltan metadatos",
-					"El bean " + getBeanClass().getSimpleName() +" no permite formulario de listado",
+					"El bean " + beanUI.getBeanClass().getSimpleName() +" no permite formulario de listado",
 					Type.ERROR_MESSAGE);
 			return;
 		}
@@ -82,7 +82,7 @@ public abstract class ListForm<T extends Bean> extends FormLayout {
 			// Se muestran todas excepto el id
 			visibledColumns = new ArrayList<String>();
 			// Obtenemos todos los campos del bean
-			Field[] fields = getBeanClass().getDeclaredFields();
+			Field[] fields = beanUI.getBeanClass().getDeclaredFields();
 			// Recorremos los campos
 			for (int i=0;i<fields.length;i++) {
 				// Si no es el id
@@ -102,12 +102,12 @@ public abstract class ListForm<T extends Bean> extends FormLayout {
 			for(String nombreColumn : visibledColumns) {
 				try {
 					// Obtenemos el campo que coincide con el nombre de la columna
-					Field beanField = getBeanClass().getDeclaredField(nombreColumn);
+					Field beanField = beanUI.getBeanClass().getDeclaredField(nombreColumn);
 					// Lo añadimos a la cabecera
 					addHeaderColumn(beanField);
 				} catch (Exception e) {
 					Notification.show("Metadatos incorrectos", 
-							"No existe en el bean " + getBeanClass().getSimpleName() + 
+							"No existe en el bean " + beanUI.getBeanClass().getSimpleName() + 
 							" el campo " + nombreColumn + " y se ha especificado como columna visible.",
 							Type.ERROR_MESSAGE);
 					e.printStackTrace();
@@ -162,8 +162,8 @@ public abstract class ListForm<T extends Bean> extends FormLayout {
 	
 	protected void cargarDatos() {
 		try {
-			List<T> listaElementos = dao.getAllElements();
-			container = new BeanItemContainer<T>(getBeanClass(), listaElementos);
+			List<T> listaElementos = beanUI.getBeanDAO().getAllElements();
+			container = new BeanItemContainer<T>(beanUI.getBeanClass(), listaElementos);
 			tabla.setContainerDataSource(container);
 		} catch (Exception e) {
 			Notification.show("No se pueden obtener los elementos",
@@ -172,22 +172,18 @@ public abstract class ListForm<T extends Bean> extends FormLayout {
 	}
 	
 	protected void mostrarDetalle(T elemento) {
-		FormLayout vistaDetalle = getDetalleView(elemento);
-		ComponentContainer contentPanel = (ComponentContainer)getParent();
-		contentPanel.replaceComponent(this, vistaDetalle);
+		FormLayout vistaDetalle;
+		try {
+			vistaDetalle = beanUI.getDetailForm(elemento);
+			ComponentContainer contentPanel = (ComponentContainer)getParent();
+			contentPanel.replaceComponent(this, vistaDetalle);
+		} catch (Exception e) {
+			Notification.show("No se puede crear el formulario de detalle",
+					e.getMessage(), Type.ERROR_MESSAGE);
+			e.printStackTrace();
+		}
+
 	}
-	
-	/**
-	 * Retorna la clase del bean (T)
-	 * @return
-	 */
-	abstract protected Class<T> getBeanClass();
-	
-	/**
-	 * Retorna la View que muestra el detalle
-	 * @return
-	 */
-	abstract protected DetailForm<T> getDetalleView(T elemento);
 	
 	/*
 	 * Clase para la columna Editar 
@@ -240,7 +236,7 @@ public abstract class ListForm<T extends Bean> extends FormLayout {
 			                if (dialog.isConfirmed()) {
 			                	T elementoSeleccionado = container.getItem(itemId).getBean();
 			                	try {
-				                	dao.remove(elementoSeleccionado);
+			                		beanUI.getBeanDAO().remove(elementoSeleccionado);
 				                	Notification.show("El elemento se ha eliminado correctamente");
 				                	// Volvemos a cargar la tabla con los elementos
 				                	removeAllComponents();

@@ -63,7 +63,10 @@ public abstract class BeanDAO<T extends Bean> {
 		}
 		finally {
 			if (transaction!=null) {
-				transaction.rollback();
+				try {
+					transaction.rollback();
+				}
+				catch(Exception ignorada) {}
 			}
 		}
 	}

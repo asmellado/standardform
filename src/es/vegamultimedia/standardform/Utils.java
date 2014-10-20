@@ -7,6 +7,7 @@ import javax.persistence.EntityManager;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.model.Bean;
 
 abstract public class Utils {
 	
@@ -31,7 +32,10 @@ abstract public class Utils {
 	 * @throws InstantiationException 
 	 * @throws IllegalArgumentException 
 	 */
-	public static BeanDAO getBeanDAO(Class<Object> nestedBeanClass, EntityManager entityManager) throws ClassNotFoundException, SecurityException, NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
+	@SuppressWarnings("rawtypes")
+	public static BeanDAO getBeanDAO(Class<? extends Bean> nestedBeanClass, EntityManager entityManager)
+			throws ClassNotFoundException, SecurityException, NoSuchMethodException,
+			IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		String NombreClaseBeanDAO;
 		// Obtenemos la anotación StandardForm del bean
 		StandardForm anotación = nestedBeanClass.getAnnotation(StandardForm.class);
