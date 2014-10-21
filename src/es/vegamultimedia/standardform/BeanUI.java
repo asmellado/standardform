@@ -7,7 +7,7 @@ import javax.persistence.EntityManager;
 import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.model.Bean;
 
-public abstract class BeanUI<T extends Bean> {
+public class BeanUI<T extends Bean> {
 	
 	/**
 	 * Bean class
