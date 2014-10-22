@@ -1,13 +1,13 @@
 package es.vegamultimedia.standardform;
 
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
-
-import javax.persistence.EntityManager;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.model.Bean;
 
-public class BeanUI<T extends Bean> {
+@SuppressWarnings("serial")
+public class BeanUI<T extends Bean> implements Serializable {
 	
 	/**
 	 * Bean class
@@ -19,13 +19,12 @@ public class BeanUI<T extends Bean> {
 	 */
 	protected BeanDAO<T> beanDAO;
 	
-	@SuppressWarnings("unchecked")
-	public BeanUI(Class<T> beanClass, EntityManager entityManager)
+	public BeanUI(Class<T> beanClass, BeanDAO<T> beanDAO)
 			throws ClassNotFoundException, SecurityException, NoSuchMethodException,
 			IllegalArgumentException, InstantiationException, 
 			IllegalAccessException, InvocationTargetException {
 		this.beanClass = beanClass;
-		beanDAO = Utils.getBeanDAO(beanClass, entityManager);
+		this.beanDAO = beanDAO;
 	}
 	
 	/**

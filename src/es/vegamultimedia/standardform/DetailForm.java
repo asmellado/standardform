@@ -34,9 +34,10 @@ import com.vaadin.ui.PopupDateField;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
-import es.vegamultimedia.standardform.DAO.BeanDAO;
+import es.vegamultimedia.standardform.DAO.BeanJPADAO;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
+import es.vegamultimedia.standardform.model.BeanJPA;
 
 @SuppressWarnings("serial")
 public class DetailForm<T extends Bean> extends FormLayout {
@@ -215,7 +216,7 @@ public class DetailForm<T extends Bean> extends FormLayout {
 				return null;
 		// Si el tipo de campo es otro Bean
 		try {
-			if (beanField.getType().asSubclass(Bean.class) != null);
+			if (beanField.getType().asSubclass(BeanJPA.class) != null);
 				// Retorna el tipo COMBO_BOX
 				return StandardFormField.Type.COMBO_BOX;
 		} catch (ClassCastException ignorada) { }
@@ -268,44 +269,45 @@ public class DetailForm<T extends Bean> extends FormLayout {
 		
 		// Obtenemos todos los elementos del bean anidado
 		// Obtenemos la clase del Bean anidado
-		Class<? extends Bean> claseBeanAnidado = (Class<? extends Bean>)field.getType();
-		// Obtenemos una instancia del BeanDAO anidado
-		BeanDAO<? extends Bean> beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO().getEntityManager());
-		// Obtenemos todos los elementos del bean anidado
-		List<? extends Bean> listaElementos = beanDAO.getAllElements();
-		
-		// Creamos un contenedor con todos los elementos
-		BeanItemContainer container =
-				new BeanItemContainer(claseBeanAnidado, listaElementos);
-		
-		// Creamos el campo en función del tipo
-		if (tipo == StandardFormField.Type.COMBO_BOX) {
-			// Creamos un combo box con el contenedor 
-			campoSelect = new ComboBox(caption, container);
-		}
-		else {
-			// Creamos un Option Group con el contenedor 
-			campoSelect = new OptionGroup(caption, container);
-		}
-		// Establecemos la propiedad que se muestra
-		campoSelect.setItemCaptionMode(ItemCaptionMode.PROPERTY);
-		campoSelect.setItemCaptionPropertyId("nombre");
-		
-		// Añadimos un validador de tipo BeanValidator para el campo
-		campoSelect.addValidator(new BeanValidator(beanUI.getBeanClass(), field.getName()));
-		
-		// Obtenemos el valor del elemento actual del bean anidado para seleccionarlo
-		// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
-		String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
-		// Obtenemos el método "get" del campo actual
-		Method getMethod = elemento.getClass().getDeclaredMethod("get"+nombreCampo);
-		// Llamamos al método
-		Object beanAnidado = getMethod.invoke(elemento);
-		// Seleccionamos el elemento actual del bean anidado
-		if (beanAnidado != null) {
-			campoSelect.setValue(beanAnidado);
-		}
-		return campoSelect;
+		Class<? extends BeanJPA> claseBeanAnidado = (Class<? extends BeanJPA>)field.getType();
+//		// Obtenemos una instancia del BeanDAO anidado
+//		BeanJPADAO<? extends BeanJPA> beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO().getEntityManager());
+//		// Obtenemos todos los elementos del bean anidado
+//		List<? extends BeanJPA> listaElementos = beanDAO.getAllElements();
+//		
+//		// Creamos un contenedor con todos los elementos
+//		BeanItemContainer container =
+//				new BeanItemContainer(claseBeanAnidado, listaElementos);
+//		
+//		// Creamos el campo en función del tipo
+//		if (tipo == StandardFormField.Type.COMBO_BOX) {
+//			// Creamos un combo box con el contenedor 
+//			campoSelect = new ComboBox(caption, container);
+//		}
+//		else {
+//			// Creamos un Option Group con el contenedor 
+//			campoSelect = new OptionGroup(caption, container);
+//		}
+//		// Establecemos la propiedad que se muestra
+//		campoSelect.setItemCaptionMode(ItemCaptionMode.PROPERTY);
+//		campoSelect.setItemCaptionPropertyId("nombre");
+//		
+//		// Añadimos un validador de tipo BeanValidator para el campo
+//		campoSelect.addValidator(new BeanValidator(beanUI.getBeanClass(), field.getName()));
+//		
+//		// Obtenemos el valor del elemento actual del bean anidado para seleccionarlo
+//		// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
+//		String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
+//		// Obtenemos el método "get" del campo actual
+//		Method getMethod = elemento.getClass().getDeclaredMethod("get"+nombreCampo);
+//		// Llamamos al método
+//		Object beanAnidado = getMethod.invoke(elemento);
+//		// Seleccionamos el elemento actual del bean anidado
+//		if (beanAnidado != null) {
+//			campoSelect.setValue(beanAnidado);
+//		}
+//		return campoSelect;
+		return null;
 	}
 
 	// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano

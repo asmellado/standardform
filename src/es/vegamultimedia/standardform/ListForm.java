@@ -22,7 +22,6 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
-import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
@@ -74,77 +73,83 @@ public class ListForm<T extends Bean> extends FormLayout {
 		};
 		tabla.setImmediate(true);
 		
-		// Obtenemos los elementos
-		cargarDatos();
+		try {
+			// Obtenemos los elementos
+			cargarDatos();
+			
+			// Si no se especifican las columnas visibles
+			if (listForm.columns()[0].isEmpty()) {
+				// Se muestran todas excepto el id
+				visibledColumns = new ArrayList<String>();
+				// Obtenemos todos los campos del bean
+				Field[] fields = beanUI.getBeanClass().getDeclaredFields();
+				// Recorremos los campos
+				for (int i=0;i<fields.length;i++) {
+					// Si no es el id
+					if (!fields[i].getName().equals("id")) {
+						// Añadimos el campo a las columnas visibles
+						visibledColumns.add(fields[i].getName());
+						// Añadimos la cabecera de la columna
+						addHeaderColumn(fields[i]);
+					}
+				}
+			}
+			// Si se especifican las columnas visibles
+			else {
+				// Hacemos visibles las columnas especificadas
+				visibledColumns = new ArrayList<String>(Arrays.asList(listForm.columns()));
+				// Para cada columna, añadimos su cabecera
+				for(String nombreColumn : visibledColumns) {
+					try {
+						// Obtenemos el campo que coincide con el nombre de la columna
+						Field beanField = beanUI.getBeanClass().getDeclaredField(nombreColumn);
+						// Lo añadimos a la cabecera
+						addHeaderColumn(beanField);
+					} catch (Exception e) {
+						Notification.show("Metadatos incorrectos", 
+								"No existe en el bean " + beanUI.getBeanClass().getSimpleName() + 
+								" el campo " + nombreColumn + " y se ha especificado como columna visible.",
+								Type.ERROR_MESSAGE);
+						e.printStackTrace();
+						return;
+					}
+				}
+			}
+			// Si se permite edición
+			if (listForm.allowsEditing()) {
+				// Añadimos columna para editar
+				tabla.addGeneratedColumn("Editar", new EditarColumnGenerator());
+				visibledColumns.add("Editar");
+			}
+			// Si se permite eliminar
+			if (listForm.allowsDeleting()) {
+				// Añadimos columna para eliminar
+				tabla.addGeneratedColumn("Eliminar", new EliminarColumnGenerator());
+				visibledColumns.add("Eliminar");
+			}
+			tabla.setVisibleColumns(visibledColumns.toArray());
+			layout.addComponent(tabla);
 		
-		// Si no se especifican las columnas visibles
-		if (listForm.columns()[0].isEmpty()) {
-			// Se muestran todas excepto el id
-			visibledColumns = new ArrayList<String>();
-			// Obtenemos todos los campos del bean
-			Field[] fields = beanUI.getBeanClass().getDeclaredFields();
-			// Recorremos los campos
-			for (int i=0;i<fields.length;i++) {
-				// Si no es el id
-				if (!fields[i].getName().equals("id")) {
-					// Añadimos el campo a las columnas visibles
-					visibledColumns.add(fields[i].getName());
-					// Añadimos la cabecera de la columna
-					addHeaderColumn(fields[i]);
-				}
+			// Si se permite añadir
+			if (listForm.allowsAdding()) {
+				// Botón Alta
+				Button botónAlta = new Button("Alta");
+				botónAlta.addClickListener(new ClickListener(){
+		
+					private static final long serialVersionUID = 1L;
+		
+					@Override
+					public void buttonClick(ClickEvent event) {
+						mostrarDetalle(null);
+					}
+					
+				});
+				layout.addComponent(botónAlta);
 			}
-		}
-		// Si se especifican las columnas visibles
-		else {
-			// Hacemos visibles las columnas especificadas
-			visibledColumns = new ArrayList<String>(Arrays.asList(listForm.columns()));
-			// Para cada columna, añadimos su cabecera
-			for(String nombreColumn : visibledColumns) {
-				try {
-					// Obtenemos el campo que coincide con el nombre de la columna
-					Field beanField = beanUI.getBeanClass().getDeclaredField(nombreColumn);
-					// Lo añadimos a la cabecera
-					addHeaderColumn(beanField);
-				} catch (Exception e) {
-					Notification.show("Metadatos incorrectos", 
-							"No existe en el bean " + beanUI.getBeanClass().getSimpleName() + 
-							" el campo " + nombreColumn + " y se ha especificado como columna visible.",
-							Type.ERROR_MESSAGE);
-					e.printStackTrace();
-					return;
-				}
-			}
-		}
-		// Si se permite edición
-		if (listForm.allowsEditing()) {
-			// Añadimos columna para editar
-			tabla.addGeneratedColumn("Editar", new EditarColumnGenerator());
-			visibledColumns.add("Editar");
-		}
-		// Si se permite eliminar
-		if (listForm.allowsDeleting()) {
-			// Añadimos columna para eliminar
-			tabla.addGeneratedColumn("Eliminar", new EliminarColumnGenerator());
-			visibledColumns.add("Eliminar");
-		}
-		tabla.setVisibleColumns(visibledColumns.toArray());
-		layout.addComponent(tabla);
-	
-		// Si se permite añadir
-		if (listForm.allowsAdding()) {
-			// Botón Alta
-			Button botónAlta = new Button("Alta");
-			botónAlta.addClickListener(new ClickListener(){
-	
-				private static final long serialVersionUID = 1L;
-	
-				@Override
-				public void buttonClick(ClickEvent event) {
-					mostrarDetalle(null);
-				}
-				
-			});
-			layout.addComponent(botónAlta);
+		} catch (Exception e) {
+			Notification.show("No se pueden obtener los elementos",
+					e.getMessage(), Type.ERROR_MESSAGE);
+			e.printStackTrace();
 		}
 	}
 
@@ -161,14 +166,9 @@ public class ListForm<T extends Bean> extends FormLayout {
 	}
 	
 	protected void cargarDatos() {
-		try {
-			List<T> listaElementos = beanUI.getBeanDAO().getAllElements();
-			container = new BeanItemContainer<T>(beanUI.getBeanClass(), listaElementos);
-			tabla.setContainerDataSource(container);
-		} catch (Exception e) {
-			Notification.show("No se pueden obtener los elementos",
-					e.getMessage(), Type.ERROR_MESSAGE);
-		}
+		List<T> listaElementos = beanUI.getBeanDAO().getAllElements();
+		container = new BeanItemContainer<T>(beanUI.getBeanClass(), listaElementos);
+		tabla.setContainerDataSource(container);
 	}
 	
 	protected void mostrarDetalle(T elemento) {

@@ -5,7 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import javax.persistence.EntityManager;
 
-import es.vegamultimedia.standardform.DAO.BeanDAO;
+import es.vegamultimedia.standardform.DAO.BeanJPADAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.model.Bean;
 
@@ -33,7 +33,7 @@ abstract public class Utils {
 	 * @throws IllegalArgumentException 
 	 */
 	@SuppressWarnings("rawtypes")
-	public static BeanDAO getBeanDAO(Class<? extends Bean> nestedBeanClass, EntityManager entityManager)
+	public static BeanJPADAO getBeanDAO(Class<? extends Bean> nestedBeanClass, EntityManager entityManager)
 			throws ClassNotFoundException, SecurityException, NoSuchMethodException,
 			IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		String NombreClaseBeanDAO;
@@ -59,6 +59,6 @@ abstract public class Utils {
 		Constructor constructorDAO =
 			classBeanDAO.getConstructor(Class.class, EntityManager.class);
 		// Creamos el objeto DAO
-		return (BeanDAO)constructorDAO.newInstance(nestedBeanClass, entityManager);
+		return (BeanJPADAO)constructorDAO.newInstance(nestedBeanClass, entityManager);
 	}
 }

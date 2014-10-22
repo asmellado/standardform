@@ -47,6 +47,9 @@
 		<!-- EclipseLink -->
 		<dependency org="org.eclipse.persistence" name="eclipselink" rev="2.5.2-M1"/>
 		
+		<!-- Morphia --> 
+		<dependency org="org.mongodb.morphia" name="morphia" rev="0.108"/>
+		
 		<!-- Hibernate Validator -->
 		<dependency org="org.hibernate" name="hibernate-validator" rev="5.1.2.Final"/>
 	</dependencies>
