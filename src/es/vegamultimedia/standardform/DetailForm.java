@@ -218,7 +218,13 @@ public class DetailForm<T extends Bean> extends FormLayout {
 		else if (beanField.getType() == Boolean.TYPE)
 			return StandardFormField.Type.CHECK_BOX;
 		// Si el tipo de campo el Date
-		else if (beanField.getType() == Date.class)
+		else if (beanField.getType() == Date.class) {
+			// Si el tipo de DAO es Mongo
+			if (standardForm.daoType() == DAOType.MONGO) {
+				// Retorna el tipo DATE
+				return StandardFormField.Type.DATE;
+			}
+			// Si el tipo de DAO es JPA:
 			// Si tiene anotación Temporal con el valor TemporalType.DATE
 			if (beanField.getAnnotation(Temporal.class) != null &&
 				beanField.getAnnotation(Temporal.class).value() == TemporalType.DATE)
@@ -227,6 +233,7 @@ public class DetailForm<T extends Bean> extends FormLayout {
 			// TODO No se soporta de momento TemporalType.TIME ni TemporalType.TIMESTAMP
 			else
 				return null;
+		}
 		// Si el tipo de campo es otro Bean
 		try {
 			if (beanField.getType().asSubclass(Bean.class) != null)
