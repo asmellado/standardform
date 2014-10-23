@@ -14,10 +14,20 @@ import java.lang.annotation.Target;
  *
  */
 public @interface StandardForm {
+	
+	/**
+	 * Supported data access object (DAO) types
+	 */
+	enum DAOType {JPA, MONGO};
+	
+	/**
+	 * It specifies the data access object (DAO) type.
+	 */
+	public DAOType daoType();
 	/**
 	 * BeanDAO Class name, qualified name containing package
-	 * If empty, standard form try to get the name replacing ".model" for ".dao" from the package
-	 * and adding "DAO" to the bean class name
+	 * You only need to specify it if the bean uses a custom BeanDAO
+	 * If you use a BeanJPADAO or BeanMongoDAO, you don't specify it (standard form obtains the name depending on the DAOType)
 	 * @return
 	 */
 	public String beanDAOClassName() default "";
@@ -36,7 +46,7 @@ public @interface StandardForm {
 	 */
 	public boolean allowsAdding() default true;
 	/**
-	 * 
+	 * It indicates if it's allowed to edit the elements of the POJO 
 	 */
 	public boolean allowsEditing() default true;
 	/**

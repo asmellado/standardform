@@ -15,13 +15,7 @@ import java.lang.annotation.Target;
  *
  */
 public @interface StandardFormField {
-	enum Type {DEFAULT, TEXT_FIELD, TEXT_AREA, COMBO_BOX, CHECK_BOX, OPTION_GROUP, DATE}
-	/**
-	 * It indicates weather the field must be shown in the form of not
-	 * If you don't specify it, the field will be shown 
-	 * @return
-	 */
-	public boolean showField() default true;
+	enum Type {DEFAULT, TEXT_FIELD, TEXT_AREA, COMBO_BOX, CHECK_BOX, OPTION_GROUP, DATE, HIDDEN}
 	/**
 	 * Field type. If you don't specify one type, the type will be Type.DEFAULT.
 	 * If the type is DEFAULT, Standard Form will assign the type automatically depending on the bean type 

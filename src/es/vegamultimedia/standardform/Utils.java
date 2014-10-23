@@ -5,7 +5,11 @@ import java.lang.reflect.InvocationTargetException;
 
 import javax.persistence.EntityManager;
 
+import org.mongodb.morphia.Datastore;
+
+import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.DAO.BeanJPADAO;
+import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.model.Bean;
 
@@ -33,32 +37,54 @@ abstract public class Utils {
 	 * @throws IllegalArgumentException 
 	 */
 	@SuppressWarnings("rawtypes")
-	public static BeanJPADAO getBeanDAO(Class<? extends Bean> nestedBeanClass, EntityManager entityManager)
+	public static BeanDAO getBeanDAO(Class<? extends Bean> nestedBeanClass, BeanDAO beanDAOFather)
 			throws ClassNotFoundException, SecurityException, NoSuchMethodException,
 			IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
-		String NombreClaseBeanDAO;
+		Class<?> classBeanDAO;
 		// Obtenemos la anotación StandardForm del bean
 		StandardForm anotación = nestedBeanClass.getAnnotation(StandardForm.class);
 		// Si el bean tiene anotación nestedBeanClass 
 		if (anotación != null && !anotación.beanDAOClassName().isEmpty()) {
 			// La anotación es el nombre de la clase del beanDAO
-			NombreClaseBeanDAO = anotación.beanDAOClassName();
+			String nombreClaseBeanDAO = anotación.beanDAOClassName();
+			// Obtenemos la clase del BeanDAO
+			classBeanDAO = Class.forName(nombreClaseBeanDAO);
 		}
 		// Si no hay anotación nestedBeanClass
 		else {
-			// Calculamos el nombre de la clase del BeanDAO
-			// Sustituyendo en el paquete del bean ".model" por ".dao"
-			// Y añadiendo "DAO" al nombre de la clase del bean
-			NombreClaseBeanDAO =
-					nestedBeanClass.getPackage().getName().replace(".model", ".dao.") +
-					nestedBeanClass.getSimpleName() + "DAO";
+			// Obtenemos el nombre de la clase del beanDAO en función de la anotación daoType
+			switch (anotación.daoType()) {
+			case JPA:
+				classBeanDAO = BeanJPADAO.class;
+				break;
+			case MONGO:
+				classBeanDAO = BeanMongoDAO.class;
+				break;
+			default:
+				throw new IllegalArgumentException("Tipo de DAO no soportado");
+			}
 		}
-		// Obtenemos la clase del BeanDAO
-		Class<?> classBeanDAO = Class.forName(NombreClaseBeanDAO);
-		// Obtenemos el constructor del beanDAO
-		Constructor constructorDAO =
-			classBeanDAO.getConstructor(Class.class, EntityManager.class);
-		// Creamos el objeto DAO
-		return (BeanJPADAO)constructorDAO.newInstance(nestedBeanClass, entityManager);
+		// Si es un BeanJPADAO o subclase
+		try {
+			if (classBeanDAO.asSubclass(BeanJPADAO.class) != null) {
+				// Obtenemos el constructor del beanJPADAO
+				Constructor constructorDAO =
+					classBeanDAO.getConstructor(Class.class, EntityManager.class);
+				// Creamos el objeto DAO
+				return (BeanDAO) constructorDAO.newInstance(nestedBeanClass, ((BeanJPADAO)beanDAOFather).getEntityManager());
+			}
+		} catch (ClassCastException ignorada) { }
+		// Si es un BeanMongoDAO o subclase
+		try {
+			if (classBeanDAO.asSubclass(BeanMongoDAO.class) != null) {
+				// Obtenemos el constructor del beanMongoDAO
+				Constructor constructorDAO =
+					classBeanDAO.getConstructor(Class.class, Datastore.class);
+				// Creamos el objeto DAO
+				return (BeanDAO) constructorDAO.newInstance(nestedBeanClass, ((BeanMongoDAO)beanDAOFather).getDatastore());
+			}
+		} catch (ClassCastException ignorada) { }
+		// Si no es BeanJPADAO ni BeanMongoDAO
+		throw new ClassNotFoundException("No se ha podido determinar el BeanDAO");
 	}
 }

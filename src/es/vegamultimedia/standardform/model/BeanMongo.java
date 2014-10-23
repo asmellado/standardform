@@ -30,6 +30,6 @@ public abstract class BeanMongo implements Bean, Serializable {
 	public boolean equals(Object obj) {
 		if (obj==null || !(obj instanceof BeanMongo))
 			return false;
-		return (id==((BeanMongo)obj).getId());
+		return (hashCode() == obj.hashCode());
 	}
 }
