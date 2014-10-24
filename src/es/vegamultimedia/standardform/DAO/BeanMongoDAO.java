@@ -1,5 +1,6 @@
 package es.vegamultimedia.standardform.DAO;
 
+import java.io.Serializable;
 import java.util.List;
 
 import org.mongodb.morphia.Datastore;
@@ -7,7 +8,8 @@ import org.mongodb.morphia.query.Query;
 
 import es.vegamultimedia.standardform.model.BeanMongo;
 
-public class BeanMongoDAO<T extends BeanMongo> implements BeanDAO<T>{
+@SuppressWarnings("serial")
+public class BeanMongoDAO<T extends BeanMongo> implements BeanDAO<T>, Serializable {
 	
 	// Bean class
 	protected Class<T> beanClass;
