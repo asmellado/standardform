@@ -2,7 +2,6 @@ package es.vegamultimedia.standardform;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -18,9 +17,9 @@ import org.mongodb.morphia.annotations.Reference;
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItemContainer;
-import com.vaadin.data.util.IndexedContainer;
 import com.vaadin.data.validator.BeanValidator;
 import com.vaadin.event.ShortcutAction.KeyCode;
+import com.vaadin.ui.AbstractField;
 import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 import com.vaadin.ui.AbstractTextField;
@@ -28,6 +27,7 @@ import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.ComboBox;
+import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.Field;
 import com.vaadin.ui.FormLayout;
@@ -63,7 +63,7 @@ public class DetailForm<T extends Bean> extends FormLayout {
 	
 	// Campos de Vaadin del formulario
 	@SuppressWarnings("rawtypes")
-	protected Field[] formFields;
+	protected Component[] formFields;
 	
 	public DetailForm(BeanUI<T> beanUI, T currenElement)
 			throws InstantiationException, IllegalAccessException {
@@ -75,93 +75,12 @@ public class DetailForm<T extends Bean> extends FormLayout {
 		binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
 		binder.setItemDataSource(elemento);
 		
-		// Obtenemos la anotación StandardForm del elemento
-		StandardForm standardForm = elemento.getClass().getAnnotation(StandardForm.class);
-		
 		// Obtenemos los campos del bean elemento
 		beanFields = elemento.getClass().getDeclaredFields();
 		
-		// Creamos el array de campos del formulario con el número de campos del bean 
-		formFields = new Field[beanFields.length];
-		
 		try {
-		// Recorremos los campos del bean 
-			for (int i=0;i<beanFields.length;i++) {
-				String caption;
-				// Obtenemos la anotación DetailField
-				StandardFormField detailField = beanFields[i].getAnnotation(StandardFormField.class);
-				// Obtenemos el tipo de campo en función de los metadatos
-				StandardFormField.Type tipo = getTypeFormField(standardForm, beanFields[i], detailField);
-				// Si se ha encontrado un tipo
-				if (tipo != null) {
-					// Si no hay anotación DetailField para este campo o el caption es ""
-					if (!(detailField instanceof StandardFormField) ||
-							detailField.caption().length() == 0) {
-						// Asignamos como caption el nombre del campo con la primera letra en mayúscula
-						caption = Utils.capitalizeFirstLetter(beanFields[i].getName());
-					}
-					else {
-						caption = detailField.caption();
-					}
-					// Comprobamos el tipo de campo
-					switch (tipo) {
-					// Si es un campo de selección con un bean anidado
-					case COMBO_BOX:
-					case OPTION_GROUP:
-						// En el caso de un campo con bean anidado, tenemos que crear el campo a mano
-						// con todas las opciones y seleccionar el elemento actual
-						formFields[i] = obtenerCampoSelección(beanFields[i], tipo, caption);
-						// No añadimos el campo al binder porque no funciona correctamente en este caso
-						break;
-					// Si es un área de texto
-					case TEXT_AREA:
-						// Creamos el campo a mano y lo añadimos al binder
-						formFields[i] = new TextArea(caption);
-						binder.bind(formFields[i], beanFields[i].getName());
-						break;
-					// Si es un campo "normal"
-					case TEXT_FIELD:
-					case NUM_FIELD:
-					case CHECK_BOX:
-						// Construimos el campo directamente con el binder
-						formFields[i] = binder.buildAndBind(caption, beanFields[i].getName());
-						// Si es un campo de texto TextField, especificamos la longitud máxima (Vaadin no lo hace)
-						if (formFields[i] instanceof TextField) {
-							// Obtenemos la anotación Size del campo del bean
-							Size size = beanFields[i].getAnnotation(Size.class);
-							// Si hay anotación DetailField
-							if (size instanceof Size) {
-								((TextField)formFields[i]).setMaxLength(size.max());
-							}
-						}
-						break;
-					// Si es un campo de fecha
-					case DATE:
-						// Creamos el campo a mano y lo añadimos al binder
-						formFields[i] = new PopupDateField(caption);
-						// Deshabilitamos el campo de texto
-						((PopupDateField)formFields[i]).setTextFieldEnabled(false);
-						binder.bind(formFields[i], beanFields[i].getName());
-						break;
-					default:
-						break;
-					}
-					// Comprobamos por precaución si se ha creado el campo
-					if (formFields[i] != null) {
-						// Se especifica la representación del null
-						if (formFields[i] instanceof AbstractTextField) {
-							((AbstractTextField)formFields[i]).setNullRepresentation("");
-						}
-						// Añadimos el campo al formulario
-						addComponent(formFields[i]);
-						// Si hay ayuda
-						if (detailField instanceof StandardFormField && !detailField.help().isEmpty()) {
-							// Añadimos etiqueta con la ayuda
-							addComponent(new Label(detailField.help()));
-						}
-					}
-				}
-			}
+			// Obtenemos los campos del formulario
+			formFields = getFormFields(elemento, binder);
 	
 			Button botónGuardar = new Button("Guardar");
 			botónGuardar.setClickShortcut(KeyCode.ENTER);
@@ -192,6 +111,121 @@ public class DetailForm<T extends Bean> extends FormLayout {
 			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
+	}
+
+	// Obtiene un array de campos de Vaadin a partir del bean que se le pasa como argumento
+	// Este método es recursivo para los beans "embebidos" de MongoDB
+	@SuppressWarnings("rawtypes")
+	private Component[] getFormFields(Bean elementoActual, BeanFieldGroup currentBinder)
+			throws NoSuchMethodException, IllegalAccessException,
+			InvocationTargetException, ClassNotFoundException,
+			InstantiationException {
+		
+		// Obtenemos la anotación StandardForm del elementoActual
+		StandardForm standardForm = elementoActual.getClass().getAnnotation(StandardForm.class);
+		
+		// Obtenemos los campos del bean elementoActual
+		java.lang.reflect.Field[] currentBeanFields = elementoActual.getClass().getDeclaredFields();
+		
+		// Creamos el array de campos del formulario con el número de campos del bean actual
+		Component[] currentFields = new Component[currentBeanFields.length];
+		
+		// Recorremos los campos del bean actual
+		for (int i=0;i<currentBeanFields.length;i++) {
+			String caption;
+			// Obtenemos la anotación DetailField
+			StandardFormField detailField = currentBeanFields[i].getAnnotation(StandardFormField.class);
+			// Obtenemos el tipo de campo en función de los metadatos
+			StandardFormField.Type tipo = getTypeFormField(standardForm, currentBeanFields[i], detailField);
+			// Si se ha encontrado un tipo
+			if (tipo != null) {
+				// Si no hay anotación DetailField para este campo o el caption es ""
+				if (!(detailField instanceof StandardFormField) ||
+						detailField.caption().length() == 0) {
+					// Asignamos como caption el nombre del campo con la primera letra en mayúscula
+					caption = Utils.capitalizeFirstLetter(currentBeanFields[i].getName());
+				}
+				else {
+					caption = detailField.caption();
+				}
+				// Comprobamos el tipo de campo
+				switch (tipo) {
+				// Si es un campo de selección
+				case COMBO_BOX:
+				case OPTION_GROUP:
+					// En este caso tenemos que crear el campo a mano
+					// con todas las opciones y seleccionar el elemento actual
+					currentFields[i] = obtenerCampoSelección(currentBeanFields[i], tipo, caption);
+					// No añadimos el campo al binder porque no funciona correctamente en este caso
+					break;
+				// Si es un área de texto
+				case TEXT_AREA:
+					// Creamos el campo a mano y lo añadimos al binder
+					currentFields[i] = new TextArea(caption);
+					currentBinder.bind((Field) currentFields[i], currentBeanFields[i].getName());
+					break;
+				// Si es un campo "normal"
+				case TEXT_FIELD:
+				case NUM_FIELD:
+				case CHECK_BOX:
+					// Construimos el campo directamente con el binder
+					currentFields[i] = currentBinder.buildAndBind(caption, currentBeanFields[i].getName());
+					// Si es un campo de texto TextField, especificamos la longitud máxima (Vaadin no lo hace)
+					if (currentFields[i] instanceof TextField) {
+						// Obtenemos la anotación Size del campo del bean
+						Size size = currentBeanFields[i].getAnnotation(Size.class);
+						// Si hay anotación DetailField
+						if (size instanceof Size) {
+							((TextField)currentFields[i]).setMaxLength(size.max());
+						}
+					}
+					break;
+				// Si es un campo de fecha
+				case DATE:
+					// Creamos el campo a mano y lo añadimos al binder
+					currentFields[i] = new PopupDateField(caption);
+					// Deshabilitamos el campo de texto
+					((PopupDateField)currentFields[i]).setTextFieldEnabled(false);
+					currentBinder.bind((Field) currentFields[i], currentBeanFields[i].getName());
+					break;
+				// Si es un campo embedded
+				case EMBEDDED:
+					// TODO
+					// Obtenemos todos los elementos del bean anidado
+					// Obtenemos la clase del Bean anidado
+					@SuppressWarnings("unchecked")
+					Class<? extends Bean> embeddedBeanClass = (Class<? extends Bean>)currentBeanFields[i].getType();
+					Bean embeddedBean = embeddedBeanClass.newInstance();
+					// Obtenemos una instancia del BeanDAO anidado
+					FormLayout embeddedForm = new FormLayout();
+					BeanFieldGroup embeddedBinder = new BeanFieldGroup(embeddedBeanClass);
+					currentBinder.setItemDataSource(elementoActual);
+					Component[] embeddedFields = getFormFields(embeddedBean, embeddedBinder);
+					for (Component field: embeddedFields) {
+						embeddedForm.addComponent(field);
+					}
+					currentFields[i] = embeddedForm;
+					break;
+				default:
+					break;
+				}
+				// Comprobamos por precaución si se ha creado el campo
+				if (currentFields[i] != null) {
+					// Se especifica la representación del null
+					if (currentFields[i] instanceof AbstractTextField) {
+						((AbstractTextField)currentFields[i]).setNullRepresentation("");
+					}
+					// Añadimos el campo al formulario
+					addComponent(currentFields[i]);
+					// Si hay ayuda
+					if (detailField instanceof StandardFormField && !detailField.help().isEmpty()) {
+						// Añadimos etiqueta con la ayuda
+						addComponent(new Label(detailField.help()));
+					}
+				}
+			}
+		}
+		return currentFields;
 	}
 
 	/**
@@ -258,8 +292,7 @@ public class DetailForm<T extends Bean> extends FormLayout {
 				// Si el tipo de DAO es Mongo y el campo NO tiene la anotación @Reference
 				if (standardForm.daoType() == DAOType.MONGO &&
 						beanField.getAnnotation(Reference.class) == null) {
-					// TODO Debería mostrar un subformulario con todos los campos del bean anidado
-					return null;
+					return StandardFormField.Type.EMBEDDED;
 				}
 				else {
 					// Retorna el tipo COMBO_BOX
@@ -402,7 +435,7 @@ public class DetailForm<T extends Bean> extends FormLayout {
 				// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
 				if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull
 						&& elementoSeleccionado==null) {
-					formFields[i].setRequiredError("Obligatorio");
+					((AbstractField<Object>) formFields[i]).setRequiredError("Obligatorio");
 					throw new CommitException("El campo es obligatorio");
 				}
 				// Obtenemos el bean del binder

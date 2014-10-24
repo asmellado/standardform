@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
  *
  */
 public @interface StandardFormField {
-	enum Type {DEFAULT, TEXT_FIELD, NUM_FIELD, TEXT_AREA, COMBO_BOX, CHECK_BOX, OPTION_GROUP, DATE, HIDDEN}
+	enum Type {DEFAULT, TEXT_FIELD, NUM_FIELD, TEXT_AREA, COMBO_BOX, CHECK_BOX, OPTION_GROUP, DATE, EMBEDDED, HIDDEN}
 	/**
 	 * Field type. If you don't specify one type, the type will be Type.DEFAULT.
 	 * If the type is DEFAULT, Standard Form will assign the type automatically depending on the bean type 
