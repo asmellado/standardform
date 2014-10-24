@@ -121,6 +121,7 @@ public class DetailForm<T extends Bean> extends FormLayout {
 						break;
 					// Si es un campo "normal"
 					case TEXT_FIELD:
+					case NUM_FIELD:
 					case CHECK_BOX:
 						// Construimos el campo directamente con el binder
 						formFields[i] = binder.buildAndBind(caption, beanFields[i].getName());
@@ -221,6 +222,14 @@ public class DetailForm<T extends Bean> extends FormLayout {
 		// Si el tipo de campo es boolean
 		else if (beanField.getType() == Boolean.TYPE)
 			return StandardFormField.Type.CHECK_BOX;
+		// Si el tipo de campos es numérico
+		else if (beanField.getType() == Byte.TYPE ||
+					beanField.getType() == Short.TYPE ||
+					beanField.getType() == Integer.TYPE ||
+					beanField.getType() == Long.TYPE ||
+					beanField.getType() == Float.TYPE ||
+					beanField.getType() == Double.TYPE)
+			return StandardFormField.Type.NUM_FIELD;
 		// Si el tipo de campo el Date
 		else if (beanField.getType() == Date.class) {
 			// Si el tipo de DAO es Mongo
