@@ -1,7 +1,9 @@
 package es.vegamultimedia.standardform;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 import javax.persistence.EntityManager;
 
@@ -22,6 +24,38 @@ abstract public class Utils {
 	 */
 	public static String capitalizeFirstLetter(String string) {
 		return string.substring(0, 1).toUpperCase() + string.substring(1);
+	}
+	
+	/**
+	 * Return the "get" method for a bean field
+	 * @param beanClass
+	 * @param field
+	 * @return
+	 * @throws NoSuchMethodException
+	 * @throws SecurityException
+	 */
+	public static Method getGetMethod(Class<? extends Bean> beanClass, Field field)
+			throws NoSuchMethodException, SecurityException {
+		// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
+		String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
+		// Obtenemos el método "get" del campo actual
+		return beanClass.getDeclaredMethod("get"+nombreCampo);
+	}
+	
+	/**
+	 * Return the "set" method for a bean field
+	 * @param beanClass
+	 * @param field
+	 * @return
+	 * @throws NoSuchMethodException
+	 * @throws SecurityException
+	 */
+	public static Method getSetMethod(Class<? extends Bean> beanClass, Field field)
+			throws NoSuchMethodException, SecurityException {
+		// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
+		String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
+		// Obtenemos el método "set" del campo actual
+		return beanClass.getDeclaredMethod("set"+nombreCampo, field.getType());
 	}
 	
 	/**

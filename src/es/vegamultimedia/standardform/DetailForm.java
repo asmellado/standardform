@@ -3,6 +3,7 @@ package es.vegamultimedia.standardform;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -58,29 +59,24 @@ public class DetailForm<T extends Bean> extends FormLayout {
 	// Bean actual
 	protected T elemento;
 	
-	// Campos del bean actual
-	protected java.lang.reflect.Field[] beanFields;
-	
 	// Campos de Vaadin del formulario
 	@SuppressWarnings("rawtypes")
 	protected Component[] formFields;
 	
+	@SuppressWarnings("unchecked")
 	public DetailForm(BeanUI<T> beanUI, T currenElement)
 			throws InstantiationException, IllegalAccessException {
 		this.beanUI = beanUI;
 		elemento = currenElement;
-		if (elemento == null) {
-			elemento = beanUI.getBeanClass().newInstance();
-		}
-		binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
-		binder.setItemDataSource(elemento);
-		
-		// Obtenemos los campos del bean elemento
-		beanFields = elemento.getClass().getDeclaredFields();
-		
 		try {
+			if (elemento == null) {
+				elemento = (T) newBean(beanUI.getBeanClass());
+			}
+			binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
+			binder.setItemDataSource(elemento);
+		
 			// Obtenemos los campos del formulario
-			formFields = getFormFields(elemento, binder);
+			formFields = getFormFields(elemento, "");
 	
 			Button botónGuardar = new Button("Guardar");
 			botónGuardar.setClickShortcut(KeyCode.ENTER);
@@ -112,11 +108,34 @@ public class DetailForm<T extends Bean> extends FormLayout {
 			e.printStackTrace();
 		}
 	}
+	
+	@SuppressWarnings("unchecked")
+	private Bean newBean(Class<? extends Bean> beanClass)
+			throws InstantiationException, IllegalAccessException, 
+			IllegalArgumentException, InvocationTargetException, 
+			NoSuchMethodException, SecurityException {
+		Bean bean = beanClass.newInstance();
+		// Recorremos todos los campos
+		for (java.lang.reflect.Field fieldBean : beanClass.getDeclaredFields()) {
+			try {
+				// Si el campo es un bean anidado
+				if (fieldBean.getType().asSubclass(Bean.class) != null) {
+					// Creamos el objeto del bean anidado
+					Bean nestedBean = newBean((Class<? extends Bean>) fieldBean.getType());
+					// Obtenemos el método "Set" del campo actual
+					Method setMethod = Utils.getSetMethod(bean.getClass(), fieldBean);
+					// Llamamos al método set para asignar el bean anidado vacío
+					setMethod.invoke(bean, nestedBean);
+				}
+			} catch (ClassCastException ignorada) { }
+		}
+		return bean;
+	}
 
 	// Obtiene un array de campos de Vaadin a partir del bean que se le pasa como argumento
 	// Este método es recursivo para los beans "embebidos" de MongoDB
 	@SuppressWarnings("rawtypes")
-	private Component[] getFormFields(Bean elementoActual, BeanFieldGroup currentBinder)
+	private Component[] getFormFields(Bean elementoActual, String prefixParentBean)
 			throws NoSuchMethodException, IllegalAccessException,
 			InvocationTargetException, ClassNotFoundException,
 			InstantiationException {
@@ -162,14 +181,14 @@ public class DetailForm<T extends Bean> extends FormLayout {
 				case TEXT_AREA:
 					// Creamos el campo a mano y lo añadimos al binder
 					currentFields[i] = new TextArea(caption);
-					currentBinder.bind((Field) currentFields[i], currentBeanFields[i].getName());
+					binder.bind((Field) currentFields[i], prefixParentBean + currentBeanFields[i].getName());
 					break;
 				// Si es un campo "normal"
 				case TEXT_FIELD:
 				case NUM_FIELD:
 				case CHECK_BOX:
 					// Construimos el campo directamente con el binder
-					currentFields[i] = currentBinder.buildAndBind(caption, currentBeanFields[i].getName());
+					currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
 					// Si es un campo de texto TextField, especificamos la longitud máxima (Vaadin no lo hace)
 					if (currentFields[i] instanceof TextField) {
 						// Obtenemos la anotación Size del campo del bean
@@ -186,24 +205,24 @@ public class DetailForm<T extends Bean> extends FormLayout {
 					currentFields[i] = new PopupDateField(caption);
 					// Deshabilitamos el campo de texto
 					((PopupDateField)currentFields[i]).setTextFieldEnabled(false);
-					currentBinder.bind((Field) currentFields[i], currentBeanFields[i].getName());
+					binder.bind((Field) currentFields[i], prefixParentBean + currentBeanFields[i].getName());
 					break;
 				// Si es un campo embedded
 				case EMBEDDED:
-					// TODO
-					// Obtenemos todos los elementos del bean anidado
 					// Obtenemos la clase del Bean anidado
 					@SuppressWarnings("unchecked")
 					Class<? extends Bean> embeddedBeanClass = (Class<? extends Bean>)currentBeanFields[i].getType();
 					Bean embeddedBean = embeddedBeanClass.newInstance();
-					// Obtenemos una instancia del BeanDAO anidado
+					// Creamos un formulario anidado para albergar todos los campos del bean anidado
 					FormLayout embeddedForm = new FormLayout();
-					BeanFieldGroup embeddedBinder = new BeanFieldGroup(embeddedBeanClass);
-					currentBinder.setItemDataSource(elementoActual);
-					Component[] embeddedFields = getFormFields(embeddedBean, embeddedBinder);
+					// Obtenemos los campos llamando recursivamente a esta función
+					Component[] embeddedFields = getFormFields(embeddedBean, 
+							prefixParentBean + currentBeanFields[i].getName() + ".");
+					// Añadimos los campos al formulario
 					for (Component field: embeddedFields) {
 						embeddedForm.addComponent(field);
 					}
+					// Añadimos el formulario anidado al formulario principal
 					currentFields[i] = embeddedForm;
 					break;
 				default:
@@ -403,10 +422,8 @@ public class DetailForm<T extends Bean> extends FormLayout {
 		}
 		// Obtenemos el valor del elemento actual para seleccionarlo
 		if (campoSelect != null) {
-			// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
-			String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
 			// Obtenemos el método "get" del campo actual
-			Method getMethod = elemento.getClass().getDeclaredMethod("get"+nombreCampo);
+			Method getMethod = Utils.getGetMethod(elemento.getClass(), field);
 			// Llamamos al método
 			Object beanAnidado = getMethod.invoke(elemento);
 			// Seleccionamos el elemento actual del bean anidado
@@ -420,6 +437,7 @@ public class DetailForm<T extends Bean> extends FormLayout {
 	// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
 	private void commitCamposSelección() throws NoSuchMethodException,
 			IllegalAccessException, InvocationTargetException, CommitException {
+		java.lang.reflect.Field[] beanFields = elemento.getClass().getDeclaredFields();
 		for (int i=0;i<beanFields.length;i++) {
 			// Si el tipo de campo es COMBO_BOX u OPTION_GROUP
 			if (formFields[i] instanceof ComboBox ||
