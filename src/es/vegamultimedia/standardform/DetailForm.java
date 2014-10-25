@@ -3,7 +3,6 @@ package es.vegamultimedia.standardform;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -36,6 +35,7 @@ import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.OptionGroup;
+import com.vaadin.ui.Panel;
 import com.vaadin.ui.PopupDateField;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
@@ -222,8 +222,12 @@ public class DetailForm<T extends Bean> extends FormLayout {
 					for (Component field: embeddedFields) {
 						embeddedForm.addComponent(field);
 					}
-					// Añadimos el formulario anidado al formulario principal
-					currentFields[i] = embeddedForm;
+					// Creamos un panel con el caption
+					Panel panel = new Panel(caption);
+					// Asignamos el formulario al panel
+					panel.setContent(embeddedForm);
+					// Añadimos el panel al formulario principal
+					currentFields[i] = panel;
 					break;
 				default:
 					break;
