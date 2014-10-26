@@ -23,6 +23,7 @@ import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.annotations.StandardFormEnum;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
@@ -67,6 +68,27 @@ public class ListForm<T extends Bean> extends FormLayout {
 		        if (property.getType() == Date.class) {
 		            SimpleDateFormat df = new SimpleDateFormat("dd-MM-yyyy");
 		            return df.format((Date)property.getValue());
+		        }
+		        else if (property.getType().isEnum()) {
+		        	// Obtenemos los elementos del enumerado
+					Object[] elementosEnum = property.getType().getEnumConstants();
+					// Recorremos todos los elementos del enumerado
+					for (Object elementoEnum: elementosEnum) {
+						// Se obtiene anotación StandardFormEnum del elemento
+						try {
+							java.lang.reflect.Field elementoField = property.getType().getField(elementoEnum.toString());
+							StandardFormEnum anotación = elementoField.getAnnotation(StandardFormEnum.class);
+							// Si tiene anotación StandardFormEnum informada
+							if (anotación != null && anotación.value().length() != 0) {
+								// Si el enumerado coincide con el valor la propiedad
+								if (elementoEnum == property.getValue())
+									// Se retorna el valor de la anotación
+									return anotación.value();
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
 		        }
 		        return super.formatPropertyValue(rowId, colId, property);
 		    }
