@@ -27,7 +27,7 @@ abstract public class Utils {
 	}
 	
 	/**
-	 * Return the "get" method for a bean field
+	 * Returns the "get" method for a bean field
 	 * @param beanClass
 	 * @param field
 	 * @return
@@ -43,7 +43,7 @@ abstract public class Utils {
 	}
 	
 	/**
-	 * Return the "set" method for a bean field
+	 * Returns the "set" method for a bean field
 	 * @param beanClass
 	 * @param field
 	 * @return
@@ -56,6 +56,26 @@ abstract public class Utils {
 		String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
 		// Obtenemos el método "set" del campo actual
 		return beanClass.getDeclaredMethod("set"+nombreCampo, field.getType());
+	}
+	
+	/**
+	 * Returns the value of the field of a bean (calling to the getMethod)
+	 * @param element
+	 * @param field
+	 * @return
+	 * @throws NoSuchMethodException
+	 * @throws SecurityException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 * @throws InvocationTargetException
+	 */
+	public static Object getFieldValue(Bean element, Field field)
+			throws NoSuchMethodException, SecurityException,
+			IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		// Obtenemos el método get del campo
+		Method getMethod = Utils.getGetMethod(element.getClass(), field);
+		// Obtenemos el valor del campo llamando al método get
+		return getMethod.invoke(element);
 	}
 	
 	/**

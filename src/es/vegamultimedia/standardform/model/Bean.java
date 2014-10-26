@@ -1,9 +1,8 @@
 package es.vegamultimedia.standardform.model;
 
+/**
+ * An object that implements this interface represents a bean
+ */
 public interface Bean {
-	
-	public abstract Object getId();
-	
-	public abstract void setId(Object id);
 
 }

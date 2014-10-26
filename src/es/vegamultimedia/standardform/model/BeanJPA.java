@@ -7,9 +7,12 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 
+/**
+ * An object of this class represents a bean that uses Java Persistence API (JPA) for persistence
+ */
 @SuppressWarnings("serial")
 @MappedSuperclass
-public class BeanJPA implements Bean, Serializable {
+public class BeanJPA implements BeanWithId, Serializable {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.TABLE)

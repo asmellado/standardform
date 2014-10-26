@@ -12,6 +12,7 @@ import javax.persistence.TemporalType;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.Reference;
 
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
@@ -46,6 +47,7 @@ import es.vegamultimedia.standardform.annotations.StandardForm.DAOType;
 import es.vegamultimedia.standardform.annotations.StandardFormEnum;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
+import es.vegamultimedia.standardform.model.BeanMongo;
 
 @SuppressWarnings("serial")
 public class DetailForm<T extends Bean> extends FormLayout {
@@ -60,7 +62,6 @@ public class DetailForm<T extends Bean> extends FormLayout {
 	protected T elemento;
 	
 	// Campos de Vaadin del formulario
-	@SuppressWarnings("rawtypes")
 	protected Component[] formFields;
 	
 	@SuppressWarnings("unchecked")
@@ -238,6 +239,18 @@ public class DetailForm<T extends Bean> extends FormLayout {
 					if (currentFields[i] instanceof AbstractTextField) {
 						((AbstractTextField)currentFields[i]).setNullRepresentation("");
 					}
+					try {
+						// Si es un BeanMongo y el campo tiene anotación Id
+						if (elementoActual.getClass().asSubclass(BeanMongo.class) != null &&
+								currentBeanFields[i].getAnnotation(Id.class) != null) {
+							// Si el valor del campo no es null (estamos en modo modificación)
+							if (Utils.getFieldValue(elementoActual, currentBeanFields[i]) != null)
+								// se deshabilita el campo
+								currentFields[i].setEnabled(false);
+						}
+					}
+					catch (Exception ignorada) { }
+
 					// Añadimos el campo al formulario
 					addComponent(currentFields[i]);
 					// Si hay ayuda
