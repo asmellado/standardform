@@ -9,6 +9,7 @@ import java.util.List;
 import javax.persistence.Lob;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
@@ -194,10 +195,20 @@ public class DetailForm<T extends Bean> extends FormLayout {
 					if (currentFields[i] instanceof TextField) {
 						// Obtenemos la anotación Size del campo del bean
 						Size size = currentBeanFields[i].getAnnotation(Size.class);
-						// Si hay anotación DetailField
+						// Si hay anotación Size
 						if (size instanceof Size) {
 							((TextField)currentFields[i]).setMaxLength(size.max());
 						}
+						else {
+							// Obtenemos la anotación Max del campo del bean
+							Max max = currentBeanFields[i].getAnnotation(Max.class);
+							if (max instanceof Max) {
+								// Obtenemos el número de dígitos máximo posible
+								int digitos = ((int)Math.floor(Math.log10(max.value()))) + 1;
+								((TextField)currentFields[i]).setMaxLength(digitos);
+							}
+						}
+
 					}
 					break;
 				// Si es un campo de fecha
@@ -280,8 +291,9 @@ public class DetailForm<T extends Bean> extends FormLayout {
 			return detailField.type();
 		}
 		// En caso contrario obtenemos el tipo por defecto según el tipo de bean
+		Class<?> tipoBean = beanField.getType();
 		// Si el tipo de campos es un String
-		else if (beanField.getType() == String.class) {
+		if (tipoBean == String.class) {
 			// Si tiene anotación Lob
 			if (beanField.getAnnotation(Lob.class) != null)
 				// retorna el tipo TEXT_AREA
@@ -290,18 +302,18 @@ public class DetailForm<T extends Bean> extends FormLayout {
 			return StandardFormField.Type.TEXT_FIELD;
 		}
 		// Si el tipo de campo es boolean
-		else if (beanField.getType() == Boolean.TYPE)
+		else if (tipoBean == Boolean.TYPE)
 			return StandardFormField.Type.CHECK_BOX;
 		// Si el tipo de campos es numérico
-		else if (beanField.getType() == Byte.TYPE ||
-					beanField.getType() == Short.TYPE ||
-					beanField.getType() == Integer.TYPE ||
-					beanField.getType() == Long.TYPE ||
-					beanField.getType() == Float.TYPE ||
-					beanField.getType() == Double.TYPE)
+		else if (tipoBean == Byte.TYPE || tipoBean == Byte.class ||
+					tipoBean == Short.TYPE || tipoBean == Short.class ||
+					tipoBean == Integer.TYPE || tipoBean == Integer.class ||
+					tipoBean == Long.TYPE || tipoBean == Long.class ||					
+					tipoBean == Float.TYPE || tipoBean == Float.class ||
+					tipoBean == Double.TYPE || tipoBean == Double.class)
 			return StandardFormField.Type.NUM_FIELD;
 		// Si el tipo de campo el Date
-		else if (beanField.getType() == Date.class) {
+		else if (tipoBean == Date.class) {
 			// Si el tipo de DAO es Mongo
 			if (standardForm.daoType() == DAOType.MONGO) {
 				// Retorna el tipo DATE
@@ -318,13 +330,13 @@ public class DetailForm<T extends Bean> extends FormLayout {
 				return null;
 		}
 		// Si el tipo de campos es un enumerado
-		if (beanField.getType().isEnum()) {
+		if (tipoBean.isEnum()) {
 			// Retorna el tipo COMBO_BOX
 			return StandardFormField.Type.COMBO_BOX;
 		}
 		// Si el tipo de campo es otro Bean
 		try {
-			if (beanField.getType().asSubclass(Bean.class) != null)
+			if (tipoBean.asSubclass(Bean.class) != null)
 				// Si el tipo de DAO es Mongo y el campo NO tiene la anotación @Reference
 				if (standardForm.daoType() == DAOType.MONGO &&
 						beanField.getAnnotation(Reference.class) == null) {
