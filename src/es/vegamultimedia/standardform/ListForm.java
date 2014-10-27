@@ -19,6 +19,7 @@ import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
+import com.vaadin.ui.Panel;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
@@ -28,13 +29,16 @@ import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
-public class ListForm<T extends Bean> extends FormLayout {
+public class ListForm<T extends Bean> extends Panel {
 	
 	// BeanUI that created this standard list form
 	protected BeanUI<T> beanUI;
 	
 	// Container del formulario
 	protected BeanItemContainer<T> container;
+	
+	// Formulario
+	FormLayout form;
 	
 	// Tabla del formulario
 	protected Table tabla;
@@ -47,6 +51,9 @@ public class ListForm<T extends Bean> extends FormLayout {
 
 		// Obtenemos la anotación ListForm del bean
 		StandardForm listForm = beanUI.getBeanClass().getAnnotation(StandardForm.class);
+		
+		// Asignamos el título al panel
+		setCaption(listForm.listViewName());
 
 		// Si el bean NO tiene anotación StandardForm
 		if (!(listForm instanceof StandardForm)) {
@@ -56,9 +63,13 @@ public class ListForm<T extends Bean> extends FormLayout {
 			return;
 		}
 		
+		// Creamos el formulario para albergar todos los campos del bean
+		form = new FormLayout();
+		setContent(form);
+		
 		// Layout
 		HorizontalLayout layout = new HorizontalLayout();
-		addComponent(layout);
+		form.addComponent(layout);
 		
 		// Tabla
 		tabla = new Table(){
@@ -194,7 +205,7 @@ public class ListForm<T extends Bean> extends FormLayout {
 	}
 	
 	protected void mostrarDetalle(T elemento) {
-		FormLayout vistaDetalle;
+		Panel vistaDetalle;
 		try {
 			vistaDetalle = beanUI.getDetailForm(elemento);
 			ComponentContainer contentPanel = (ComponentContainer)getParent();
@@ -261,7 +272,7 @@ public class ListForm<T extends Bean> extends FormLayout {
 			                		beanUI.getBeanDAO().remove(elementoSeleccionado);
 				                	Notification.show("El elemento se ha eliminado correctamente");
 				                	// Volvemos a cargar la tabla con los elementos
-				                	removeAllComponents();
+				                	form.removeAllComponents();
 			                	} catch (Exception e) {
 			    					Notification.show("No se ha podido eliminar el elemento", e.getMessage(), Type.ERROR_MESSAGE);
 			    				}			                	

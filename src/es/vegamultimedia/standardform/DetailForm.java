@@ -51,7 +51,7 @@ import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
 
 @SuppressWarnings("serial")
-public class DetailForm<T extends Bean> extends FormLayout {
+public class DetailForm<T extends Bean> extends Panel {
 	
 	// BeanUI that created this standard detail form
 	protected BeanUI<T> beanUI;
@@ -62,6 +62,9 @@ public class DetailForm<T extends Bean> extends FormLayout {
 	// Bean actual
 	protected T elemento;
 	
+	// Formulario
+	FormLayout form;
+	
 	// Campos de Vaadin del formulario
 	protected Component[] formFields;
 	
@@ -70,13 +73,27 @@ public class DetailForm<T extends Bean> extends FormLayout {
 			throws InstantiationException, IllegalAccessException {
 		this.beanUI = beanUI;
 		elemento = currenElement;
+		
 		try {
+			// Inicializamos el elemento actual
 			if (elemento == null) {
 				elemento = (T) newBean(beanUI.getBeanClass());
 			}
+			
+			// Creamos el binder
 			binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
 			binder.setItemDataSource(elemento);
-		
+			
+			// Creamos el formulario para albergar todos los campos del bean
+			form = new FormLayout();
+			setContent(form);
+			
+			// Obtenemos la anotación StandardForm del elementoActual
+			StandardForm standardForm = elemento.getClass().getAnnotation(StandardForm.class);
+			
+			// Asignamos el título al panel
+			setCaption(standardForm.detailViewName());
+			
 			// Obtenemos los campos del formulario
 			formFields = getFormFields(elemento, "");
 	
@@ -91,7 +108,7 @@ public class DetailForm<T extends Bean> extends FormLayout {
 					guardar(event);
 				}
 			});
-			addComponent(botónGuardar);
+			form.addComponent(botónGuardar);
 			
 			Button botónCancelar = new Button("Cancelar");
 			botónCancelar.addClickListener(new ClickListener(){
@@ -103,7 +120,7 @@ public class DetailForm<T extends Bean> extends FormLayout {
 					mostrarListado();
 				}
 			});
-			addComponent(botónCancelar);
+			form.addComponent(botónCancelar);
 			
 		} catch (Exception e) {
 			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
@@ -263,11 +280,11 @@ public class DetailForm<T extends Bean> extends FormLayout {
 					catch (Exception ignorada) { }
 
 					// Añadimos el campo al formulario
-					addComponent(currentFields[i]);
+					form.addComponent(currentFields[i]);
 					// Si hay ayuda
 					if (detailField instanceof StandardFormField && !detailField.help().isEmpty()) {
 						// Añadimos etiqueta con la ayuda
-						addComponent(new Label(detailField.help()));
+						form.addComponent(new Label(detailField.help()));
 					}
 				}
 			}
@@ -351,7 +368,7 @@ public class DetailForm<T extends Bean> extends FormLayout {
 	}
 
 	private void mostrarListado() {
-		FormLayout vistaListado = beanUI.getListForm();
+		Panel vistaListado = beanUI.getListForm();
 		ComponentContainer contentPanel = (ComponentContainer)getParent();
 		contentPanel.replaceComponent(this, vistaListado);
 	}
