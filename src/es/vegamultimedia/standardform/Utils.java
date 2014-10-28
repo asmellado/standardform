@@ -27,7 +27,7 @@ abstract public class Utils {
 	}
 	
 	/**
-	 * Returns the "get" method for a bean field
+	 * Returns the "get" method for a bean field (or the "is" method if the field is boolean) 
 	 * @param beanClass
 	 * @param field
 	 * @return
@@ -38,8 +38,15 @@ abstract public class Utils {
 			throws NoSuchMethodException, SecurityException {
 		// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
 		String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
-		// Obtenemos el método "get" del campo actual
-		return beanClass.getDeclaredMethod("get"+nombreCampo);
+		// Si el campo es boolean
+		if (field.getType() == Boolean.TYPE || field.getType() == Boolean.class) {
+			// Obtenemos el método "is" del campo actual
+			return beanClass.getMethod("is"+nombreCampo);
+		}
+		else {
+			// Obtenemos el método "get" del campo actual
+			return beanClass.getMethod("get"+nombreCampo);
+		}
 	}
 	
 	/**
@@ -55,7 +62,7 @@ abstract public class Utils {
 		// Obtenemos el nombre del campo y ponemos la primera letra en mayúscula
 		String nombreCampo = Utils.capitalizeFirstLetter(field.getName());
 		// Obtenemos el método "set" del campo actual
-		return beanClass.getDeclaredMethod("set"+nombreCampo, field.getType());
+		return beanClass.getMethod("set"+nombreCampo, field.getType());
 	}
 	
 	/**

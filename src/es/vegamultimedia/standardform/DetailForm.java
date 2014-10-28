@@ -2,6 +2,7 @@ package es.vegamultimedia.standardform;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -68,6 +69,9 @@ public class DetailForm<T extends Bean> extends Panel {
 	// Campos de Vaadin del formulario
 	protected Component[] formFields;
 	
+	// Indica que estamos en modo alta
+	protected boolean modoAlta;
+	
 	@SuppressWarnings("unchecked")
 	public DetailForm(BeanUI<T> beanUI, T currenElement)
 			throws InstantiationException, IllegalAccessException {
@@ -77,6 +81,7 @@ public class DetailForm<T extends Bean> extends Panel {
 		try {
 			// Inicializamos el elemento actual
 			if (elemento == null) {
+				modoAlta = true;
 				elemento = (T) newBean(beanUI.getBeanClass());
 			}
 			
@@ -165,6 +170,19 @@ public class DetailForm<T extends Bean> extends Panel {
 		// Obtenemos los campos del bean elementoActual
 		java.lang.reflect.Field[] currentBeanFields = elementoActual.getClass().getDeclaredFields();
 		
+		// Añadimos los campos de la superclase
+		// TODO Sólo se obtiene la superclase directa, habría que obtenerlas todas recursivamente
+		Class<?> superclass = elementoActual.getClass().getSuperclass();
+		if (superclass != Object.class) {
+			java.lang.reflect.Field[] fields = superclass.getDeclaredFields();
+			ArrayList<java.lang.reflect.Field> beanFieldsList = new ArrayList<java.lang.reflect.Field>();
+			beanFieldsList.addAll(Arrays.asList(currentBeanFields));
+			for (java.lang.reflect.Field field : fields) {
+				beanFieldsList.add(field);
+			}
+			currentBeanFields = beanFieldsList.toArray(new java.lang.reflect.Field[beanFieldsList.size()]);
+		}
+		
 		// Creamos el array de campos del formulario con el número de campos del bean actual
 		Component[] currentFields = new Component[currentBeanFields.length];
 		
@@ -228,6 +246,16 @@ public class DetailForm<T extends Bean> extends Panel {
 
 					}
 					break;
+				// Si es un campo deshabilitado
+				case DISABLED:
+					// Si estamos en modo modificación
+					if (!modoAlta) {
+						// Mostramos el campo deshabilitado
+						currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
+						currentFields[i].setEnabled(false);
+					}
+					// En alta no se muestra el campo
+					break;
 				// Si es un campo de fecha
 				case DATE:
 					// Creamos el campo a mano y lo añadimos al binder
@@ -271,8 +299,8 @@ public class DetailForm<T extends Bean> extends Panel {
 						// Si es un BeanMongo y el campo tiene anotación Id
 						if (elementoActual.getClass().asSubclass(BeanMongo.class) != null &&
 								currentBeanFields[i].getAnnotation(Id.class) != null) {
-							// Si el valor del campo no es null (estamos en modo modificación)
-							if (Utils.getFieldValue(elementoActual, currentBeanFields[i]) != null)
+							// Si estamos en modo modificación
+							if (!modoAlta)
 								// se deshabilita el campo
 								currentFields[i].setEnabled(false);
 						}
