@@ -295,6 +295,8 @@ public class DetailForm<T extends Bean> extends Panel {
 					if (currentFields[i] instanceof AbstractTextField) {
 						((AbstractTextField)currentFields[i]).setNullRepresentation("");
 					}
+					// Se añade al campo el estilo CSS sf-field
+					currentFields[i].addStyleName("sf-field");
 					try {
 						// Si es un BeanMongo y el campo tiene anotación Id
 						if (elementoActual.getClass().asSubclass(BeanMongo.class) != null &&
