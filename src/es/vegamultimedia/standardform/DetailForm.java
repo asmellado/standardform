@@ -343,8 +343,9 @@ public class DetailForm<T extends Bean> extends Panel {
 		Class<?> tipoBean = beanField.getType();
 		// Si el tipo de campos es un String
 		if (tipoBean == String.class) {
-			// Si tiene anotación Lob
-			if (beanField.getAnnotation(Lob.class) != null)
+			// Si el tipo de DAO es JPA y el campo tiene anotación Lob
+			if (standardForm.daoType() == DAOType.JPA && 
+					beanField.getAnnotation(Lob.class) != null)
 				// retorna el tipo TEXT_AREA
 				return StandardFormField.Type.TEXT_AREA;
 			// En caso contrario retorna el tipo TEXT_FIELD 
