@@ -13,6 +13,13 @@ public interface BeanDAO<T extends Bean> {
 	public abstract void save(T element);
 	
 	/**
+	 * Get an element from the database 
+	 * @param id Unique bean id
+	 * @return
+	 */
+	public abstract T get(Object id);
+	
+	/**
 	 * Get all the elements from the database
 	 * @return
 	 */

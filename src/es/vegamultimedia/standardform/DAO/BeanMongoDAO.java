@@ -41,6 +41,11 @@ public class BeanMongoDAO<T extends BeanMongo> implements BeanDAO<T>, Serializab
 	}
 	
 	@Override
+	public T get(Object id) {
+		return datastore.get(beanClass, id);
+	}
+	
+	@Override
 	public List<T> getAllElements() {
 		Query<T> query = datastore.find(beanClass);
 		return query.asList();
@@ -50,4 +55,5 @@ public class BeanMongoDAO<T extends BeanMongo> implements BeanDAO<T>, Serializab
 	public void remove(T element) {
 		datastore.delete(element);
 	}
+
 }
