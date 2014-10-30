@@ -211,7 +211,7 @@ public class DetailForm<T extends Bean> extends Panel {
 				case OPTION_GROUP:
 					// En este caso tenemos que crear el campo a mano
 					// con todas las opciones y seleccionar el elemento actual
-					currentFields[i] = obtenerCampoSelección(currentBeanFields[i], tipo, caption);
+					currentFields[i] = obtenerCampoSelección(elementoActual, currentBeanFields[i], tipo, caption);
 					// No añadimos el campo al binder porque no funciona correctamente en este caso
 					break;
 				// Si es un área de texto
@@ -439,6 +439,7 @@ public class DetailForm<T extends Bean> extends Panel {
 	// con todas las opciones y seleccionar el elemento actual
 	@SuppressWarnings({"rawtypes", "unchecked" })
 	private AbstractSelect obtenerCampoSelección(
+				Bean elementoActual,
 				java.lang.reflect.Field field, 
 				es.vegamultimedia.standardform.annotations.StandardFormField.Type tipo, 
 				String caption)
@@ -510,9 +511,9 @@ public class DetailForm<T extends Bean> extends Panel {
 		// Obtenemos el valor del elemento actual para seleccionarlo
 		if (campoSelect != null) {
 			// Obtenemos el método "get" del campo actual
-			Method getMethod = Utils.getGetMethod(elemento.getClass(), field);
+			Method getMethod = Utils.getGetMethod(elementoActual.getClass(), field);
 			// Llamamos al método
-			Object beanAnidado = getMethod.invoke(elemento);
+			Object beanAnidado = getMethod.invoke(elementoActual);
 			// Seleccionamos el elemento actual del bean anidado
 			if (beanAnidado != null) {
 				campoSelect.setValue(beanAnidado);
