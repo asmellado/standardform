@@ -270,6 +270,14 @@ public class DetailForm<T extends Bean> extends Panel {
 					@SuppressWarnings("unchecked")
 					Class<? extends Bean> embeddedBeanClass = (Class<? extends Bean>)currentBeanFields[i].getType();
 					Bean embeddedBean = embeddedBeanClass.newInstance();
+					
+					// Si el campo del embeddedBean del elementoActual es null
+					if (Utils.getFieldValue(elementoActual, currentBeanFields[i]) == null) {
+						// Asignamos el embeddedBean al elementoActual
+						Method setMethod = Utils.getSetMethod(elementoActual.getClass(), currentBeanFields[i]);
+						setMethod.invoke(elementoActual, embeddedBean);
+					}
+					
 					// Creamos un formulario anidado para albergar todos los campos del bean anidado
 					FormLayout embeddedForm = new FormLayout();
 					// Obtenemos los campos llamando recursivamente a esta función
