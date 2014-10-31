@@ -482,7 +482,7 @@ public class DetailForm<T extends Bean> extends Panel {
 				campoSelect.setItemCaptionPropertyId("nombre");
 				
 				// Añadimos un validador de tipo BeanValidator para el campo
-				campoSelect.addValidator(new BeanValidator(beanUI.getBeanClass(), field.getName()));
+				campoSelect.addValidator(new BeanValidator(elementoActual.getClass(), field.getName()));
 			}
 		} catch (ClassCastException ignorada) { }
 		// Si es un enumerado
@@ -523,6 +523,7 @@ public class DetailForm<T extends Bean> extends Panel {
 	}
 
 	// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
+	@SuppressWarnings("unchecked")
 	private void commitCamposSelección() throws NoSuchMethodException,
 			IllegalAccessException, InvocationTargetException, CommitException {
 		java.lang.reflect.Field[] beanFields = elemento.getClass().getDeclaredFields();
