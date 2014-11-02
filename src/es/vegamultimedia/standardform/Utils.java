@@ -86,6 +86,26 @@ abstract public class Utils {
 	}
 	
 	/**
+	 * Sets the value to the specified field of a bean (calling to the setMethod)
+	 * @param element
+	 * @param field
+	 * @param value
+	 * @throws NoSuchMethodException
+	 * @throws SecurityException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 * @throws InvocationTargetException
+	 */
+	public static void setFieldValue(Bean element, Field field, Object value)
+			throws NoSuchMethodException, SecurityException,
+			IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		// Obtenemos el método get del campo
+		Method setMethod = Utils.getSetMethod(element.getClass(), field);
+		// Obtenemos el valor del campo llamando al método get
+		setMethod.invoke(element, value);
+	}
+	
+	/**
 	 * Get an BeanDAO instance from a nestedBean class
 	 * @param nestedBeanClass
 	 * @return

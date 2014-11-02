@@ -34,6 +34,7 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.Field;
 import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.HasComponents;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
@@ -133,6 +134,25 @@ public class DetailForm<T extends Bean> extends Panel {
 		}
 	}
 	
+	// Obtiene todos los campos del bean actual, añadiendo los de la superclase
+	private java.lang.reflect.Field[] getBeanFields(Bean elementoActual) {
+		// Obtenemos los campos del bean elementoActual
+		java.lang.reflect.Field[] currentBeanFields = elementoActual.getClass().getDeclaredFields();
+		// Añadimos los campos de la superclase
+		// TODO Sólo se obtiene la superclase directa, habría que obtenerlas todas recursivamente
+		Class<?> superclass = elementoActual.getClass().getSuperclass();
+		if (superclass != Object.class) {
+			java.lang.reflect.Field[] fields = superclass.getDeclaredFields();
+			ArrayList<java.lang.reflect.Field> beanFieldsList = new ArrayList<java.lang.reflect.Field>();
+			beanFieldsList.addAll(Arrays.asList(currentBeanFields));
+			for (java.lang.reflect.Field field : fields) {
+				beanFieldsList.add(field);
+			}
+			currentBeanFields = beanFieldsList.toArray(new java.lang.reflect.Field[beanFieldsList.size()]);
+		}
+		return currentBeanFields;
+	}
+	
 	@SuppressWarnings("unchecked")
 	private Bean newBean(Class<? extends Bean> beanClass)
 			throws InstantiationException, IllegalAccessException, 
@@ -168,20 +188,7 @@ public class DetailForm<T extends Bean> extends Panel {
 		StandardForm standardForm = elementoActual.getClass().getAnnotation(StandardForm.class);
 		
 		// Obtenemos los campos del bean elementoActual
-		java.lang.reflect.Field[] currentBeanFields = elementoActual.getClass().getDeclaredFields();
-		
-		// Añadimos los campos de la superclase
-		// TODO Sólo se obtiene la superclase directa, habría que obtenerlas todas recursivamente
-		Class<?> superclass = elementoActual.getClass().getSuperclass();
-		if (superclass != Object.class) {
-			java.lang.reflect.Field[] fields = superclass.getDeclaredFields();
-			ArrayList<java.lang.reflect.Field> beanFieldsList = new ArrayList<java.lang.reflect.Field>();
-			beanFieldsList.addAll(Arrays.asList(currentBeanFields));
-			for (java.lang.reflect.Field field : fields) {
-				beanFieldsList.add(field);
-			}
-			currentBeanFields = beanFieldsList.toArray(new java.lang.reflect.Field[beanFieldsList.size()]);
-		}
+		java.lang.reflect.Field[] currentBeanFields = getBeanFields(elementoActual);
 		
 		// Creamos el array de campos del formulario con el número de campos del bean actual
 		Component[] currentFields = new Component[currentBeanFields.length];
@@ -417,7 +424,7 @@ public class DetailForm<T extends Bean> extends Panel {
 	private void guardar(ClickEvent event) {
 		try {
 			// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
-			commitCamposSelección();
+			commitCamposSelección(elemento, formFields);
 			// Hacemos commit del resto de campos
 			binder.commit();
 			// Almacenamos la entidad en base de datos de forma persistente
@@ -508,12 +515,9 @@ public class DetailForm<T extends Bean> extends Panel {
 				}
 			}
 		}
-		// Obtenemos el valor del elemento actual para seleccionarlo
 		if (campoSelect != null) {
-			// Obtenemos el método "get" del campo actual
-			Method getMethod = Utils.getGetMethod(elementoActual.getClass(), field);
-			// Llamamos al método
-			Object beanAnidado = getMethod.invoke(elementoActual);
+			// Obtenemos el valor del elemento actual para seleccionarlo
+			Object beanAnidado = Utils.getFieldValue(elementoActual, field);
 			// Seleccionamos el elemento actual del bean anidado
 			if (beanAnidado != null) {
 				campoSelect.setValue(beanAnidado);
@@ -522,33 +526,54 @@ public class DetailForm<T extends Bean> extends Panel {
 		return campoSelect;
 	}
 
-	// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
+	// Dado que los campos de selección no están incluídos en el binder, 
+	// tenemos que hacer commit a mano
+	// Se hace este método recursivo para hacer commit de los campos de selección de los bean anidados
 	@SuppressWarnings("unchecked")
-	private void commitCamposSelección() throws NoSuchMethodException,
+	private void commitCamposSelección(Bean currentElement, Component[] currentFormFields) throws NoSuchMethodException,
 			IllegalAccessException, InvocationTargetException, CommitException {
-		java.lang.reflect.Field[] beanFields = elemento.getClass().getDeclaredFields();
+		java.lang.reflect.Field[] beanFields = getBeanFields(currentElement);
 		for (int i=0;i<beanFields.length;i++) {
 			// Si el tipo de campo es COMBO_BOX u OPTION_GROUP
-			if (formFields[i] instanceof ComboBox ||
-					formFields[i] instanceof OptionGroup) {
-				// Obtenemos el nombre del campo actual
-				String nombreCampo = beanFields[i].getName();
-				// Ponemos la primera letra en mayúscula
-				nombreCampo = nombreCampo.substring(0, 1).toUpperCase() + nombreCampo.substring(1);
-				// Obtenemos el método "set" del campo actual
-				Method getMethod = elemento.getClass().getDeclaredMethod("set"+nombreCampo, beanFields[i].getType());
+			if (currentFormFields[i] instanceof ComboBox ||
+					currentFormFields[i] instanceof OptionGroup) {
 				// Obtenemos el elemento seleccionado en el campo de selección
-				Object elementoSeleccionado = ((AbstractSelect)formFields[i]).getValue();
+				Object elementoSeleccionado = ((AbstractSelect)currentFormFields[i]).getValue();
 				// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
 				if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull
 						&& elementoSeleccionado==null) {
-					((AbstractField<Object>) formFields[i]).setRequiredError("Obligatorio");
+					((AbstractField<Object>) currentFormFields[i]).setRequiredError("Obligatorio");
 					throw new CommitException("El campo es obligatorio");
 				}
-				// Obtenemos el bean del binder
-				T binderBean = binder.getItemDataSource().getBean();
-				// Asignamos al bean del binder el elemento seleccionado en el combo box
-				getMethod.invoke(binderBean, elementoSeleccionado);
+				// Asignamos al elemento actual el elemento seleccionado en el combo box
+				Utils.setFieldValue(currentElement, beanFields[i], elementoSeleccionado);
+			}
+			// Si es un campo EMBEDDED, hay que hacer commit recursivamente
+			// TODO Sería más correcto usar el tipo de campo EMBEDDED, en vez del tipo de componente de Vaadin
+			else if (currentFormFields[i] instanceof Panel) {
+				try{
+					// Nos aseguramos de que es un bean anidado
+					if (beanFields[i].getType().asSubclass(Bean.class) != null) {
+						// Obtenemos el beanAnidado
+						Bean beanAnidado = (Bean) Utils.getFieldValue(currentElement, beanFields[i]);
+						// Obtenemos el contenido del panel
+						Component content = ((Panel)currentFormFields[i]).getContent();
+						// Obtenemos sus componentes en un ArrayList
+						ArrayList<Component> arrayListEmbeddedFormFields = new ArrayList<Component>();
+						for (Component c : (HasComponents)content) {
+							arrayListEmbeddedFormFields.add(c);
+						}
+						// Convertimos el arrayList en un array
+						Component[] embeddedFormFields = new Component[arrayListEmbeddedFormFields.size()];
+						embeddedFormFields = arrayListEmbeddedFormFields.toArray(embeddedFormFields);
+						// Llamamos recursivamente para hacer commit de los campos de selección anidados
+						commitCamposSelección(beanAnidado, embeddedFormFields);
+					}
+				} catch (ClassCastException ignorada) {
+				} catch (Exception e) {
+					// Si el método getFieldValue() lanza una excepción mostramos traza
+					e.printStackTrace();
+				}
 			}
 		}
 	}
