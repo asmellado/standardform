@@ -276,10 +276,12 @@ public class DetailForm<T extends Bean> extends Panel {
 					// Obtenemos la clase del Bean anidado
 					@SuppressWarnings("unchecked")
 					Class<? extends Bean> embeddedBeanClass = (Class<? extends Bean>)currentBeanFields[i].getType();
-					Bean embeddedBean = embeddedBeanClass.newInstance();
-					
+					// Obtenemos el bean anidado
+					Bean embeddedBean = (Bean) Utils.getFieldValue(elementoActual, currentBeanFields[i]);
 					// Si el campo del embeddedBean del elementoActual es null
-					if (Utils.getFieldValue(elementoActual, currentBeanFields[i]) == null) {
+					if (embeddedBean == null) {
+						// Creamos un nuevo objeto embeddedBean vacío
+						embeddedBean = embeddedBeanClass.newInstance();
 						// Asignamos el embeddedBean al elementoActual
 						Method setMethod = Utils.getSetMethod(elementoActual.getClass(), currentBeanFields[i]);
 						setMethod.invoke(elementoActual, embeddedBean);
