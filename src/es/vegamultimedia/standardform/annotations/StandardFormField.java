@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 /**
- * You must use this annotation for every bean fieldif the bean field must be shown in the standard form
+ * You must use this annotation for every bean field if the bean field must be shown in the standard form
  * Metadata for a field in the standard form 
  * You also can add metadata to every bean field
  * @author alejandro
@@ -17,18 +17,31 @@ import java.lang.annotation.Target;
 public @interface StandardFormField {
 	enum Type {DEFAULT, TEXT_FIELD, NUM_FIELD, TEXT_AREA, COMBO_BOX,
 		CHECK_BOX, OPTION_GROUP, DATE, EMBEDDED, DISABLED, HIDDEN}
+	
 	/**
 	 * Field type. If you don't specify one type, the type will be Type.DEFAULT.
 	 * If the type is DEFAULT, Standard Form will assign the type automatically depending on the bean type 
 	 * @return
 	 */
 	public Type type() default Type.DEFAULT;
+	
 	/**
 	 * Caption showed in the field in the standard form
 	 * If you don't specify, the caption will be the field name with the first letter capitalized
 	 * @return
 	 */
 	public String caption() default "";
+	
+	/**
+	 * Default value for this field. It is the showed value in the detail form when a user
+	 * wants to add a bean
+	 * It only works with string, numeric, boolean and Enum type fields
+	 * If the field type is boolean, the default value must be "true" or "false"
+	 * If the field type is Enum, the default value must be the text value
+	 * @return
+	 */
+	public String defaultValue() default "";
+	
 	/**
 	 * Optional help showed bellow the field
 	 * @return

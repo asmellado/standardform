@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -29,6 +30,7 @@ import com.vaadin.ui.AbstractTextField;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
@@ -196,20 +198,20 @@ public class DetailForm<T extends Bean> extends Panel {
 		// Recorremos los campos del bean actual
 		for (int i=0;i<currentBeanFields.length;i++) {
 			String caption;
-			// Obtenemos la anotación DetailField
-			StandardFormField detailField = currentBeanFields[i].getAnnotation(StandardFormField.class);
+			// Obtenemos la anotación StandardFormField
+			StandardFormField standardFormField = currentBeanFields[i].getAnnotation(StandardFormField.class);
 			// Obtenemos el tipo de campo en función de los metadatos
-			StandardFormField.Type tipo = getTypeFormField(standardForm, currentBeanFields[i], detailField);
+			StandardFormField.Type tipo = getTypeFormField(standardForm, currentBeanFields[i], standardFormField);
 			// Si se ha encontrado un tipo
 			if (tipo != null) {
 				// Si no hay anotación DetailField para este campo o el caption es ""
-				if (!(detailField instanceof StandardFormField) ||
-						detailField.caption().length() == 0) {
+				if (!(standardFormField instanceof StandardFormField) ||
+						standardFormField.caption().length() == 0) {
 					// Asignamos como caption el nombre del campo con la primera letra en mayúscula
 					caption = Utils.capitalizeFirstLetter(currentBeanFields[i].getName());
 				}
 				else {
-					caption = detailField.caption();
+					caption = standardFormField.caption();
 				}
 				// Comprobamos el tipo de campo
 				switch (tipo) {
@@ -327,18 +329,62 @@ public class DetailForm<T extends Bean> extends Panel {
 						}
 					}
 					catch (Exception ignorada) { }
+					
+					// Asignamos el valor por defecto
+					setDefaultValue(currentBeanFields[i], currentFields[i], standardFormField);
 
 					// Añadimos el campo al formulario
 					form.addComponent(currentFields[i]);
 					// Si hay ayuda
-					if (detailField instanceof StandardFormField && !detailField.help().isEmpty()) {
+					if (standardFormField instanceof StandardFormField && !standardFormField.help().isEmpty()) {
 						// Añadimos etiqueta con la ayuda
-						form.addComponent(new Label(detailField.help()));
+						form.addComponent(new Label(standardFormField.help()));
 					}
 				}
 			}
 		}
 		return currentFields;
+	}
+
+	/**
+	 * If the current field has a defaultValue annotation, sets the default value
+	 * @param currentBeanField
+	 * @param currentField
+	 * @param standardFormField
+	 */
+	private void setDefaultValue(java.lang.reflect.Field currentBeanField,
+			Component currentField, 
+			StandardFormField standardFormField) {
+		// Si estamos en modo alta y hay anotación defaultValue
+		if (modoAlta && standardFormField instanceof StandardFormField &&
+				standardFormField.defaultValue().length() != 0) {
+			// Si es un campo de texto
+			if (currentField instanceof AbstractTextField) {
+				// Asignamos el valor al campo
+				((AbstractTextField)currentField).setValue(standardFormField.defaultValue());;
+			}
+			// Si es booleano
+			else if (currentField instanceof CheckBox) {
+				// Si el valor por defecto es "true"
+				if (standardFormField.defaultValue().equals("true")) {
+					// Marcamos el check box
+					((CheckBox)currentField).setValue(true);
+				}
+					
+			}
+			// Si es un enumerado
+			else if (currentBeanField.getType().isEnum() &&
+					currentField instanceof AbstractSelect) {
+				// Obtenemos todos los elementos del campo de selección
+				Collection<?> elementos = ((AbstractSelect)currentField).getItemIds();
+				// Seleccionamos el elemento que coincida con el valor por defecto
+				for (Object elemento : elementos) {
+					if (elemento.toString().equals(standardFormField.defaultValue())) {
+						((AbstractSelect)currentField).setValue(elemento);
+					}
+				}
+			}
+		}
 	}
 
 	/**
