@@ -2,6 +2,7 @@ package es.vegamultimedia.standardform;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,7 +24,6 @@ import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.validator.BeanValidator;
 import com.vaadin.event.ShortcutAction.KeyCode;
-import com.vaadin.ui.AbstractField;
 import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 import com.vaadin.ui.AbstractTextField;
@@ -218,6 +218,7 @@ public class DetailForm<T extends Bean> extends Panel {
 				// Si es un campo de selección
 				case COMBO_BOX:
 				case OPTION_GROUP:
+				case MULTIPLE_SELECTION:
 					// En este caso tenemos que crear el campo a mano
 					// con todas las opciones y seleccionar el elemento actual
 					currentFields[i] = obtenerCampoSelección(elementoActual, currentBeanFields[i], tipo, caption);
@@ -388,19 +389,19 @@ public class DetailForm<T extends Bean> extends Panel {
 	}
 
 	/**
-	 * Obtiene el tupo de campo
-	 * @param standardForm Anotación standardForm del bean
+	 * Gets the StandardFormField type
+	 * @param standardForm StandardForm annotation of the bean
 	 * @param beanField Campo del bean
-	 * @param detailField Anotación standardFormField del campo del bean
+	 * @param standardFormField StandardFormField annotation of the bean field
 	 * @return Tipo de campo obtenido
 	 */
 	private StandardFormField.Type getTypeFormField(
-			StandardForm standardForm, java.lang.reflect.Field beanField, StandardFormField detailField) {
+			StandardForm standardForm, java.lang.reflect.Field beanField, StandardFormField standardFormField) {
 		// Si hay anotación DetailField para este campo y el type no es DEFAULT
-		if ((detailField instanceof StandardFormField) &&
-				detailField.type() != StandardFormField.Type.DEFAULT) {
+		if ((standardFormField instanceof StandardFormField) &&
+				standardFormField.type() != StandardFormField.Type.DEFAULT) {
 			// Retornamos el tipo especificado
-			return detailField.type();
+			return standardFormField.type();
 		}
 		// En caso contrario obtenemos el tipo por defecto según el tipo de bean
 		Class<?> tipoBean = beanField.getType();
@@ -443,9 +444,13 @@ public class DetailForm<T extends Bean> extends Panel {
 				return null;
 		}
 		// Si el tipo de campos es un enumerado
-		if (tipoBean.isEnum()) {
+		else if (tipoBean.isEnum()) {
 			// Retorna el tipo COMBO_BOX
 			return StandardFormField.Type.COMBO_BOX;
+		}
+		// Si el tipo de campos es un ArrayList
+		else if (tipoBean == ArrayList.class) {
+			return StandardFormField.Type.MULTIPLE_SELECTION;
 		}
 		// Si el tipo de campo es otro Bean
 		try {
@@ -501,19 +506,35 @@ public class DetailForm<T extends Bean> extends Panel {
 				throws NoSuchMethodException, IllegalAccessException,
 				InvocationTargetException, ClassNotFoundException,
 				IllegalArgumentException, InstantiationException {
-		// El tipo de campo debe ser COMBO_BOX u OPTION_GROUP
+		// El tipo de campo debe ser COMBO_BOX, OPTION_GROUP ó MULTIPLE_SELECTION
 		if (tipo != StandardFormField.Type.COMBO_BOX &&
-			tipo != StandardFormField.Type.OPTION_GROUP) {
+			tipo != StandardFormField.Type.OPTION_GROUP &&
+			tipo != StandardFormField.Type.MULTIPLE_SELECTION) {
 			return null;
 		}
 		AbstractSelect campoSelect = null;
+		Class tipoElementos;
+		
+		// Si es un arrayList
+		if (field.getType() == ArrayList.class) {
+			// Obtenemos la clase parametrizada del arrayList
+			java.lang.reflect.Type genericType = field.getGenericType();
+			// El tipo de elementos es el primer (y único) tipo parametrizado del array de tipos
+			java.lang.reflect.Type[] parameterizedtypes =
+					((ParameterizedType)genericType).getActualTypeArguments();
+			tipoElementos = (Class) parameterizedtypes[0];
+		}
+		// Si NO es un arrayList obtenemos directamente el tipo de elementos
+		else {
+			tipoElementos = field.getType();
+		}
 		
 		// Si es un bean anidado
 		try {
-			if (field.getType().asSubclass(Bean.class) != null) {
+			if (tipoElementos.asSubclass(Bean.class) != null) {
 				// Obtenemos todos los elementos del bean anidado
 				// Obtenemos la clase del Bean anidado
-				Class<? extends Bean> claseBeanAnidado = (Class<? extends Bean>)field.getType();
+				Class<? extends Bean> claseBeanAnidado = (Class<? extends Bean>)tipoElementos;
 				// Obtenemos una instancia del BeanDAO anidado
 				BeanDAO<? extends Bean> beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO());
 				// Obtenemos todos los elementos del bean anidado
@@ -531,22 +552,43 @@ public class DetailForm<T extends Bean> extends Panel {
 				else {
 					// Creamos un Option Group con el contenedor 
 					campoSelect = new OptionGroup(caption, container);
+					// Si es de selección múltiple
+					if (tipo == StandardFormField.Type.MULTIPLE_SELECTION) {
+						// Hacemos el campo de selección múltiple
+						campoSelect.setMultiSelect(true);
+					}
 				}
 				// Establecemos la propiedad que se muestra
 				campoSelect.setItemCaptionMode(ItemCaptionMode.PROPERTY);
+				// TODO La propiedad a mostrar debería ser parametrizable. Ahora se hardcodea a "nombre"
 				campoSelect.setItemCaptionPropertyId("nombre");
 				
 				// Añadimos un validador de tipo BeanValidator para el campo
 				campoSelect.addValidator(new BeanValidator(elementoActual.getClass(), field.getName()));
 			}
 		} catch (ClassCastException ignorada) { }
+		
 		// Si es un enumerado
-		if (field.getType().isEnum()) {
+		if (tipoElementos.isEnum()) {
 			// Obtenemos los elementos del enumerado
-			Class<?> enumeradoClass = field.getType();
+			Class<?> enumeradoClass = tipoElementos;
 			Object[] elementosEnum = enumeradoClass.getEnumConstants();
-			// Creamos el comboBox con los elementos
-			campoSelect = new ComboBox(caption, Arrays.asList(elementosEnum));
+			
+			// Creamos el campo en función del tipo
+			if (tipo == StandardFormField.Type.COMBO_BOX) {
+				// Creamos un combo box con los elementos
+				campoSelect = new ComboBox(caption, Arrays.asList(elementosEnum));
+			}
+			else {
+				// Creamos un Option Group con el contenedor 
+				campoSelect = new OptionGroup(caption, Arrays.asList(elementosEnum));
+				// Si es de selección múltiple
+				if (tipo == StandardFormField.Type.MULTIPLE_SELECTION) {
+					// Hacemos el campo de selección múltiple
+					campoSelect.setMultiSelect(true);
+				}
+			}
+			
 			campoSelect.setItemCaptionMode(ItemCaptionMode.EXPLICIT_DEFAULTS_ID);
 			// Recorremos todos los elementos del enumerado
 			for (Object elementoEnum: elementosEnum) {
@@ -578,23 +620,47 @@ public class DetailForm<T extends Bean> extends Panel {
 	// tenemos que hacer commit a mano
 	// Se hace este método recursivo para hacer commit de los campos de selección de los bean anidados
 	@SuppressWarnings("unchecked")
-	private void commitCamposSelección(Bean currentElement, Component[] currentFormFields) throws NoSuchMethodException,
+	private void commitCamposSelección(Bean currentElement, Component[] currentFormFields)
+			throws NoSuchMethodException,
 			IllegalAccessException, InvocationTargetException, CommitException {
 		java.lang.reflect.Field[] beanFields = getBeanFields(currentElement);
 		for (int i=0;i<beanFields.length;i++) {
 			// Si el tipo de campo es COMBO_BOX u OPTION_GROUP
 			if (currentFormFields[i] instanceof ComboBox ||
 					currentFormFields[i] instanceof OptionGroup) {
-				// Obtenemos el elemento seleccionado en el campo de selección
-				Object elementoSeleccionado = ((AbstractSelect)currentFormFields[i]).getValue();
-				// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
-				if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull
-						&& elementoSeleccionado==null) {
-					((AbstractField<Object>) currentFormFields[i]).setRequiredError("Obligatorio");
-					throw new CommitException("El campo es obligatorio");
+				AbstractSelect selectField = ((AbstractSelect)currentFormFields[i]);
+				// Si el campo NO permite selección múltiple
+				if (!selectField.isMultiSelect()) {
+					// Obtenemos el elemento seleccionado en el campo de selección
+					Object elementoSeleccionado = selectField.getValue();
+					// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
+					if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull
+							&& elementoSeleccionado == null) {
+						selectField.setRequiredError("Obligatorio");
+						throw new CommitException("El campo es obligatorio");
+					}
+					// Asignamos al elemento actual el elemento seleccionado en el combo box
+					Utils.setFieldValue(currentElement, beanFields[i], elementoSeleccionado);
 				}
-				// Asignamos al elemento actual el elemento seleccionado en el combo box
-				Utils.setFieldValue(currentElement, beanFields[i], elementoSeleccionado);
+				// Si el campo sí permite selección múltiple
+				else {
+					// Creamos un arrayList y le añadimos los elementos seleccionados
+					@SuppressWarnings("rawtypes")
+					ArrayList arrayListElementosSeleccionados = new ArrayList();
+					for (Object itemId : selectField.getItemIds()) {
+						if (selectField.isSelected(itemId)) {
+							arrayListElementosSeleccionados.add(itemId);
+						}
+					}
+					// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
+					if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull
+							&& arrayListElementosSeleccionados.size() == 0) {
+						selectField.setRequiredError("Obligatorio");
+						throw new CommitException("Debe seleccionar al menos un elemento");
+					}
+					// Asignamos al elemento actual el arraylist de elementos seleccionados
+					Utils.setFieldValue(currentElement, beanFields[i], arrayListElementosSeleccionados);
+				}
 			}
 			// Si es un campo EMBEDDED, hay que hacer commit recursivamente
 			// TODO Sería más correcto usar el tipo de campo EMBEDDED, en vez del tipo de componente de Vaadin
