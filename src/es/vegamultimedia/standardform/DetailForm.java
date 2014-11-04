@@ -416,7 +416,8 @@ public class DetailForm<T extends Bean> extends Panel {
 			return StandardFormField.Type.TEXT_FIELD;
 		}
 		// Si el tipo de campo es boolean
-		else if (tipoBean == Boolean.TYPE)
+		else if (tipoBean == Boolean.TYPE ||
+				tipoBean == Boolean.class)
 			return StandardFormField.Type.CHECK_BOX;
 		// Si el tipo de campos es numérico
 		else if (tipoBean == Byte.TYPE || tipoBean == Byte.class ||
@@ -488,7 +489,14 @@ public class DetailForm<T extends Bean> extends Panel {
 			mostrarListado();
 		} catch (CommitException e) {
 			Notification.show("No se puede guardar\n",
-					"Algún campo no supera las validaciones. Por favor, revise el formulario", Type.WARNING_MESSAGE);
+					"Algún campo no supera las validaciones. Por favor, revise el formulario",
+					Type.WARNING_MESSAGE);
+		} catch (java.util.ConcurrentModificationException e) {
+			Notification.show("No se puede guardar",
+					"Este elemento ha sido modificado mientras lo estaba editando. Inténtelo de nuevo",
+					Type.ERROR_MESSAGE);
+			// Mostramos el listado
+			mostrarListado();
 		} catch (Exception e) {
 			Notification.show("No se ha podido realizar la operación", e.getMessage(), Type.ERROR_MESSAGE);
 			e.printStackTrace();
