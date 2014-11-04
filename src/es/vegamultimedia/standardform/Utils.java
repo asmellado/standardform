@@ -8,12 +8,15 @@ import java.lang.reflect.Method;
 import javax.persistence.EntityManager;
 
 import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.annotations.Id;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.DAO.BeanJPADAO;
 import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.model.Bean;
+import es.vegamultimedia.standardform.model.BeanMongo;
+import es.vegamultimedia.standardform.model.BeanWithId;
 
 abstract public class Utils {
 	
@@ -167,5 +170,32 @@ abstract public class Utils {
 		} catch (ClassCastException ignorada) { }
 		// Si no es BeanJPADAO ni BeanMongoDAO
 		throw new ClassNotFoundException("No se ha podido determinar el BeanDAO");
+	}
+	
+	/**
+	 * Returns the value of the id field of a bean
+	 * @param bean
+	 * @return
+	 * @throws NoSuchMethodException
+	 * @throws SecurityException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 * @throws InvocationTargetException
+	 */
+	public static Object getId(Bean bean) throws NoSuchMethodException, SecurityException,
+		IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		if (bean instanceof BeanWithId) {
+			return ((BeanWithId)bean).getId();
+		}
+		else if (bean instanceof BeanMongo) {
+			Field[] fields = bean.getClass().getDeclaredFields();
+			for (Field field : fields) {
+				if (field.getAnnotation(Id.class) != null) {
+					return getFieldValue(bean, field);
+				}
+			}
+			throw new IllegalArgumentException("No se encuentra un identificador para el elemento");
+		}
+		throw new IllegalArgumentException("Tipo de bean no soportado");
 	}
 }
