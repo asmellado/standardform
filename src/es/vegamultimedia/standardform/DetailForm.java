@@ -102,6 +102,9 @@ public class DetailForm<T extends Bean> extends Panel {
 			// Asignamos el título al panel
 			setCaption(standardForm.detailViewName());
 			
+			// Añadimos estilo personalizado
+			addStyleName("standard-form");
+			
 			// Obtenemos los campos del formulario
 			formFields = getFormFields(elemento, "");
 	

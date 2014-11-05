@@ -21,6 +21,7 @@ import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.BaseTheme;
 
 import es.vegamultimedia.standardform.annotations.StandardForm;
@@ -54,6 +55,9 @@ public class ListForm<T extends Bean> extends Panel {
 		
 		// Asignamos el título al panel
 		setCaption(listForm.listViewName());
+		
+		// Añadimos estilo personalizado
+		addStyleName("standard-form");
 
 		// Si el bean NO tiene anotación StandardForm
 		if (!(listForm instanceof StandardForm)) {
@@ -68,7 +72,7 @@ public class ListForm<T extends Bean> extends Panel {
 		setContent(form);
 		
 		// Layout
-		HorizontalLayout layout = new HorizontalLayout();
+		VerticalLayout layout = new VerticalLayout();
 		form.addComponent(layout);
 		
 		// Tabla
@@ -105,6 +109,8 @@ public class ListForm<T extends Bean> extends Panel {
 		    }
 		};
 		tabla.setImmediate(true);
+		// TODO Parametrizar la longitud de la página
+		tabla.setPageLength(10);
 		
 		try {
 			// Obtenemos los elementos
