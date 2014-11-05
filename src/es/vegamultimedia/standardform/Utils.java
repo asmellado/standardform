@@ -162,6 +162,8 @@ abstract public class Utils {
 		try {
 			if (classBeanDAO.asSubclass(BeanMongoDAO.class) != null) {
 				// Obtenemos el constructor del beanMongoDAO
+				// TODO Podría ser un BeanMongoDAO personalizado que no tuviera este constructor
+				// En ese caso, lanzaría una excepción NoSuchMethodException
 				Constructor constructorDAO =
 					classBeanDAO.getConstructor(Class.class, Datastore.class);
 				// Creamos el objeto DAO

@@ -135,6 +135,8 @@ public class ListForm<T extends Bean> extends Panel {
 				for(String nombreColumn : visibledColumns) {
 					try {
 						// Obtenemos el campo que coincide con el nombre de la columna
+						// TODO Permitir que el campo esté declarado en una superclase
+						// Ahora sólo se permite los campos de la clase
 						Field beanField = beanUI.getBeanClass().getDeclaredField(nombreColumn);
 						// Lo añadimos a la cabecera
 						addHeaderColumn(beanField);
@@ -187,7 +189,7 @@ public class ListForm<T extends Bean> extends Panel {
 	}
 
 	private void addHeaderColumn(Field beanField) {
-		// Obtnemos la anotación StandarFormField del campo
+		// Obtenemos la anotación StandarFormField del campo
 		StandardFormField standardFormField = beanField.getAnnotation(StandardFormField.class);
 		// Si la columna tiene caption
 		if (standardFormField != null && standardFormField.caption().length() != 0)
