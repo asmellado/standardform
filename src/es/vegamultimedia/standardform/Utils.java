@@ -184,13 +184,20 @@ abstract public class Utils {
 	 */
 	public static Object getId(Bean bean) throws NoSuchMethodException, SecurityException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		// Si el bean tiene campo id
 		if (bean instanceof BeanWithId) {
+			// Retornamoes el valor del id
 			return ((BeanWithId)bean).getId();
 		}
+		// Si el bean es un BeanMongo sin campo id
 		else if (bean instanceof BeanMongo) {
+			// Obtenemos todos los campos de la clase
 			Field[] fields = bean.getClass().getDeclaredFields();
+			// Recorremos los campos
 			for (Field field : fields) {
+				// Si el campo tiene la anotación Id de Morphia
 				if (field.getAnnotation(Id.class) != null) {
+					// Retornamos el valor del campo
 					return getFieldValue(bean, field);
 				}
 			}

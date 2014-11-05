@@ -10,7 +10,7 @@ public interface BeanDAO<T extends Bean> {
 	 * Save the element T in the database
 	 * @param element
 	 */
-	public abstract void save(T element);
+	public abstract void save(T bean);
 	
 	/**
 	 * Get an element from the database 
@@ -29,6 +29,6 @@ public interface BeanDAO<T extends Bean> {
 	 * Remove the element from the database
 	 * @param element
 	 */
-	public abstract void remove(T element);
+	public abstract void remove(T bean);
 
 }

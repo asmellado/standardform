@@ -23,19 +23,4 @@ public abstract class BeanMongoWithId extends BeanMongo implements BeanWithId, S
 	public void setId(Object id) {
 		this.id = (ObjectId) id;
 	}
-	
-	@Override
-	public int hashCode() {
-		if (getId() == null)
-			return 0;
-		else
-			return getId().hashCode();
-	}
-	
-	@Override
-	public boolean equals(Object obj) {
-		if (obj==null || !(obj instanceof BeanMongo))
-			return false;
-		return (hashCode() == obj.hashCode());
-	}
 }

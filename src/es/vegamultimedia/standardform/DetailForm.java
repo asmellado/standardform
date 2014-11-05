@@ -136,14 +136,17 @@ public class DetailForm<T extends Bean> extends Panel {
 		}
 	}
 	
-	// Obtiene todos los campos del bean actual, añadiendo los de la superclase
-	private java.lang.reflect.Field[] getBeanFields(Bean elementoActual) {
+	/**
+	 * Gets every fields of the current bean, adding every fields of every superclass
+	 * @param currentBean
+	 * @return
+	 */
+	private java.lang.reflect.Field[] getBeanFields(Bean currentBean) {
 		// Obtenemos los campos del bean elementoActual
-		java.lang.reflect.Field[] currentBeanFields = elementoActual.getClass().getDeclaredFields();
-		// Añadimos los campos de la superclase
-		// TODO Sólo se obtiene la superclase directa, habría que obtenerlas todas recursivamente
-		Class<?> superclass = elementoActual.getClass().getSuperclass();
-		if (superclass != Object.class) {
+		java.lang.reflect.Field[] currentBeanFields = currentBean.getClass().getDeclaredFields();
+		// Añadimos los campos de las superclases hasta llegar a Object
+		Class<?> superclass = currentBean.getClass().getSuperclass();
+		while (superclass != Object.class) {
 			java.lang.reflect.Field[] fields = superclass.getDeclaredFields();
 			ArrayList<java.lang.reflect.Field> beanFieldsList = new ArrayList<java.lang.reflect.Field>();
 			beanFieldsList.addAll(Arrays.asList(currentBeanFields));
@@ -151,6 +154,7 @@ public class DetailForm<T extends Bean> extends Panel {
 				beanFieldsList.add(field);
 			}
 			currentBeanFields = beanFieldsList.toArray(new java.lang.reflect.Field[beanFieldsList.size()]);
+			superclass = superclass.getSuperclass();
 		}
 		return currentBeanFields;
 	}
