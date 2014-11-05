@@ -207,9 +207,12 @@ public class ListForm<T extends Bean> extends Panel {
 	protected void mostrarDetalle(T element) {
 		Panel vistaDetalle;
 		try {
-			// Obtenemos el elemento de base de datos
-			T elemento = beanUI.beanDAO.get(Utils.getId(element));
-			vistaDetalle = beanUI.getDetailForm(elemento);
+			// Si hay elemento
+			if (element != null) {
+				// Obtenemos el elemento de base de datos
+				element = beanUI.beanDAO.get(Utils.getId(element));
+			}
+			vistaDetalle = beanUI.getDetailForm(element);
 			ComponentContainer contentPanel = (ComponentContainer)getParent();
 			contentPanel.replaceComponent(this, vistaDetalle);
 		} catch (Exception e) {
