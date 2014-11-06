@@ -16,7 +16,6 @@ import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.FormLayout;
-import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Panel;
@@ -114,7 +113,7 @@ public class ListForm<T extends Bean> extends Panel {
 		
 		try {
 			// Obtenemos los elementos
-			cargarDatos();
+			loadData();
 			
 			// Si no se especifican las columnas visibles
 			if (listForm.columns()[0].isEmpty()) {
@@ -159,13 +158,13 @@ public class ListForm<T extends Bean> extends Panel {
 			// Si se permite edición
 			if (listForm.allowsEditing()) {
 				// Añadimos columna para editar
-				tabla.addGeneratedColumn("Editar", new EditarColumnGenerator());
+				tabla.addGeneratedColumn("Editar", new EditColumnGenerator());
 				visibledColumns.add("Editar");
 			}
 			// Si se permite eliminar
 			if (listForm.allowsDeleting()) {
 				// Añadimos columna para eliminar
-				tabla.addGeneratedColumn("Eliminar", new EliminarColumnGenerator());
+				tabla.addGeneratedColumn("Eliminar", new RemoveColumnGenerator());
 				visibledColumns.add("Eliminar");
 			}
 			tabla.setVisibleColumns(visibledColumns.toArray());
@@ -181,7 +180,7 @@ public class ListForm<T extends Bean> extends Panel {
 		
 					@Override
 					public void buttonClick(ClickEvent event) {
-						mostrarDetalle(null);
+						showDetailForm(null);
 					}
 					
 				});
@@ -194,7 +193,11 @@ public class ListForm<T extends Bean> extends Panel {
 		}
 	}
 
-	private void addHeaderColumn(Field beanField) {
+	/**
+	 * Adds a header column for a bean field
+	 * @param beanField
+	 */
+	protected void addHeaderColumn(Field beanField) {
 		// Obtenemos la anotación StandarFormField del campo
 		StandardFormField standardFormField = beanField.getAnnotation(StandardFormField.class);
 		// Si la columna tiene caption
@@ -206,13 +209,21 @@ public class ListForm<T extends Bean> extends Panel {
 			tabla.setColumnHeader(beanField.getName(), Utils.capitalizeFirstLetter(beanField.getName()));
 	}
 	
-	protected void cargarDatos() {
+	/**
+	 * Gets every elements of this bean type using thee BeanDAO
+	 */
+	protected void loadData() {
 		List<T> listaElementos = beanUI.getBeanDAO().getAllElements();
 		container = new BeanItemContainer<T>(beanUI.getBeanClass(), listaElementos);
 		tabla.setContainerDataSource(container);
 	}
 	
-	protected void mostrarDetalle(T element) {
+	/**
+	 * Shows the DetailForm for a bean inside the same component as this ListForm
+	 * Before, it gets again the bean using the BeanDAO (just in case it has changed)
+	 * @param element
+	 */
+	protected void showDetailForm(T element) {
 		Panel vistaDetalle;
 		try {
 			// Si hay elemento
@@ -232,9 +243,9 @@ public class ListForm<T extends Bean> extends Panel {
 	}
 	
 	/*
-	 * Clase para la columna Editar 
+	 * Class for the edit column 
 	 */
-	public class EditarColumnGenerator implements Table.ColumnGenerator {
+	public class EditColumnGenerator implements Table.ColumnGenerator {
 
 		private static final long serialVersionUID = 1L;
 
@@ -249,7 +260,7 @@ public class ListForm<T extends Bean> extends Panel {
 				@Override
 				public void buttonClick(ClickEvent event) {
 					T elementoSeleccionado = container.getItem(itemId).getBean();
-					mostrarDetalle(elementoSeleccionado);
+					showDetailForm(elementoSeleccionado);
 				}
 			});
 			return button;
@@ -257,9 +268,9 @@ public class ListForm<T extends Bean> extends Panel {
 	}
 	
 	/*
-	 * Clase para la columna Eliminar 
+	 * Class for the remove column
 	 */
-	public class EliminarColumnGenerator implements Table.ColumnGenerator {
+	public class RemoveColumnGenerator implements Table.ColumnGenerator {
 
 		private static final long serialVersionUID = 1L;
 
