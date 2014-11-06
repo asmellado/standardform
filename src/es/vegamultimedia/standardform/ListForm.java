@@ -38,10 +38,10 @@ public class ListForm<T extends Bean> extends Panel {
 	protected BeanItemContainer<T> container;
 	
 	// Formulario
-	FormLayout form;
+	protected FormLayout form;
 	
 	// Tabla del formulario
-	protected Table tabla;
+	protected Table table;
 	
 	public ListForm(BeanUI<T> beanUI) {
 		this.beanUI = beanUI;
@@ -75,7 +75,7 @@ public class ListForm<T extends Bean> extends Panel {
 		form.addComponent(layout);
 		
 		// Tabla
-		tabla = new Table(){
+		table = new Table(){
 			// Damos formato de sólo fecha a los campos de tipo Date 
 		    @Override
 		    protected String formatPropertyValue(Object rowId, Object colId, Property<?> property) {
@@ -107,9 +107,9 @@ public class ListForm<T extends Bean> extends Panel {
 		        return super.formatPropertyValue(rowId, colId, property);
 		    }
 		};
-		tabla.setImmediate(true);
+		table.setImmediate(true);
 		// TODO Parametrizar la longitud de la página
-		tabla.setPageLength(10);
+		table.setPageLength(10);
 		
 		try {
 			// Obtenemos los elementos
@@ -158,17 +158,17 @@ public class ListForm<T extends Bean> extends Panel {
 			// Si se permite edición
 			if (listForm.allowsEditing()) {
 				// Añadimos columna para editar
-				tabla.addGeneratedColumn("Editar", new EditColumnGenerator());
+				table.addGeneratedColumn("Editar", new EditColumnGenerator());
 				visibledColumns.add("Editar");
 			}
 			// Si se permite eliminar
 			if (listForm.allowsDeleting()) {
 				// Añadimos columna para eliminar
-				tabla.addGeneratedColumn("Eliminar", new RemoveColumnGenerator());
+				table.addGeneratedColumn("Eliminar", new RemoveColumnGenerator());
 				visibledColumns.add("Eliminar");
 			}
-			tabla.setVisibleColumns(visibledColumns.toArray());
-			layout.addComponent(tabla);
+			table.setVisibleColumns(visibledColumns.toArray());
+			layout.addComponent(table);
 		
 			// Si se permite añadir
 			if (listForm.allowsAdding()) {
@@ -203,10 +203,10 @@ public class ListForm<T extends Bean> extends Panel {
 		// Si la columna tiene caption
 		if (standardFormField != null && standardFormField.caption().length() != 0)
 			// Ponemos el caption como cabecera
-			tabla.setColumnHeader(beanField.getName(), standardFormField.caption());
+			table.setColumnHeader(beanField.getName(), standardFormField.caption());
 		else
 			// Si no, ponemos el nombre del campo con la primera letra en mayúscula
-			tabla.setColumnHeader(beanField.getName(), Utils.capitalizeFirstLetter(beanField.getName()));
+			table.setColumnHeader(beanField.getName(), Utils.capitalizeFirstLetter(beanField.getName()));
 	}
 	
 	/**
@@ -215,7 +215,7 @@ public class ListForm<T extends Bean> extends Panel {
 	protected void loadData() {
 		List<T> listaElementos = beanUI.getBeanDAO().getAllElements();
 		container = new BeanItemContainer<T>(beanUI.getBeanClass(), listaElementos);
-		tabla.setContainerDataSource(container);
+		table.setContainerDataSource(container);
 	}
 	
 	/**

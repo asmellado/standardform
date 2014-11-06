@@ -64,40 +64,40 @@ public class DetailForm<T extends Bean> extends Panel {
 	protected BeanFieldGroup<T> binder;
 	
 	// Bean actual
-	protected T elemento;
+	protected T bean;
 	
 	// Formulario
-	FormLayout form;
+	protected FormLayout form;
 	
 	// Campos de Vaadin del formulario
 	protected Component[] formFields;
 	
 	// Indica que estamos en modo alta
-	protected boolean modoAlta;
+	protected boolean addMode;
 	
 	@SuppressWarnings("unchecked")
-	public DetailForm(BeanUI<T> beanUI, T currenElement)
+	public DetailForm(BeanUI<T> currentBeanUI, T currentBean)
 			throws InstantiationException, IllegalAccessException {
-		this.beanUI = beanUI;
-		elemento = currenElement;
+		beanUI = currentBeanUI;
+		bean = currentBean;
 		
 		try {
 			// Inicializamos el elemento actual
-			if (elemento == null) {
-				modoAlta = true;
-				elemento = (T) newBean(beanUI.getBeanClass());
+			if (bean == null) {
+				addMode = true;
+				bean = (T) newBean(beanUI.getBeanClass());
 			}
 			
 			// Creamos el binder
 			binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
-			binder.setItemDataSource(elemento);
+			binder.setItemDataSource(bean);
 			
 			// Creamos el formulario para albergar todos los campos del bean
 			form = new FormLayout();
 			setContent(form);
 			
 			// Obtenemos la anotación StandardForm del elementoActual
-			StandardForm standardForm = elemento.getClass().getAnnotation(StandardForm.class);
+			StandardForm standardForm = bean.getClass().getAnnotation(StandardForm.class);
 			
 			// Asignamos el título al panel
 			setCaption(standardForm.detailViewName());
@@ -106,7 +106,7 @@ public class DetailForm<T extends Bean> extends Panel {
 			addStyleName("standard-form");
 			
 			// Obtenemos los campos del formulario
-			formFields = getFormFields(elemento, "");
+			formFields = getFormFields(bean, "");
 	
 			Button botónGuardar = new Button("Guardar");
 			botónGuardar.setClickShortcut(KeyCode.ENTER);
@@ -289,7 +289,7 @@ public class DetailForm<T extends Bean> extends Panel {
 				// Si es un campo deshabilitado
 				case DISABLED:
 					// Si estamos en modo modificación
-					if (!modoAlta) {
+					if (!addMode) {
 						// Mostramos el campo deshabilitado
 						currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
 						currentFields[i].setEnabled(false);
@@ -354,7 +354,7 @@ public class DetailForm<T extends Bean> extends Panel {
 						if (currentBean.getClass().asSubclass(BeanMongo.class) != null &&
 								currentBeanFields[i].getAnnotation(Id.class) != null) {
 							// Si estamos en modo modificación
-							if (!modoAlta)
+							if (!addMode)
 								// se deshabilita el campo
 								currentFields[i].setEnabled(false);
 						}
@@ -387,7 +387,7 @@ public class DetailForm<T extends Bean> extends Panel {
 			Component currentField, 
 			StandardFormField standardFormField) {
 		// Si estamos en modo alta y hay anotación defaultValue
-		if (modoAlta && standardFormField instanceof StandardFormField &&
+		if (addMode && standardFormField instanceof StandardFormField &&
 				standardFormField.defaultValue().length() != 0) {
 			// Si es un campo de texto
 			if (currentField instanceof AbstractTextField) {
@@ -517,11 +517,11 @@ public class DetailForm<T extends Bean> extends Panel {
 	protected void save(ClickEvent event) {
 		try {
 			// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
-			commitSelectFields(elemento, formFields);
+			commitSelectFields(bean, formFields);
 			// Hacemos commit del resto de campos
 			binder.commit();
 			// Almacenamos la entidad en base de datos de forma persistente
-			beanUI.getBeanDAO().save(elemento);
+			beanUI.getBeanDAO().save(bean);
 			// Si todo ha ido bien, mostramos mensaje informativo
 			Notification.show("El elemento se ha actualizado correctamente");
 			// Y mostramos el listado
