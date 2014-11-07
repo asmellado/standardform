@@ -57,6 +57,18 @@ import es.vegamultimedia.standardform.model.BeanMongo;
 @SuppressWarnings("serial")
 public class DetailForm<T extends Bean> extends Panel {
 	
+	/**
+	 * Interface for listening for a event in a DetailForm 
+	 */
+	public interface Listener{
+		/**
+		 * Called before saving the bean
+		 */
+		public abstract void beforeSave(); 
+	}
+	
+	private Listener listener;
+	
 	// BeanUI that created this standard detail form
 	protected BeanUI<T> beanUI;
 	
@@ -137,6 +149,13 @@ public class DetailForm<T extends Bean> extends Panel {
 			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Adds the listener
+	 */
+	public void addListener(Listener listener) {
+		this.listener = listener;
 	}
 	
 	/**
@@ -336,6 +355,12 @@ public class DetailForm<T extends Bean> extends Panel {
 					// Añadimos el panel al formulario principal
 					currentFields[i] = panel;
 					break;
+				case HIDDEN:
+					// Construimos el campo directamente con el binder
+					currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
+					// Hacemos el campo invisible y deshabilitado
+					currentFields[i].setVisible(false);
+					currentFields[i].setEnabled(false);
 				default:
 					break;
 				}
@@ -520,6 +545,11 @@ public class DetailForm<T extends Bean> extends Panel {
 			commitSelectFields(bean, formFields);
 			// Hacemos commit del resto de campos
 			binder.commit();
+			// Si hay escuchador
+			if (listener != null) {
+				// Llamamos al método beforeSave(), antes de que se guarde el bean
+				listener.beforeSave();
+			}
 			// Almacenamos la entidad en base de datos de forma persistente
 			beanUI.getBeanDAO().save(bean);
 			// Si todo ha ido bien, mostramos mensaje informativo
@@ -759,5 +789,21 @@ public class DetailForm<T extends Bean> extends Panel {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Gets the form field from a bean name field
+	 * @param nameField
+	 * @return The form Field or null if there is no bean name field
+	 */
+	public Component getFormField(String nameField) {
+		// Obtenemos los campos del bean
+		java.lang.reflect.Field[] currentBeanFields = getBeanFields(bean);
+		for (int i = 0; i<currentBeanFields.length; i++) {
+			if (currentBeanFields[i].getName().equals(nameField)) {
+				return formFields[i];
+			}
+		}
+		return null;
 	}
 }

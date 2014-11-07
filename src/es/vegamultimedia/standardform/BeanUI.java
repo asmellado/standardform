@@ -29,14 +29,14 @@ public class BeanUI<T extends Bean> implements Serializable {
 	
 	/**
 	 * Returns the standard detail form for the specified element bean
-	 * @param element
+	 * @param bean
 	 * @return
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 */
-	public DetailForm<T> getDetailForm(T element) 
+	public DetailForm<T> getDetailForm(T bean) 
 			throws InstantiationException, IllegalAccessException {
-		return new DetailForm<T>(this, element);
+		return new DetailForm<T>(this, bean);
 	}
 	
 	/**
