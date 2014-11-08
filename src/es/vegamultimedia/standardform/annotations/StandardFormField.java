@@ -16,7 +16,7 @@ import java.lang.annotation.Target;
  */
 public @interface StandardFormField {
 	enum Type {DEFAULT, TEXT_FIELD, NUM_FIELD, TEXT_AREA, COMBO_BOX,
-		CHECK_BOX, OPTION_GROUP, MULTIPLE_SELECTION, DATE, EMBEDDED, DISABLED, HIDDEN}
+		CHECK_BOX, OPTION_GROUP, MULTIPLE_SELECTION, DATE, EMBEDDED, DISABLED}
 	
 	/**
 	 * Field type. If you don't specify one type, the type will be Type.DEFAULT.
@@ -31,6 +31,12 @@ public @interface StandardFormField {
 	 * @return
 	 */
 	public String caption() default "";
+	
+	/**
+	 * Specifies if the field is hidden or not
+	 * @return
+	 */
+	public boolean hidden() default false;
 	
 	/**
 	 * Default value for this field. It is the showed value in the detail form when a user

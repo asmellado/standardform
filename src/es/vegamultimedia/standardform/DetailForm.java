@@ -85,8 +85,15 @@ public class DetailForm<T extends Bean> extends Panel {
 	protected Component[] formFields;
 	
 	// Indica que estamos en modo alta
-	protected boolean addMode;
+	protected boolean insertMode;
 	
+	/**
+	 * Create a DetailForm for updating an existing bean or for inserting a new bean
+	 * @param currentBeanUI
+	 * @param currentBean Existing bean o null for a new bean
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 */
 	@SuppressWarnings("unchecked")
 	public DetailForm(BeanUI<T> currentBeanUI, T currentBean)
 			throws InstantiationException, IllegalAccessException {
@@ -96,7 +103,7 @@ public class DetailForm<T extends Bean> extends Panel {
 		try {
 			// Inicializamos el elemento actual
 			if (bean == null) {
-				addMode = true;
+				insertMode = true;
 				bean = (T) newBean(beanUI.getBeanClass());
 			}
 			
@@ -215,11 +222,9 @@ public class DetailForm<T extends Bean> extends Panel {
 		return bean;
 	}
 
-	// Obtiene un array de campos de Vaadin a partir del bean que se le pasa como argumento
-	// Este método es recursivo para los beans "embebidos" de MongoDB
 	/**
 	 * Returns an array of Vaadin fields from the argument currentBean.
-	 * This method is recursiv
+	 * This method is recursive for nested beans
 	 * @param currentBean
 	 * @param prefixParentBean
 	 * @return
@@ -308,7 +313,7 @@ public class DetailForm<T extends Bean> extends Panel {
 				// Si es un campo deshabilitado
 				case DISABLED:
 					// Si estamos en modo modificación
-					if (!addMode) {
+					if (!insertMode) {
 						// Mostramos el campo deshabilitado
 						currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
 						currentFields[i].setEnabled(false);
@@ -355,12 +360,6 @@ public class DetailForm<T extends Bean> extends Panel {
 					// Añadimos el panel al formulario principal
 					currentFields[i] = panel;
 					break;
-				case HIDDEN:
-					// Construimos el campo directamente con el binder
-					currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
-					// Hacemos el campo invisible y deshabilitado
-					currentFields[i].setVisible(false);
-					currentFields[i].setEnabled(false);
 				default:
 					break;
 				}
@@ -379,7 +378,7 @@ public class DetailForm<T extends Bean> extends Panel {
 						if (currentBean.getClass().asSubclass(BeanMongo.class) != null &&
 								currentBeanFields[i].getAnnotation(Id.class) != null) {
 							// Si estamos en modo modificación
-							if (!addMode)
+							if (!insertMode)
 								// se deshabilita el campo
 								currentFields[i].setEnabled(false);
 						}
@@ -388,6 +387,14 @@ public class DetailForm<T extends Bean> extends Panel {
 					
 					// Asignamos el valor por defecto
 					setDefaultValue(currentBeanFields[i], currentFields[i], standardFormField);
+					
+					// Si es un campo oculto
+					if (standardFormField instanceof StandardFormField &&
+							standardFormField.hidden()) {
+						// Se hace invisible y se deshabilita
+						currentFields[i].setVisible(false);
+						currentFields[i].setEnabled(false);
+					}
 
 					// Añadimos el campo al formulario
 					form.addComponent(currentFields[i]);
@@ -412,7 +419,7 @@ public class DetailForm<T extends Bean> extends Panel {
 			Component currentField, 
 			StandardFormField standardFormField) {
 		// Si estamos en modo alta y hay anotación defaultValue
-		if (addMode && standardFormField instanceof StandardFormField &&
+		if (insertMode && standardFormField instanceof StandardFormField &&
 				standardFormField.defaultValue().length() != 0) {
 			// Si es un campo de texto
 			if (currentField instanceof AbstractTextField) {
@@ -550,8 +557,14 @@ public class DetailForm<T extends Bean> extends Panel {
 				// Llamamos al método beforeSave(), antes de que se guarde el bean
 				listener.beforeSave();
 			}
-			// Almacenamos la entidad en base de datos de forma persistente
-			beanUI.getBeanDAO().save(bean);
+			// Si estamos en modo inserción, insertamos el bean en base de datos
+			if (insertMode) {
+				beanUI.getBeanDAO().insert(bean);
+			}
+			// Si no, actualizamos el bean en base de datos
+			else {
+				beanUI.getBeanDAO().update(bean);
+			}
 			// Si todo ha ido bien, mostramos mensaje informativo
 			Notification.show("El elemento se ha actualizado correctamente");
 			// Y mostramos el listado
@@ -708,7 +721,7 @@ public class DetailForm<T extends Bean> extends Panel {
 	}
 
 	/**
-	 * Execute a commit for every Vaadin select fields in the form.
+	 * Executes a commit for every Vaadin select fields in the form.
 	 * It is neccesary because the selects fields aren't included inside the binder
 	 * This method is recursive, so it executes the commit for every nested beans
 	 * @param currentElement

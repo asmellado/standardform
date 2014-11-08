@@ -36,7 +36,12 @@ public class BeanMongoDAO<T extends BeanMongo> implements BeanDAO<T>, Serializab
 	}
 	
 	@Override
-	public void save(T bean) {
+	public void insert(T bean) {
+		datastore.save(bean);
+	}
+	
+	@Override
+	public void update(T bean) {
 		datastore.save(bean);
 	}
 	
@@ -55,5 +60,4 @@ public class BeanMongoDAO<T extends BeanMongo> implements BeanDAO<T>, Serializab
 	public void remove(T bean) {
 		datastore.delete(bean);
 	}
-
 }

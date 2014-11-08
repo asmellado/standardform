@@ -15,7 +15,7 @@ import javax.persistence.TransactionRequiredException;
 
 import es.vegamultimedia.standardform.model.BeanJPA;
 
-public abstract class BeanJPADAO<T extends BeanJPA> implements BeanDAO<T>{
+public class BeanJPADAO<T extends BeanJPA> implements BeanDAO<T>{
 	
 	// Bean class
 	protected Class<T> beanClass;
@@ -42,14 +42,19 @@ public abstract class BeanJPADAO<T extends BeanJPA> implements BeanDAO<T>{
 	}
 	
 	@Override
-	public void save(T element)
+	public void insert(T bean) {
+		update(bean);
+	}
+	
+	@Override
+	public void update(T bean)
 		throws IllegalStateException, EntityExistsException,
 			IllegalArgumentException, RollbackException, PersistenceException {
 		EntityTransaction transaction = null;
 		try {
 			transaction = entityManager.getTransaction();
 			transaction.begin();
-			entityManager.persist(element);
+			entityManager.persist(bean);
 			transaction.commit();
 			transaction = null;
 		}
@@ -61,6 +66,11 @@ public abstract class BeanJPADAO<T extends BeanJPA> implements BeanDAO<T>{
 				catch(Exception ignorada) {}
 			}
 		}
+	}
+	
+	@Override
+	public T get(Object id) {
+		return entityManager.find(beanClass, id);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -75,12 +85,12 @@ public abstract class BeanJPADAO<T extends BeanJPA> implements BeanDAO<T>{
 	}
 
 	@Override
-	public void remove(T element)
+	public void remove(T bean)
 			throws IllegalStateException, IllegalArgumentException,
 				TransactionRequiredException, RollbackException {
 		EntityTransaction transaction = entityManager.getTransaction();
 		transaction.begin();
-    	entityManager.remove(element);
+    	entityManager.remove(bean);
     	transaction.commit();
 	}
 }

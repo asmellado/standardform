@@ -7,10 +7,16 @@ import es.vegamultimedia.standardform.model.Bean;
 public interface BeanDAO<T extends Bean> {
 	
 	/**
-	 * Save the element T in the database
+	 * Inserts the element T in the database
 	 * @param element
 	 */
-	public abstract void save(T bean);
+	public abstract void insert(T bean);
+	
+	/**
+	 * Updates the element T in the database
+	 * @param element
+	 */
+	public abstract void update(T bean);
 	
 	/**
 	 * Get an element from the database 
