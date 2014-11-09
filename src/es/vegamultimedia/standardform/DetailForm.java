@@ -126,19 +126,23 @@ public class DetailForm<T extends Bean> extends Panel {
 			
 			// Obtenemos los campos del formulario
 			formFields = getFormFields(bean, "");
-	
-			Button botónGuardar = new Button("Guardar");
-			botónGuardar.setClickShortcut(KeyCode.ENTER);
-			botónGuardar.addClickListener(new ClickListener(){
-	
-				private static final long serialVersionUID = 1L;
-	
-				@Override
-				public void buttonClick(ClickEvent event) {
-					save(event);
-				}
-			});
-			form.addComponent(botónGuardar);
+			
+			// Si estamos en alta o se permite edición
+			if (insertMode || standardForm.allowsEditing()) {
+				// Añadimos el botón guardar
+				Button botónGuardar = new Button("Guardar");
+				botónGuardar.setClickShortcut(KeyCode.ENTER);
+				botónGuardar.addClickListener(new ClickListener(){
+		
+					private static final long serialVersionUID = 1L;
+		
+					@Override
+					public void buttonClick(ClickEvent event) {
+						save(event);
+					}
+				});
+				form.addComponent(botónGuardar);
+			}
 			
 			Button botónCancelar = new Button("Cancelar");
 			botónCancelar.addClickListener(new ClickListener(){
@@ -163,29 +167,6 @@ public class DetailForm<T extends Bean> extends Panel {
 	 */
 	public void addListener(Listener listener) {
 		this.listener = listener;
-	}
-	
-	/**
-	 * Gets every fields of the current bean, adding every fields of every superclass
-	 * @param currentBean
-	 * @return
-	 */
-	protected java.lang.reflect.Field[] getBeanFields(Bean currentBean) {
-		// Obtenemos los campos del bean elementoActual
-		java.lang.reflect.Field[] currentBeanFields = currentBean.getClass().getDeclaredFields();
-		// Añadimos los campos de las superclases hasta llegar a Object
-		Class<?> superclass = currentBean.getClass().getSuperclass();
-		while (superclass != Object.class) {
-			java.lang.reflect.Field[] fields = superclass.getDeclaredFields();
-			ArrayList<java.lang.reflect.Field> beanFieldsList = new ArrayList<java.lang.reflect.Field>();
-			beanFieldsList.addAll(Arrays.asList(currentBeanFields));
-			for (java.lang.reflect.Field field : fields) {
-				beanFieldsList.add(field);
-			}
-			currentBeanFields = beanFieldsList.toArray(new java.lang.reflect.Field[beanFieldsList.size()]);
-			superclass = superclass.getSuperclass();
-		}
-		return currentBeanFields;
 	}
 	
 	/**
@@ -244,7 +225,7 @@ public class DetailForm<T extends Bean> extends Panel {
 		StandardForm standardForm = currentBean.getClass().getAnnotation(StandardForm.class);
 		
 		// Obtenemos los campos del bean elementoActual
-		java.lang.reflect.Field[] currentBeanFields = getBeanFields(currentBean);
+		java.lang.reflect.Field[] currentBeanFields = Utils.getBeanFields(currentBean.getClass());
 		
 		// Creamos el array de campos del formulario con el número de campos del bean actual
 		Component[] currentFields = new Component[currentBeanFields.length];
@@ -365,14 +346,21 @@ public class DetailForm<T extends Bean> extends Panel {
 				}
 				// Comprobamos por precaución si se ha creado el campo
 				if (currentFields[i] != null) {
-					// Se especifica la representación del null
-					if (currentFields[i] instanceof AbstractTextField) {
-						((AbstractTextField)currentFields[i]).setNullRepresentation("");
-					}
 					// Se especifica la anchura del campo
 					// TODO Pendiente de hacer con estilos css
 //					currentFields[i].addStyleName("sf-field");
 					currentFields[i].setWidth(30, Unit.EM);
+					
+					// Si no estamos en alta y no se permite edición
+					if (!insertMode && !standardForm.allowsEditing()) {
+						// Deshabilitamos el campo
+						currentFields[i].setEnabled(false);
+					}
+					
+					// Se especifica la representación del null
+					if (currentFields[i] instanceof AbstractTextField) {
+						((AbstractTextField)currentFields[i]).setNullRepresentation("");
+					}
 					try {
 						// Si es un BeanMongo y el campo tiene anotación Id
 						if (currentBean.getClass().asSubclass(BeanMongo.class) != null &&
@@ -534,7 +522,7 @@ public class DetailForm<T extends Bean> extends Panel {
 	/**
 	 * Shows the ListForm inside the same component as this detailForm
 	 */
-	protected void showListForm() {
+	public void showListForm() {
 		Panel vistaListado = beanUI.getListForm();
 		ComponentContainer contentPanel = (ComponentContainer)getParent();
 		contentPanel.replaceComponent(this, vistaListado);
@@ -724,7 +712,7 @@ public class DetailForm<T extends Bean> extends Panel {
 	 * Executes a commit for every Vaadin select fields in the form.
 	 * It is neccesary because the selects fields aren't included inside the binder
 	 * This method is recursive, so it executes the commit for every nested beans
-	 * @param currentElement
+	 * @param currentBean
 	 * @param currentFormFields
 	 * @throws NoSuchMethodException
 	 * @throws IllegalAccessException
@@ -732,10 +720,10 @@ public class DetailForm<T extends Bean> extends Panel {
 	 * @throws CommitException
 	 */
 	@SuppressWarnings("unchecked")
-	protected void commitSelectFields(Bean currentElement, Component[] currentFormFields)
+	protected void commitSelectFields(Bean currentBean, Component[] currentFormFields)
 			throws NoSuchMethodException,
 			IllegalAccessException, InvocationTargetException, CommitException {
-		java.lang.reflect.Field[] beanFields = getBeanFields(currentElement);
+		java.lang.reflect.Field[] beanFields = Utils.getBeanFields(currentBean.getClass());
 		for (int i=0;i<beanFields.length;i++) {
 			// Si el tipo de campo es COMBO_BOX u OPTION_GROUP
 			if (currentFormFields[i] instanceof ComboBox ||
@@ -752,7 +740,7 @@ public class DetailForm<T extends Bean> extends Panel {
 						throw new CommitException("El campo es obligatorio");
 					}
 					// Asignamos al elemento actual el elemento seleccionado en el combo box
-					Utils.setFieldValue(currentElement, beanFields[i], elementoSeleccionado);
+					Utils.setFieldValue(currentBean, beanFields[i], elementoSeleccionado);
 				}
 				// Si el campo sí permite selección múltiple
 				else {
@@ -771,7 +759,7 @@ public class DetailForm<T extends Bean> extends Panel {
 						throw new CommitException("Debe seleccionar al menos un elemento");
 					}
 					// Asignamos al elemento actual el arraylist de elementos seleccionados
-					Utils.setFieldValue(currentElement, beanFields[i], arrayListElementosSeleccionados);
+					Utils.setFieldValue(currentBean, beanFields[i], arrayListElementosSeleccionados);
 				}
 			}
 			// Si es un campo EMBEDDED, hay que hacer commit recursivamente
@@ -781,7 +769,7 @@ public class DetailForm<T extends Bean> extends Panel {
 					// Nos aseguramos de que es un bean anidado
 					if (beanFields[i].getType().asSubclass(Bean.class) != null) {
 						// Obtenemos el beanAnidado
-						Bean beanAnidado = (Bean) Utils.getFieldValue(currentElement, beanFields[i]);
+						Bean beanAnidado = (Bean) Utils.getFieldValue(currentBean, beanFields[i]);
 						// Obtenemos el contenido del panel
 						Component content = ((Panel)currentFormFields[i]).getContent();
 						// Obtenemos sus componentes en un ArrayList
@@ -811,12 +799,16 @@ public class DetailForm<T extends Bean> extends Panel {
 	 */
 	public Component getFormField(String nameField) {
 		// Obtenemos los campos del bean
-		java.lang.reflect.Field[] currentBeanFields = getBeanFields(bean);
+		java.lang.reflect.Field[] currentBeanFields = Utils.getBeanFields(bean.getClass());
 		for (int i = 0; i<currentBeanFields.length; i++) {
 			if (currentBeanFields[i].getName().equals(nameField)) {
 				return formFields[i];
 			}
 		}
 		return null;
+	}
+
+	public FormLayout getForm() {
+		return form;
 	}
 }

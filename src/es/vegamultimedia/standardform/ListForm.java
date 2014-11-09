@@ -43,6 +43,9 @@ public class ListForm<T extends Bean> extends Panel {
 	// Tabla del formulario
 	protected Table table;
 	
+	// Nombre columna editar
+	protected String nombreColumnaEditarConsultar;
+	
 	public ListForm(BeanUI<T> beanUI) {
 		this.beanUI = beanUI;
 		
@@ -136,31 +139,30 @@ public class ListForm<T extends Bean> extends Panel {
 			else {
 				// Hacemos visibles las columnas especificadas
 				visibledColumns = new ArrayList<String>(Arrays.asList(listForm.columns()));
+				// Obtenemos todos los campos del bean
+				Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
 				// Para cada columna, añadimos su cabecera
 				for(String nombreColumn : visibledColumns) {
-					try {
-						// Obtenemos el campo que coincide con el nombre de la columna
-						// TODO Permitir que el campo esté declarado en una superclase
-						// Ahora sólo se permite los campos de la clase
-						Field beanField = beanUI.getBeanClass().getDeclaredField(nombreColumn);
-						// Lo añadimos a la cabecera
-						addHeaderColumn(beanField);
-					} catch (Exception e) {
-						Notification.show("Metadatos incorrectos", 
-								"No existe en el bean " + beanUI.getBeanClass().getSimpleName() + 
-								" el campo " + nombreColumn + " y se ha especificado como columna visible.",
-								Type.ERROR_MESSAGE);
-						e.printStackTrace();
-						return;
+					// Obtenemos el campo que coincide con el nombre de la columna
+					for (Field beanField : beanFields) {
+						if (beanField.getName().equals(nombreColumn)) {
+							// Lo añadimos a la cabecera
+							addHeaderColumn(beanField);
+							break;
+						}
 					}
 				}
 			}
 			// Si se permite edición
 			if (listForm.allowsEditing()) {
-				// Añadimos columna para editar
-				table.addGeneratedColumn("Editar", new EditColumnGenerator());
-				visibledColumns.add("Editar");
+				nombreColumnaEditarConsultar = "Editar";
 			}
+			else {
+				nombreColumnaEditarConsultar = "Consultar";
+			}
+			// Añadimos columna para editar o consultar
+			table.addGeneratedColumn(nombreColumnaEditarConsultar, new EditColumnGenerator());
+			visibledColumns.add(nombreColumnaEditarConsultar);
 			// Si se permite eliminar
 			if (listForm.allowsDeleting()) {
 				// Añadimos columna para eliminar
@@ -251,7 +253,7 @@ public class ListForm<T extends Bean> extends Panel {
 
 		@Override
 		public Object generateCell(Table source, final Object itemId, Object columnId) {
-			Button button = new Button("Editar");
+			Button button = new Button(nombreColumnaEditarConsultar);
 			button.setStyleName(BaseTheme.BUTTON_LINK);
 			button.addClickListener(new ClickListener() {
 

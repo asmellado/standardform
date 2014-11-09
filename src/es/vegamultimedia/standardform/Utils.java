@@ -4,6 +4,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import javax.persistence.EntityManager;
 
@@ -19,6 +21,29 @@ import es.vegamultimedia.standardform.model.BeanMongo;
 import es.vegamultimedia.standardform.model.BeanWithId;
 
 abstract public class Utils {
+	
+	/**
+	 * Gets every fields of the current bean, adding every fields of every superclass
+	 * @param currentBean
+	 * @return
+	 */
+	public static java.lang.reflect.Field[] getBeanFields(Class<? extends Bean> beanClass) {
+		// Obtenemos los campos del bean elementoActual
+		java.lang.reflect.Field[] currentBeanFields = beanClass.getDeclaredFields();
+		// Añadimos los campos de las superclases hasta llegar a Object
+		Class<?> superclass = beanClass.getSuperclass();
+		while (superclass != Object.class) {
+			java.lang.reflect.Field[] fields = superclass.getDeclaredFields();
+			ArrayList<java.lang.reflect.Field> beanFieldsList = new ArrayList<java.lang.reflect.Field>();
+			beanFieldsList.addAll(Arrays.asList(currentBeanFields));
+			for (java.lang.reflect.Field field : fields) {
+				beanFieldsList.add(field);
+			}
+			currentBeanFields = beanFieldsList.toArray(new java.lang.reflect.Field[beanFieldsList.size()]);
+			superclass = superclass.getSuperclass();
+		}
+		return currentBeanFields;
+	}
 	
 	/**
 	 * Return the string with the first letter capitalized
@@ -193,8 +218,8 @@ abstract public class Utils {
 		}
 		// Si el bean es un BeanMongo sin campo id
 		else if (bean instanceof BeanMongo) {
-			// Obtenemos todos los campos de la clase
-			Field[] fields = bean.getClass().getDeclaredFields();
+			// Obtenemos todos los campos del bean
+			Field[] fields = getBeanFields(bean.getClass());
 			// Recorremos los campos
 			for (Field field : fields) {
 				// Si el campo tiene la anotación Id de Morphia
