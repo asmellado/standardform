@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.persistence.Lob;
@@ -346,6 +347,9 @@ public class DetailForm<T extends Bean> extends Panel {
 				}
 				// Comprobamos por precaución si se ha creado el campo
 				if (currentFields[i] != null) {
+					// Asignamos al campo como id el nombre del campo del bean actual
+					currentFields[i].setId(prefixParentBean + currentBeanFields[i].getName());
+					
 					// Se especifica la anchura del campo
 					// TODO Pendiente de hacer con estilos css
 //					currentFields[i].addStyleName("sf-field");
@@ -558,8 +562,9 @@ public class DetailForm<T extends Bean> extends Panel {
 			// Y mostramos el listado
 			showListForm();
 		} catch (CommitException e) {
-			Notification.show("No se puede guardar\n",
-					"Algún campo no supera las validaciones. Por favor, revise el formulario",
+			Notification.show("Error de validación",
+//					"Algún campo no supera las validaciones. Por favor, revise el formulario",
+					(e.getCause() == null) ? e.getMessage() : e.getCause().getMessage(),
 					Type.WARNING_MESSAGE);
 		} catch (java.util.ConcurrentModificationException e) {
 			Notification.show("No se puede guardar",
@@ -792,23 +797,45 @@ public class DetailForm<T extends Bean> extends Panel {
 		}
 	}
 	
+    /**
+     * Find a Component form his root component and its id.
+     * This method is recursive for nested components.
+     * @param root
+     * @param id
+     * @return
+     */
+	public Component findComponentById(HasComponents root, String id) {
+        Iterator<Component> iterate = root.iterator();
+        while (iterate.hasNext()) {
+            Component c = iterate.next();
+            if (id.equals(c.getId())) {
+                return c;
+            }
+            if (c instanceof HasComponents) {
+                Component cc = findComponentById((HasComponents) c, id);
+                if (cc != null)
+                    return cc;
+            }
+        }
+
+        return null;
+    }
+	
 	/**
-	 * Gets the form field from a bean name field
+	 * Gets the form field from a bean name field.
+	 * Supports nested fields with dot notation.
 	 * @param nameField
 	 * @return The form Field or null if there is no bean name field
 	 */
-	public Component getFormField(String nameField) {
-		// Obtenemos los campos del bean
-		java.lang.reflect.Field[] currentBeanFields = Utils.getBeanFields(bean.getClass());
-		for (int i = 0; i<currentBeanFields.length; i++) {
-			if (currentBeanFields[i].getName().equals(nameField)) {
-				return formFields[i];
-			}
-		}
-		return null;
+	public Component findFormField(String nameField) {
+		return findComponentById(form, nameField);
 	}
 
 	public FormLayout getForm() {
 		return form;
+	}
+
+	public BeanFieldGroup<T> getBinder() {
+		return binder;
 	}
 }
