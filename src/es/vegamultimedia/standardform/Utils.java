@@ -186,13 +186,24 @@ abstract public class Utils {
 		// Si es un BeanMongoDAO o subclase
 		try {
 			if (classBeanDAO.asSubclass(BeanMongoDAO.class) != null) {
-				// Obtenemos el constructor del beanMongoDAO
 				// TODO Podría ser un BeanMongoDAO personalizado que no tuviera este constructor
 				// En ese caso, lanzaría una excepción NoSuchMethodException
-				Constructor constructorDAO =
-					classBeanDAO.getConstructor(Class.class, Datastore.class);
-				// Creamos el objeto DAO
-				return (BeanDAO) constructorDAO.newInstance(nestedBeanClass, ((BeanMongoDAO)beanDAOFather).getDatastore());
+				try {
+					// Obtenemos el constructor del beanMongoDAO
+					Constructor constructorDAO =
+						classBeanDAO.getConstructor(Class.class, Datastore.class);
+					// Creamos el objeto DAO
+					return (BeanDAO) constructorDAO.newInstance(nestedBeanClass, ((BeanMongoDAO)beanDAOFather).getDatastore());
+				}
+				catch (NoSuchMethodException ignorada) { }
+				try {
+					// Si no tiene el constructor genérico, buscamos si tiene constructo con sólo Datastore
+					Constructor constructorDAO =
+						classBeanDAO.getConstructor(Datastore.class);
+					// Creamos el objeto DAO
+					return (BeanDAO) constructorDAO.newInstance(((BeanMongoDAO)beanDAOFather).getDatastore());
+				}
+				catch (NoSuchMethodException ignorada) { }
 			}
 		} catch (ClassCastException ignorada) { }
 		// Si no es BeanJPADAO ni BeanMongoDAO

@@ -25,6 +25,7 @@ import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.validator.BeanValidator;
 import com.vaadin.event.ShortcutAction.KeyCode;
+import com.vaadin.ui.AbstractField;
 import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 import com.vaadin.ui.AbstractTextField;
@@ -192,12 +193,15 @@ public class DetailForm<T extends Bean> extends Panel {
 			try {
 				// Si el campo es un bean anidado
 				if (fieldBean.getType().asSubclass(Bean.class) != null) {
-					// Creamos el objeto del bean anidado
-					Bean nestedBean = newBean((Class<? extends Bean>) fieldBean.getType());
-					// Obtenemos el método "Set" del campo actual
-					Method setMethod = Utils.getSetMethod(bean.getClass(), fieldBean);
-					// Llamamos al método set para asignar el bean anidado vacío
-					setMethod.invoke(bean, nestedBean);
+					// Comprobamos que no es de la misma clase que el bean actual para evitar bucle infinito
+					if (beanClass != fieldBean.getType()) {
+						// Creamos el objeto del bean anidado
+						Bean nestedBean = newBean((Class<? extends Bean>) fieldBean.getType());
+						// Obtenemos el método "Set" del campo actual
+						Method setMethod = Utils.getSetMethod(bean.getClass(), fieldBean);
+						// Llamamos al método set para asignar el bean anidado vacío
+						setMethod.invoke(bean, nestedBean);
+					}
 				}
 			} catch (ClassCastException ignorada) { }
 		}
@@ -294,13 +298,14 @@ public class DetailForm<T extends Bean> extends Panel {
 					break;
 				// Si es un campo deshabilitado
 				case DISABLED:
-					// Si estamos en modo modificación
-					if (!insertMode) {
-						// Mostramos el campo deshabilitado
-						currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
-						currentFields[i].setEnabled(false);
+					currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
+					// Mostramos el campo deshabilitado
+					currentFields[i].setEnabled(false);
+					// Si estamos en modo inserción
+					if (insertMode) {
+						// Ocultamos el campo
+						currentFields[i].setVisible(false);
 					}
-					// En alta no se muestra el campo
 					break;
 				// Si es un campo de fecha
 				case DATE:
@@ -333,7 +338,10 @@ public class DetailForm<T extends Bean> extends Panel {
 							prefixParentBean + currentBeanFields[i].getName() + ".");
 					// Añadimos los campos al formulario
 					for (Component field: embeddedFields) {
-						embeddedForm.addComponent(field);
+						// Comprobamos que existe (los campos deshabilitados no se crean en alta)
+						if (field != null) {
+							embeddedForm.addComponent(field);
+						}
 					}
 					// Creamos un panel con el caption
 					Panel panel = new Panel(caption);
@@ -350,10 +358,19 @@ public class DetailForm<T extends Bean> extends Panel {
 					// Asignamos al campo como id el nombre del campo del bean actual
 					currentFields[i].setId(prefixParentBean + currentBeanFields[i].getName());
 					
-					// Se especifica la anchura del campo
-					// TODO Pendiente de hacer con estilos css
-//					currentFields[i].addStyleName("sf-field");
-					currentFields[i].setWidth(30, Unit.EM);
+					// Si no es un embedded field
+					if (tipo != StandardFormField.Type.EMBEDDED) {
+						// Se especifica la anchura del campo
+						// TODO Hacer con estilos css?
+						currentFields[i].setWidth(30, Unit.EM);
+					}
+				
+					// Si es un campo y tiene anotación NotNull
+					if (currentFields[i] instanceof AbstractField &&
+							currentBeanFields[i].getAnnotation(NotNull.class) instanceof NotNull) {
+						// Se marca el campo como obligatorio
+						((AbstractField)currentFields[i]).setRequired(true);
+					}
 					
 					// Si no estamos en alta y no se permite edición
 					if (!insertMode && !standardForm.allowsEditing()) {
@@ -538,6 +555,7 @@ public class DetailForm<T extends Bean> extends Panel {
 	 * If it catches another exception, it ishows a error notification
 	 * @param event
 	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	protected void save(ClickEvent event) {
 		try {
 			// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
@@ -549,8 +567,29 @@ public class DetailForm<T extends Bean> extends Panel {
 				// Llamamos al método beforeSave(), antes de que se guarde el bean
 				listener.beforeSave();
 			}
+			
 			// Si estamos en modo inserción, insertamos el bean en base de datos
 			if (insertMode) {
+				// Si hay un campo de tipo EMBEDDED pero que es una referencia a otro bean
+				java.lang.reflect.Field[] beanFields = Utils.getBeanFields(bean.getClass());
+				for (int i=0;i<beanFields.length;i++) {
+					// Obtenemos la anotación StandardForm
+					StandardForm standardForm = bean.getClass().getAnnotation(StandardForm.class);
+					// Obtenemos la anotación StandardFormField
+					StandardFormField standardFormField = beanFields[i].getAnnotation(StandardFormField.class);
+					// Obtenemos el tipo de campo en función de los metadatos
+					StandardFormField.Type tipo = getTypeFormField(standardForm, beanFields[i], standardFormField);
+					if (tipo == StandardFormField.Type.EMBEDDED) {
+						// Tenemos que insertar el documento
+						// Obtenemos el DAO
+						BeanDAO dao = 
+								Utils.getBeanDAO((Class)(beanFields[i].getType()), beanUI.getBeanDAO());
+						// Obtenemos el bean anidado
+						Bean embeddedBean = (Bean) Utils.getFieldValue(bean, beanFields[i]);
+						dao.insert(embeddedBean);
+					}
+				}
+				
 				beanUI.getBeanDAO().insert(bean);
 			}
 			// Si no, actualizamos el bean en base de datos
@@ -789,9 +828,9 @@ public class DetailForm<T extends Bean> extends Panel {
 						commitSelectFields(beanAnidado, embeddedFormFields);
 					}
 				} catch (ClassCastException ignorada) {
-				} catch (Exception e) {
-					// Si el método getFieldValue() lanza una excepción mostramos traza
-					e.printStackTrace();
+//				} catch (Exception e) {
+//					// Si el método getFieldValue() lanza una excepción mostramos traza
+//					e.printStackTrace();
 				}
 			}
 		}
