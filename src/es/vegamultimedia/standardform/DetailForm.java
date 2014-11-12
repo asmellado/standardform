@@ -301,6 +301,10 @@ public class DetailForm<T extends Bean> extends Panel {
 					currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
 					// Mostramos el campo deshabilitado
 					currentFields[i].setEnabled(false);
+					// Se eliminan los validadores
+					if (currentFields[i] instanceof AbstractField) {
+						((AbstractField)currentFields[i]).removeAllValidators();
+					}
 					// Si estamos en modo inserción
 					if (insertMode) {
 						// Ocultamos el campo
@@ -365,8 +369,13 @@ public class DetailForm<T extends Bean> extends Panel {
 						currentFields[i].setWidth(30, Unit.EM);
 					}
 				
-					// Si es un campo y tiene anotación NotNull
+					// Si es un campo, no oculto y tiene anotación NotNull
 					if (currentFields[i] instanceof AbstractField &&
+							(
+									(standardFormField instanceof StandardFormField &&
+											!standardFormField.hidden()) ||
+									!(standardFormField instanceof StandardFormField )
+							) &&
 							currentBeanFields[i].getAnnotation(NotNull.class) instanceof NotNull) {
 						// Se marca el campo como obligatorio
 						((AbstractField)currentFields[i]).setRequired(true);
@@ -400,6 +409,7 @@ public class DetailForm<T extends Bean> extends Panel {
 					// Si es un campo oculto
 					if (standardFormField instanceof StandardFormField &&
 							standardFormField.hidden()) {
+						((AbstractField)currentFields[i]).removeAllValidators();
 						// Se hace invisible y se deshabilita
 						currentFields[i].setVisible(false);
 						currentFields[i].setEnabled(false);
@@ -568,28 +578,34 @@ public class DetailForm<T extends Bean> extends Panel {
 				listener.beforeSave();
 			}
 			
-			// Si estamos en modo inserción, insertamos el bean en base de datos
-			if (insertMode) {
-				// Si hay un campo de tipo EMBEDDED pero que es una referencia a otro bean
-				java.lang.reflect.Field[] beanFields = Utils.getBeanFields(bean.getClass());
-				for (int i=0;i<beanFields.length;i++) {
-					// Obtenemos la anotación StandardForm
-					StandardForm standardForm = bean.getClass().getAnnotation(StandardForm.class);
-					// Obtenemos la anotación StandardFormField
-					StandardFormField standardFormField = beanFields[i].getAnnotation(StandardFormField.class);
-					// Obtenemos el tipo de campo en función de los metadatos
-					StandardFormField.Type tipo = getTypeFormField(standardForm, beanFields[i], standardFormField);
-					if (tipo == StandardFormField.Type.EMBEDDED) {
-						// Tenemos que insertar el documento
-						// Obtenemos el DAO
-						BeanDAO dao = 
-								Utils.getBeanDAO((Class)(beanFields[i].getType()), beanUI.getBeanDAO());
-						// Obtenemos el bean anidado
-						Bean embeddedBean = (Bean) Utils.getFieldValue(bean, beanFields[i]);
+			// Buscamos si hay un campo de tipo EMBEDDED pero que es una referencia a otro bean
+			// Obtenemos la anotación StandardForm
+			StandardForm standardForm = bean.getClass().getAnnotation(StandardForm.class);
+			// Recorremos los campos
+			java.lang.reflect.Field[] beanFields = Utils.getBeanFields(bean.getClass());
+			for (int i=0;i<beanFields.length;i++) {
+				// Obtenemos la anotación StandardFormField
+				StandardFormField standardFormField = beanFields[i].getAnnotation(StandardFormField.class);
+				// Obtenemos el tipo de campo en función de los metadatos
+				StandardFormField.Type tipo = getTypeFormField(standardForm, beanFields[i], standardFormField);
+				if (tipo == StandardFormField.Type.EMBEDDED) {
+					// Obtenemos el DAO
+					BeanDAO dao = 
+							Utils.getBeanDAO((Class)(beanFields[i].getType()), beanUI.getBeanDAO());
+					// Obtenemos el bean anidado
+					Bean embeddedBean = (Bean) Utils.getFieldValue(bean, beanFields[i]);
+					// Tenemos que insertar el documento
+					if (insertMode) {
 						dao.insert(embeddedBean);
 					}
+					else {
+						dao.update(embeddedBean);
+					}
 				}
-				
+			}
+			
+			// Si estamos en modo inserción, insertamos el bean en base de datos
+			if (insertMode) {
 				beanUI.getBeanDAO().insert(bean);
 			}
 			// Si no, actualizamos el bean en base de datos
@@ -601,6 +617,7 @@ public class DetailForm<T extends Bean> extends Panel {
 			// Y mostramos el listado
 			showListForm();
 		} catch (CommitException e) {
+			e.printStackTrace();
 			Notification.show("Error de validación",
 //					"Algún campo no supera las validaciones. Por favor, revise el formulario",
 					(e.getCause() == null) ? e.getMessage() : e.getCause().getMessage(),
