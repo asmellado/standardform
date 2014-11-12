@@ -66,7 +66,11 @@ public class DetailForm<T extends Bean> extends Panel {
 		/**
 		 * Called before saving the bean
 		 */
-		public abstract void beforeSave(); 
+		public abstract void beforeSave(boolean insertMode);
+		/**
+		 * Called after saving the bean
+		 */
+		public abstract void afterSave(boolean insertMode);
 	}
 	
 	private Listener listener;
@@ -575,7 +579,7 @@ public class DetailForm<T extends Bean> extends Panel {
 			// Si hay escuchador
 			if (listener != null) {
 				// Llamamos al método beforeSave(), antes de que se guarde el bean
-				listener.beforeSave();
+				listener.beforeSave(insertMode);
 			}
 			
 			// Buscamos si hay un campo de tipo EMBEDDED pero que es una referencia a otro bean
@@ -612,6 +616,13 @@ public class DetailForm<T extends Bean> extends Panel {
 			else {
 				beanUI.getBeanDAO().update(bean);
 			}
+			
+			// Si hay escuchador
+			if (listener != null) {
+				// Llamamos al método aferSave(), después de guardar el bean
+				listener.afterSave(insertMode);
+			}
+			
 			// Si todo ha ido bien, mostramos mensaje informativo
 			Notification.show("El elemento se ha actualizado correctamente");
 			// Y mostramos el listado
@@ -711,10 +722,9 @@ public class DetailForm<T extends Bean> extends Panel {
 						campoSelect.setMultiSelect(true);
 					}
 				}
-				// Establecemos la propiedad que se muestra
-				campoSelect.setItemCaptionMode(ItemCaptionMode.PROPERTY);
-				// TODO La propiedad a mostrar debería ser parametrizable. Ahora se hardcodea a "nombre"
-				campoSelect.setItemCaptionPropertyId("nombre");
+				// El caption que se muestra es la representación del item
+				// Nota: Los bean anidados deben sobreescribir el métoodo toString()
+				campoSelect.setItemCaptionMode(ItemCaptionMode.EXPLICIT_DEFAULTS_ID);
 				
 				// Añadimos un validador de tipo BeanValidator para el campo
 				campoSelect.addValidator(new BeanValidator(currentBean.getClass(), field.getName()));
