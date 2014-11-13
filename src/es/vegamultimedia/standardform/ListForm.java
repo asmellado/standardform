@@ -310,4 +310,8 @@ public class ListForm<T extends Bean> extends Panel {
 			return button;
 		}
 	}
+
+	public Table getTable() {
+		return table;
+	}
 }
