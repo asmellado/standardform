@@ -20,4 +20,10 @@ public @interface StandardFormEnum {
 	 * @return
 	 */
 	public String value() default "";
+	
+	/**
+	 * Optional help for this enum element
+	 * @return
+	 */
+	public String help() default "";
 }

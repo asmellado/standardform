@@ -62,18 +62,18 @@ public class DetailForm<T extends Bean> extends Panel {
 	/**
 	 * Interface for listening for a event in a DetailForm 
 	 */
-	public interface Listener{
+	public interface SaveListener{
 		/**
 		 * Called before saving the bean
 		 */
-		public abstract void beforeSave(boolean insertMode);
+		public abstract void beforeSave(Bean bean, boolean insertMode);
 		/**
 		 * Called after saving the bean
 		 */
-		public abstract void afterSave(boolean insertMode);
+		public abstract void afterSave(Bean bean, boolean insertMode);
 	}
 	
-	private Listener listener;
+	private SaveListener saveListener;
 	
 	// BeanUI that created this standard detail form
 	protected BeanUI<T> beanUI;
@@ -171,8 +171,8 @@ public class DetailForm<T extends Bean> extends Panel {
 	/**
 	 * Adds the listener
 	 */
-	public void addListener(Listener listener) {
-		this.listener = listener;
+	public void addListener(SaveListener saveListener) {
+		this.saveListener = saveListener;
 	}
 	
 	/**
@@ -577,9 +577,9 @@ public class DetailForm<T extends Bean> extends Panel {
 			// Hacemos commit del resto de campos
 			binder.commit();
 			// Si hay escuchador
-			if (listener != null) {
+			if (saveListener != null) {
 				// Llamamos al método beforeSave(), antes de que se guarde el bean
-				listener.beforeSave(insertMode);
+				saveListener.beforeSave(bean, insertMode);
 			}
 			
 			// Buscamos si hay un campo de tipo EMBEDDED pero que es una referencia a otro bean
@@ -618,9 +618,9 @@ public class DetailForm<T extends Bean> extends Panel {
 			}
 			
 			// Si hay escuchador
-			if (listener != null) {
+			if (saveListener != null) {
 				// Llamamos al método aferSave(), después de guardar el bean
-				listener.afterSave(insertMode);
+				saveListener.afterSave(bean, insertMode);
 			}
 			
 			// Si todo ha ido bien, mostramos mensaje informativo
@@ -796,9 +796,10 @@ public class DetailForm<T extends Bean> extends Panel {
 			IllegalAccessException, InvocationTargetException, CommitException {
 		java.lang.reflect.Field[] beanFields = Utils.getBeanFields(currentBean.getClass());
 		for (int i=0;i<beanFields.length;i++) {
-			// Si el tipo de campo es COMBO_BOX u OPTION_GROUP
-			if (currentFormFields[i] instanceof ComboBox ||
-					currentFormFields[i] instanceof OptionGroup) {
+			// Si el campo no está oculto y su tipo es COMBO_BOX u OPTION_GROUP
+			if (currentFormFields[i].isVisible() && (
+					currentFormFields[i] instanceof ComboBox ||
+					currentFormFields[i] instanceof OptionGroup)) {
 				AbstractSelect selectField = ((AbstractSelect)currentFormFields[i]);
 				// Si el campo NO permite selección múltiple
 				if (!selectField.isMultiSelect()) {
