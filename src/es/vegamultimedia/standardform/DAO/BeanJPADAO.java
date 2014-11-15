@@ -15,7 +15,7 @@ import javax.persistence.TransactionRequiredException;
 
 import es.vegamultimedia.standardform.model.BeanJPA;
 
-public class BeanJPADAO<T extends BeanJPA> implements BeanDAO<T>{
+public class BeanJPADAO<T extends BeanJPA, K> implements BeanDAO<T, K>{
 	
 	// Bean class
 	protected Class<T> beanClass;

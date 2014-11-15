@@ -4,7 +4,7 @@ import java.util.List;
 
 import es.vegamultimedia.standardform.model.Bean;
 
-public interface BeanDAO<T extends Bean> {
+public interface BeanDAO<T extends Bean, K> {
 	
 	/**
 	 * Inserts the element T in the database
@@ -19,11 +19,11 @@ public interface BeanDAO<T extends Bean> {
 	public abstract void update(T bean);
 	
 	/**
-	 * Get an element from the database 
+	 * Get an element using its identifier from the database 
 	 * @param id Unique bean id
 	 * @return
 	 */
-	public abstract T get(Object id);
+	public abstract T get(K id);
 	
 	/**
 	 * Get all the elements from the database

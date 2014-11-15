@@ -57,7 +57,7 @@ import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
 
 @SuppressWarnings("serial")
-public class DetailForm<T extends Bean> extends Panel {
+public class DetailForm<T extends Bean, K> extends Panel {
 	
 	/**
 	 * Interface for listening for a event in a DetailForm 
@@ -76,7 +76,7 @@ public class DetailForm<T extends Bean> extends Panel {
 	private SaveListener saveListener;
 	
 	// BeanUI that created this standard detail form
-	protected BeanUI<T> beanUI;
+	protected BeanUI<T, K> beanUI;
 	
 	// Binder del formulario
 	protected BeanFieldGroup<T> binder;
@@ -101,7 +101,7 @@ public class DetailForm<T extends Bean> extends Panel {
 	 * @throws IllegalAccessException
 	 */
 	@SuppressWarnings("unchecked")
-	public DetailForm(BeanUI<T> currentBeanUI, T currentBean)
+	public DetailForm(BeanUI<T, K> currentBeanUI, T currentBean)
 			throws InstantiationException, IllegalAccessException {
 		beanUI = currentBeanUI;
 		bean = currentBean;
@@ -700,7 +700,7 @@ public class DetailForm<T extends Bean> extends Panel {
 				// Obtenemos la clase del Bean anidado
 				Class<? extends Bean> claseBeanAnidado = (Class<? extends Bean>)tipoElementos;
 				// Obtenemos una instancia del BeanDAO anidado
-				BeanDAO<? extends Bean> beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO());
+				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO());
 				// Obtenemos todos los elementos del bean anidado
 				List<? extends Bean> listaElementos = beanDAO.getAllElements();
 				

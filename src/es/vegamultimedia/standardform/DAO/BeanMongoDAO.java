@@ -4,12 +4,14 @@ import java.io.Serializable;
 import java.util.List;
 
 import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.dao.BasicDAO;
 import org.mongodb.morphia.query.Query;
 
 import es.vegamultimedia.standardform.model.BeanMongo;
 
 @SuppressWarnings("serial")
-public class BeanMongoDAO<T extends BeanMongo> implements BeanDAO<T>, Serializable {
+public class BeanMongoDAO<T extends BeanMongo, K> extends BasicDAO<T, K>
+	implements BeanDAO<T, K>, Serializable {
 	
 	// Bean class
 	protected Class<T> beanClass;
@@ -23,6 +25,7 @@ public class BeanMongoDAO<T extends BeanMongo> implements BeanDAO<T>, Serializab
 	 * @param datastore
 	 */
 	public BeanMongoDAO(Class<T> beanClass, Datastore datastore) {
+		super(beanClass, datastore);
 		this.beanClass = beanClass;
 		this.datastore = datastore;
 	}

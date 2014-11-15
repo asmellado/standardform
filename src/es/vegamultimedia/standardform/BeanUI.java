@@ -7,7 +7,7 @@ import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
-public class BeanUI<T extends Bean> implements Serializable {
+public class BeanUI<T extends Bean, K> implements Serializable {
 	
 	/**
 	 * Bean class
@@ -17,9 +17,9 @@ public class BeanUI<T extends Bean> implements Serializable {
 	/**
 	 * Bean data access object (DAO) for this bean
 	 */
-	protected BeanDAO<T> beanDAO;
+	protected BeanDAO<T, K> beanDAO;
 	
-	public BeanUI(Class<T> beanClass, BeanDAO<T> beanDAO)
+	public BeanUI(Class<T> beanClass, BeanDAO<T, K> beanDAO)
 			throws ClassNotFoundException, SecurityException, NoSuchMethodException,
 			IllegalArgumentException, InstantiationException, 
 			IllegalAccessException, InvocationTargetException {
@@ -34,17 +34,17 @@ public class BeanUI<T extends Bean> implements Serializable {
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 */
-	public DetailForm<T> getDetailForm(T bean) 
+	public DetailForm<T, K> getDetailForm(T bean) 
 			throws InstantiationException, IllegalAccessException {
-		return new DetailForm<T>(this, bean);
+		return new DetailForm<T, K>(this, bean);
 	}
 	
 	/**
 	 * Returns the standard list form for this bean class
 	 * @return
 	 */
-	public ListForm<T> getListForm() {
-		return new ListForm<T>(this);
+	public ListForm<T, K> getListForm() {
+		return new ListForm<T, K>(this);
 	}
 	
 	/**
@@ -59,7 +59,7 @@ public class BeanUI<T extends Bean> implements Serializable {
 	 * Returns the beanDAO object for this bean
 	 * @return
 	 */
-	public BeanDAO<T> getBeanDAO() {
+	public BeanDAO<T, K> getBeanDAO() {
 		return beanDAO;
 	}
 }

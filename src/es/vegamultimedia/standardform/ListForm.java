@@ -29,10 +29,10 @@ import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
-public class ListForm<T extends Bean> extends Panel {
+public class ListForm<T extends Bean, K> extends Panel {
 	
 	// BeanUI that created this standard list form
-	protected BeanUI<T> beanUI;
+	protected BeanUI<T, K> beanUI;
 	
 	// Container del formulario
 	protected BeanItemContainer<T> container;
@@ -46,7 +46,7 @@ public class ListForm<T extends Bean> extends Panel {
 	// Nombre columna editar
 	protected String nombreColumnaEditarConsultar;
 	
-	public ListForm(BeanUI<T> beanUI) {
+	public ListForm(BeanUI<T, K> beanUI) {
 		this.beanUI = beanUI;
 		
 		// Columnas de la tabla
@@ -225,13 +225,14 @@ public class ListForm<T extends Bean> extends Panel {
 	 * Before, it gets again the bean using the BeanDAO (just in case it has changed)
 	 * @param element
 	 */
+	@SuppressWarnings("unchecked")
 	protected void showDetailForm(T element) {
 		Panel vistaDetalle;
 		try {
 			// Si hay elemento
 			if (element != null) {
 				// Obtenemos el elemento de base de datos
-				element = beanUI.beanDAO.get(Utils.getId(element));
+				element = beanUI.beanDAO.get((K) Utils.getId(element));
 			}
 			vistaDetalle = beanUI.getDetailForm(element);
 			ComponentContainer contentPanel = (ComponentContainer)getParent();
