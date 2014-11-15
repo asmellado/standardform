@@ -797,7 +797,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		java.lang.reflect.Field[] beanFields = Utils.getBeanFields(currentBean.getClass());
 		for (int i=0;i<beanFields.length;i++) {
 			// Si el campo no está oculto y su tipo es COMBO_BOX u OPTION_GROUP
-			if (currentFormFields[i].isVisible() && (
+			if (currentFormFields[i] != null &&
+					currentFormFields[i].isVisible() && (
 					currentFormFields[i] instanceof ComboBox ||
 					currentFormFields[i] instanceof OptionGroup)) {
 				AbstractSelect selectField = ((AbstractSelect)currentFormFields[i]);
