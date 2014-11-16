@@ -300,21 +300,6 @@ public class DetailForm<T extends Bean, K> extends Panel {
 
 					}
 					break;
-				// Si es un campo deshabilitado
-				case DISABLED:
-					currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
-					// Mostramos el campo deshabilitado
-					currentFields[i].setEnabled(false);
-					// Se eliminan los validadores
-					if (currentFields[i] instanceof AbstractField) {
-						((AbstractField)currentFields[i]).removeAllValidators();
-					}
-					// Si estamos en modo inserción
-					if (insertMode) {
-						// Ocultamos el campo
-						currentFields[i].setVisible(false);
-					}
-					break;
 				// Si es un campo de fecha
 				case DATE:
 					// Creamos el campo a mano y lo añadimos al binder
@@ -418,7 +403,23 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						currentFields[i].setVisible(false);
 						currentFields[i].setEnabled(false);
 					}
-
+					
+					// Si es un campo deshabilitado
+					if (standardFormField instanceof StandardFormField &&
+							standardFormField.disabled()) {
+						// Mostramos el campo deshabilitado
+						currentFields[i].setEnabled(false);
+						// Se eliminan los validadores
+						if (currentFields[i] instanceof AbstractField) {
+							((AbstractField)currentFields[i]).removeAllValidators();
+						}
+						// Si estamos en modo inserción
+						if (insertMode) {
+							// Ocultamos el campo
+							currentFields[i].setVisible(false);
+						}
+					}
+					
 					// Añadimos el campo al formulario
 					form.addComponent(currentFields[i]);
 					// Si hay ayuda
