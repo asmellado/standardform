@@ -3,6 +3,8 @@ package es.vegamultimedia.standardform;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 
+import com.vaadin.ui.Component;
+
 import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.model.Bean;
 
@@ -34,7 +36,7 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 */
-	public DetailForm<T, K> getDetailForm(T bean) 
+	public Component buildDetailForm(T bean) 
 			throws InstantiationException, IllegalAccessException {
 		return new DetailForm<T, K>(this, bean);
 	}
@@ -43,7 +45,7 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 * Returns the standard list form for this bean class
 	 * @return
 	 */
-	public ListForm<T, K> getListForm() {
+	public Component buidListForm() {
 		return new ListForm<T, K>(this);
 	}
 	

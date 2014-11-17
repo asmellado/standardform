@@ -14,6 +14,7 @@ import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.Notification;
@@ -227,14 +228,14 @@ public class ListForm<T extends Bean, K> extends Panel {
 	 */
 	@SuppressWarnings("unchecked")
 	protected void showDetailForm(T element) {
-		Panel vistaDetalle;
+		Component vistaDetalle;
 		try {
 			// Si hay elemento
 			if (element != null) {
 				// Obtenemos el elemento de base de datos
 				element = beanUI.beanDAO.get((K) Utils.getId(element));
 			}
-			vistaDetalle = beanUI.getDetailForm(element);
+			vistaDetalle = beanUI.buildDetailForm(element);
 			ComponentContainer contentPanel = (ComponentContainer)getParent();
 			contentPanel.replaceComponent(this, vistaDetalle);
 		} catch (Exception e) {

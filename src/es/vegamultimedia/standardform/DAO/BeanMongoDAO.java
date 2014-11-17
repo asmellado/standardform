@@ -40,6 +40,7 @@ public class BeanMongoDAO<T extends BeanMongo, K> extends BasicDAO<T, K>
 	
 	@Override
 	public void insert(T bean) {
+		// TODO Comprobar que NO existe un documento con el mismo id
 		datastore.save(bean);
 	}
 	

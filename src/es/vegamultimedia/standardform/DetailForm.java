@@ -559,7 +559,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * Shows the ListForm inside the same component as this detailForm
 	 */
 	public void showListForm() {
-		Panel vistaListado = beanUI.getListForm();
+		Component vistaListado = beanUI.buidListForm();
 		ComponentContainer contentPanel = (ComponentContainer)getParent();
 		contentPanel.replaceComponent(this, vistaListado);
 	}
