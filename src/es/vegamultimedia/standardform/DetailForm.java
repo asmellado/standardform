@@ -2,7 +2,6 @@ package es.vegamultimedia.standardform;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,6 +44,7 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.OptionGroup;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.PopupDateField;
+import com.vaadin.ui.Table;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
@@ -194,20 +194,18 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		Bean bean = beanClass.newInstance();
 		// Recorremos todos los campos
 		for (java.lang.reflect.Field fieldBean : beanClass.getDeclaredFields()) {
-			try {
-				// Si el campo es un bean anidado
-				if (fieldBean.getType().asSubclass(Bean.class) != null) {
-					// Comprobamos que no es de la misma clase que el bean actual para evitar bucle infinito
-					if (beanClass != fieldBean.getType()) {
-						// Creamos el objeto del bean anidado
-						Bean nestedBean = newBean((Class<? extends Bean>) fieldBean.getType());
-						// Obtenemos el método "Set" del campo actual
-						Method setMethod = Utils.getSetMethod(bean.getClass(), fieldBean);
-						// Llamamos al método set para asignar el bean anidado vacío
-						setMethod.invoke(bean, nestedBean);
-					}
+			// Si el campo es un bean anidado
+			if (Utils.isSubClass(fieldBean.getType(), Bean.class)) {
+				// Comprobamos que no es de la misma clase que el bean actual para evitar bucle infinito
+				if (beanClass != fieldBean.getType()) {
+					// Creamos el objeto del bean anidado
+					Bean nestedBean = newBean((Class<? extends Bean>) fieldBean.getType());
+					// Obtenemos el método "Set" del campo actual
+					Method setMethod = Utils.getSetMethod(bean.getClass(), fieldBean);
+					// Llamamos al método set para asignar el bean anidado vacío
+					setMethod.invoke(bean, nestedBean);
 				}
-			} catch (ClassCastException ignorada) { }
+			}
 		}
 		return bean;
 	}
@@ -312,7 +310,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				case EMBEDDED:
 					// Obtenemos la clase del Bean anidado
 					@SuppressWarnings("unchecked")
-					Class<? extends Bean> embeddedBeanClass = (Class<? extends Bean>)currentBeanFields[i].getType();
+					Class<? extends Bean> embeddedBeanClass =
+					(Class<? extends Bean>)currentBeanFields[i].getType();
 					// Obtenemos el bean anidado
 					Bean embeddedBean = (Bean) Utils.getFieldValue(currentBean, currentBeanFields[i]);
 					// Si el campo del embeddedBean del elementoActual es null
@@ -320,10 +319,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						// Creamos un nuevo objeto embeddedBean vacío
 						embeddedBean = embeddedBeanClass.newInstance();
 						// Asignamos el embeddedBean al elementoActual
-						Method setMethod = Utils.getSetMethod(currentBean.getClass(), currentBeanFields[i]);
-						setMethod.invoke(currentBean, embeddedBean);
-					}
-					
+						Utils.setFieldValue(currentBean, currentBeanFields[i], embeddedBean);
+					}					
 					// Creamos un formulario anidado para albergar todos los campos del bean anidado
 					FormLayout embeddedForm = new FormLayout();
 					// Obtenemos los campos llamando recursivamente a esta función
@@ -343,6 +340,27 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					// Añadimos el panel al formulario principal
 					currentFields[i] = panel;
 					break;
+				case TABLE:
+					// Obtenemos la clase parametrizada del arrayList
+					java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(currentBeanFields[i]);
+					// Obtenemos la lista
+					List lista = (List) Utils.getFieldValue(currentBean, currentBeanFields[i]);
+					// Si la lista está vacía
+					if (lista == null) {
+						// Creamos un nueva lista vacía
+						lista = new ArrayList();
+						// Asignamos el embeddedBean al elementoActual
+						Utils.setFieldValue(currentBean, currentBeanFields[i], lista);
+					}
+					// Creamos la tabla
+					currentFields[i] = new Table(caption);
+					((Table) currentFields[i]).setImmediate(true);
+					((Table) currentFields[i]).setPageLength(3);
+					// Creamos el container y se lo asignamos
+					@SuppressWarnings("unchecked")
+					BeanItemContainer container = new BeanItemContainer((Class)parametrizedType, lista);
+					((Table) currentFields[i]).setContainerDataSource(container);
+					break;
 				default:
 					break;
 				}
@@ -351,8 +369,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					// Asignamos al campo como id el nombre del campo del bean actual
 					currentFields[i].setId(prefixParentBean + currentBeanFields[i].getName());
 					
-					// Si no es un embedded field
-					if (tipo != StandardFormField.Type.EMBEDDED) {
+					// Si no es un embedded field ni una tabla
+					if (tipo != StandardFormField.Type.EMBEDDED &&
+							tipo != StandardFormField.Type.TABLE) {
 						// Se especifica la anchura del campo
 						// TODO Hacer con estilos css?
 						currentFields[i].setWidth(30, Unit.EM);
@@ -380,17 +399,15 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					if (currentFields[i] instanceof AbstractTextField) {
 						((AbstractTextField)currentFields[i]).setNullRepresentation("");
 					}
-					try {
-						// Si es un BeanMongo y el campo tiene anotación Id
-						if (currentBean.getClass().asSubclass(BeanMongo.class) != null &&
-								currentBeanFields[i].getAnnotation(Id.class) != null) {
-							// Si estamos en modo modificación
-							if (!insertMode)
-								// se deshabilita el campo
-								currentFields[i].setEnabled(false);
+					// Si es un BeanMongo y el campo tiene anotación Id
+					if (Utils.isSubClass(currentBean.getClass(), BeanMongo.class) &&
+						currentBeanFields[i].getAnnotation(Id.class) != null) {
+						// Si estamos en modo modificación
+						if (!insertMode) {
+							// se deshabilita el campo
+							currentFields[i].setEnabled(false);
 						}
 					}
-					catch (Exception ignorada) { }
 					
 					// Asignamos el valor por defecto
 					setDefaultValue(currentBeanFields[i], currentFields[i], standardFormField);
@@ -535,23 +552,29 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Retorna el tipo COMBO_BOX
 			return StandardFormField.Type.COMBO_BOX;
 		}
-		// Si el tipo de campos es un ArrayList
-		else if (tipoBean == ArrayList.class) {
-			return StandardFormField.Type.MULTIPLE_SELECTION;
+		// Si el tipo de campos es un List ó ArrayList
+		else if (tipoBean == List.class ||
+				tipoBean == ArrayList.class) {
+			// Obtenemos la clase parametrizada del arrayList
+			java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(beanField);
+			// Si el tipo parametrizado es un Bean
+			if (Utils.isSubClass((Class<?>) parametrizedType, Bean.class))
+				return StandardFormField.Type.TABLE;
+			else
+				return StandardFormField.Type.MULTIPLE_SELECTION;
 		}
 		// Si el tipo de campo es otro Bean
-		try {
-			if (tipoBean.asSubclass(Bean.class) != null)
-				// Si el tipo de DAO es Mongo y el campo NO tiene la anotación @Reference
-				if (standardForm.daoType() == DAOType.MONGO &&
-						beanField.getAnnotation(Reference.class) == null) {
-					return StandardFormField.Type.EMBEDDED;
-				}
-				else {
-					// Retorna el tipo COMBO_BOX
-					return StandardFormField.Type.COMBO_BOX;
-				}
-		} catch (ClassCastException ignorada) { }
+		else if (Utils.isSubClass(tipoBean, Bean.class)) {
+			// Si el tipo de DAO es Mongo y el campo NO tiene la anotación @Reference
+			if (standardForm.daoType() == DAOType.MONGO &&
+					beanField.getAnnotation(Reference.class) == null) {
+				return StandardFormField.Type.EMBEDDED;
+			}
+			else {
+				// Retorna el tipo COMBO_BOX
+				return StandardFormField.Type.COMBO_BOX;
+			}
+		}
 		return null;
 	}
 
@@ -680,14 +703,11 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		AbstractSelect campoSelect = null;
 		Class tipoElementos;
 		
-		// Si es un arrayList
+		// Si es un List ó ArrayList
 		if (field.getType() == ArrayList.class) {
 			// Obtenemos la clase parametrizada del arrayList
-			java.lang.reflect.Type genericType = field.getGenericType();
-			// El tipo de elementos es el primer (y único) tipo parametrizado del array de tipos
-			java.lang.reflect.Type[] parameterizedtypes =
-					((ParameterizedType)genericType).getActualTypeArguments();
-			tipoElementos = (Class) parameterizedtypes[0];
+			java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(field);
+			tipoElementos = (Class) parametrizedType;
 		}
 		// Si NO es un arrayList obtenemos directamente el tipo de elementos
 		else {
@@ -695,42 +715,40 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		}
 		
 		// Si es un bean anidado
-		try {
-			if (tipoElementos.asSubclass(Bean.class) != null) {
-				// Obtenemos todos los elementos del bean anidado
-				// Obtenemos la clase del Bean anidado
-				Class<? extends Bean> claseBeanAnidado = (Class<? extends Bean>)tipoElementos;
-				// Obtenemos una instancia del BeanDAO anidado
-				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO());
-				// Obtenemos todos los elementos del bean anidado
-				List<? extends Bean> listaElementos = beanDAO.getAllElements();
-				
-				// Creamos un contenedor con todos los elementos
-				BeanItemContainer container =
-						new BeanItemContainer(claseBeanAnidado, listaElementos);
-				
-				// Creamos el campo en función del tipo
-				if (type == StandardFormField.Type.COMBO_BOX) {
-					// Creamos un combo box con el contenedor 
-					campoSelect = new ComboBox(caption, container);
-				}
-				else {
-					// Creamos un Option Group con el contenedor 
-					campoSelect = new OptionGroup(caption, container);
-					// Si es de selección múltiple
-					if (type == StandardFormField.Type.MULTIPLE_SELECTION) {
-						// Hacemos el campo de selección múltiple
-						campoSelect.setMultiSelect(true);
-					}
-				}
-				// El caption que se muestra es la representación del item
-				// Nota: Los bean anidados deben sobreescribir el métoodo toString()
-				campoSelect.setItemCaptionMode(ItemCaptionMode.EXPLICIT_DEFAULTS_ID);
-				
-				// Añadimos un validador de tipo BeanValidator para el campo
-				campoSelect.addValidator(new BeanValidator(currentBean.getClass(), field.getName()));
+		if (Utils.isSubClass(tipoElementos, Bean.class)) {
+			// Obtenemos todos los elementos del bean anidado
+			// Obtenemos la clase del Bean anidado
+			Class<? extends Bean> claseBeanAnidado = (Class<? extends Bean>)tipoElementos;
+			// Obtenemos una instancia del BeanDAO anidado
+			BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO());
+			// Obtenemos todos los elementos del bean anidado
+			List<? extends Bean> listaElementos = beanDAO.getAllElements();
+			
+			// Creamos un contenedor con todos los elementos
+			BeanItemContainer container =
+					new BeanItemContainer(claseBeanAnidado, listaElementos);
+			
+			// Creamos el campo en función del tipo
+			if (type == StandardFormField.Type.COMBO_BOX) {
+				// Creamos un combo box con el contenedor 
+				campoSelect = new ComboBox(caption, container);
 			}
-		} catch (ClassCastException ignorada) { }
+			else {
+				// Creamos un Option Group con el contenedor 
+				campoSelect = new OptionGroup(caption, container);
+				// Si es de selección múltiple
+				if (type == StandardFormField.Type.MULTIPLE_SELECTION) {
+					// Hacemos el campo de selección múltiple
+					campoSelect.setMultiSelect(true);
+				}
+			}
+			// El caption que se muestra es la representación del item
+			// Nota: Los bean anidados deben sobreescribir el métoodo toString()
+			campoSelect.setItemCaptionMode(ItemCaptionMode.EXPLICIT_DEFAULTS_ID);
+			
+			// Añadimos un validador de tipo BeanValidator para el campo
+			campoSelect.addValidator(new BeanValidator(currentBean.getClass(), field.getName()));
+		}
 		
 		// Si es un enumerado
 		if (tipoElementos.isEnum()) {
@@ -839,28 +857,22 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Si es un campo EMBEDDED, hay que hacer commit recursivamente
 			// TODO Sería más correcto usar el tipo de campo EMBEDDED, en vez del tipo de componente de Vaadin
 			else if (currentFormFields[i] instanceof Panel) {
-				try{
-					// Nos aseguramos de que es un bean anidado
-					if (beanFields[i].getType().asSubclass(Bean.class) != null) {
-						// Obtenemos el beanAnidado
-						Bean beanAnidado = (Bean) Utils.getFieldValue(currentBean, beanFields[i]);
-						// Obtenemos el contenido del panel
-						Component content = ((Panel)currentFormFields[i]).getContent();
-						// Obtenemos sus componentes en un ArrayList
-						ArrayList<Component> arrayListEmbeddedFormFields = new ArrayList<Component>();
-						for (Component c : (HasComponents)content) {
-							arrayListEmbeddedFormFields.add(c);
-						}
-						// Convertimos el arrayList en un array
-						Component[] embeddedFormFields = new Component[arrayListEmbeddedFormFields.size()];
-						embeddedFormFields = arrayListEmbeddedFormFields.toArray(embeddedFormFields);
-						// Llamamos recursivamente para hacer commit de los campos de selección anidados
-						commitSelectFields(beanAnidado, embeddedFormFields);
+				// Nos aseguramos de que es un bean anidado
+				if (Utils.isSubClass(beanFields[i].getType(), Bean.class)) {
+					// Obtenemos el beanAnidado
+					Bean beanAnidado = (Bean) Utils.getFieldValue(currentBean, beanFields[i]);
+					// Obtenemos el contenido del panel
+					Component content = ((Panel)currentFormFields[i]).getContent();
+					// Obtenemos sus componentes en un ArrayList
+					ArrayList<Component> arrayListEmbeddedFormFields = new ArrayList<Component>();
+					for (Component c : (HasComponents)content) {
+						arrayListEmbeddedFormFields.add(c);
 					}
-				} catch (ClassCastException ignorada) {
-//				} catch (Exception e) {
-//					// Si el método getFieldValue() lanza una excepción mostramos traza
-//					e.printStackTrace();
+					// Convertimos el arrayList en un array
+					Component[] embeddedFormFields = new Component[arrayListEmbeddedFormFields.size()];
+					embeddedFormFields = arrayListEmbeddedFormFields.toArray(embeddedFormFields);
+					// Llamamos recursivamente para hacer commit de los campos de selección anidados
+					commitSelectFields(beanAnidado, embeddedFormFields);
 				}
 			}
 		}

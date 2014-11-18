@@ -4,6 +4,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -242,5 +244,34 @@ abstract public class Utils {
 			throw new IllegalArgumentException("No se encuentra un identificador para el elemento");
 		}
 		throw new IllegalArgumentException("Tipo de bean no soportado");
+	}
+	
+	/**
+	 * Returns true if the subClass is a subclass of the superClass
+	 * @param superClass
+	 * @param subClass
+	 * @return
+	 */
+	public static boolean isSubClass(Class<?> superClass, Class<?> subClass) {
+		try {
+			if (superClass.asSubclass(subClass) != null) {
+				return true;
+			}
+		} catch (ClassCastException ignorada) { }
+		return false;
+	}
+	
+	/**
+	 * Returns the parametrized type of a generic field
+	 * @param currentField
+	 * @return
+	 */
+	public static Type getParametrizedType(Field currentField) {
+		// Obtenemos la clase parametrizada del arrayList
+		java.lang.reflect.Type genericType = currentField.getGenericType();
+		// El tipo de elementos es el primer (y único) tipo parametrizado del array de tipos
+		java.lang.reflect.Type[] parameterizedtypes =
+				((ParameterizedType)genericType).getActualTypeArguments();
+		return parameterizedtypes[0];
 	}
 }
