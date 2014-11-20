@@ -911,6 +911,43 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	public Component findFormField(String nameField) {
 		return findComponentById(form, nameField);
 	}
+	
+	/**
+     * Disabled all form fields
+     * @param root
+     * @param id
+     * @return
+     */
+	public void disabledAllFields() {
+		iterateSubComponents(form, true, false);
+    }
+	
+	public void showHiddenFields() {
+		iterateSubComponents(form, false, true);
+	}
+	
+	/**
+     * Iterate all subcomponents of a root component.
+     * This method is recursive for nested components.
+	 * @param root Root component
+	 * @param disableSubcomponents If is true, disable all components.
+	 * @param showHiddenComponents If is true, show all hidden components.
+	 * @return
+	 */
+	protected void iterateSubComponents(HasComponents root,
+			boolean disableSubcomponents, boolean showHiddenComponents) {
+        Iterator<Component> iterate = root.iterator();
+        while (iterate.hasNext()) {
+            Component c = iterate.next();
+            if (disableSubcomponents)
+                c.setEnabled(false);
+            if (showHiddenComponents)
+            	c.setVisible(true);
+            if (c instanceof HasComponents) {
+                iterateSubComponents((HasComponents) c, disableSubcomponents, showHiddenComponents);
+            }
+        }
+    }
 
 	public FormLayout getForm() {
 		return form;
