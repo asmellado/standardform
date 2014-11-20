@@ -247,7 +247,6 @@ public class ListForm<T extends Bean, K> extends Panel {
 					e.getMessage(), Type.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
-
 	}
 	
 	/*
@@ -309,8 +308,8 @@ public class ListForm<T extends Bean, K> extends Panel {
 			                	try {
 			                		beanUI.getBeanDAO().remove(elementoSeleccionado);
 				                	Notification.show("El elemento se ha eliminado correctamente");
-				                	// Volvemos a cargar la tabla con los elementos
-				                	form.removeAllComponents();
+				                	// Eliminamos el item de la tabla
+				                	container.removeItem(itemId);
 			                	} catch (Exception e) {
 			    					Notification.show("No se ha podido eliminar el elemento", e.getMessage(), Type.ERROR_MESSAGE);
 			    				}			                	
@@ -328,25 +327,39 @@ public class ListForm<T extends Bean, K> extends Panel {
 	}
 	
 	/**
-	 * Modify the name of the editColumn
-	 * @param nameColumn
+	 * Disables this Listform:
+	 * Removes Edit and Delete columns, adds Consult column and hides the Add button
 	 */
-	public void setNameEditColumn(String nameColumn) {
-		table.removeGeneratedColumn("Editar");
-		table.addGeneratedColumn(nameColumn, new EditColumnGenerator(nameColumn));
-	}
-	
-	/**
-	 * Remove the delete column
-	 */
-	public void removeDeleteColumn() {
+	public void disableForm() {
+		// Quitamos columna eliminar
 		table.removeGeneratedColumn("Eliminar");
-	}
-	
-	/**
-	 * Hide the add button
-	 */
-	public void hideAddButton() {
+		// Modificamos la columna editar por columna Consultar 
+		table.removeGeneratedColumn("Editar");
+		table.addGeneratedColumn("Consultar", new EditColumnGenerator("Consultar"));
+		// Ocultamos el botón añadir
 		addButton.setVisible(false);
 	}
+	
+//	/**
+//	 * Modify the name of the editColumn
+//	 * @param nameColumn
+//	 */
+//	public void setNameEditColumn(String nameColumn) {
+//		table.removeGeneratedColumn("Editar");
+//		table.addGeneratedColumn(nameColumn, new EditColumnGenerator(nameColumn));
+//	}
+	
+//	/**
+//	 * Remove the delete column
+//	 */
+//	public void removeDeleteColumn() {
+//		table.removeGeneratedColumn("Eliminar");
+//	}
+//	
+//	/**
+//	 * Hide the add button
+//	 */
+//	public void hideAddButton() {
+//		addButton.setVisible(false);
+//	}
 }

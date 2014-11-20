@@ -960,4 +960,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	public BeanFieldGroup<T> getBinder() {
 		return binder;
 	}
+
+	public T getBean() {
+		return bean;
+	}
 }
