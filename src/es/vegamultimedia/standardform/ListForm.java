@@ -47,6 +47,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 	// Nombre columna editar
 	protected String nombreColumnaEditarConsultar;
 	
+	// Botón alta
+	protected Button addButton;
+	
 	public ListForm(BeanUI<T, K> beanUI) {
 		this.beanUI = beanUI;
 		
@@ -162,12 +165,13 @@ public class ListForm<T extends Bean, K> extends Panel {
 				nombreColumnaEditarConsultar = "Consultar";
 			}
 			// Añadimos columna para editar o consultar
-			table.addGeneratedColumn(nombreColumnaEditarConsultar, new EditColumnGenerator());
+			table.addGeneratedColumn(nombreColumnaEditarConsultar,
+					new EditColumnGenerator(nombreColumnaEditarConsultar));
 			visibledColumns.add(nombreColumnaEditarConsultar);
 			// Si se permite eliminar
 			if (listForm.allowsDeleting()) {
 				// Añadimos columna para eliminar
-				table.addGeneratedColumn("Eliminar", new RemoveColumnGenerator());
+				table.addGeneratedColumn("Eliminar", new DeleteColumnGenerator());
 				visibledColumns.add("Eliminar");
 			}
 			table.setVisibleColumns(visibledColumns.toArray());
@@ -176,8 +180,8 @@ public class ListForm<T extends Bean, K> extends Panel {
 			// Si se permite añadir
 			if (listForm.allowsAdding()) {
 				// Botón Alta
-				Button botónAlta = new Button("Alta");
-				botónAlta.addClickListener(new ClickListener(){
+				addButton = new Button("Alta");
+				addButton.addClickListener(new ClickListener(){
 		
 					private static final long serialVersionUID = 1L;
 		
@@ -187,7 +191,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 					}
 					
 				});
-				layout.addComponent(botónAlta);
+				layout.addComponent(addButton);
 			}
 		} catch (Exception e) {
 			Notification.show("No se pueden obtener los elementos",
@@ -250,12 +254,18 @@ public class ListForm<T extends Bean, K> extends Panel {
 	 * Class for the edit column 
 	 */
 	public class EditColumnGenerator implements Table.ColumnGenerator {
+		
+		private String nameColumn;
+		
+		public EditColumnGenerator(String nameColumn) {
+			this.nameColumn = nameColumn;
+		}
 
 		private static final long serialVersionUID = 1L;
 
 		@Override
 		public Object generateCell(Table source, final Object itemId, Object columnId) {
-			Button button = new Button(nombreColumnaEditarConsultar);
+			Button button = new Button(nameColumn);
 			button.setStyleName(BaseTheme.BUTTON_LINK);
 			button.addClickListener(new ClickListener() {
 
@@ -272,9 +282,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 	}
 	
 	/*
-	 * Class for the remove column
+	 * Class for the delete column
 	 */
-	public class RemoveColumnGenerator implements Table.ColumnGenerator {
+	public class DeleteColumnGenerator implements Table.ColumnGenerator {
 
 		private static final long serialVersionUID = 1L;
 
@@ -315,5 +325,28 @@ public class ListForm<T extends Bean, K> extends Panel {
 
 	public Table getTable() {
 		return table;
+	}
+	
+	/**
+	 * Modify the name of the editColumn
+	 * @param nameColumn
+	 */
+	public void setNameEditColumn(String nameColumn) {
+		table.removeGeneratedColumn("Editar");
+		table.addGeneratedColumn(nameColumn, new EditColumnGenerator(nameColumn));
+	}
+	
+	/**
+	 * Remove the delete column
+	 */
+	public void removeDeleteColumn() {
+		table.removeGeneratedColumn("Eliminar");
+	}
+	
+	/**
+	 * Hide the add button
+	 */
+	public void hideAddButton() {
+		addButton.setVisible(false);
 	}
 }

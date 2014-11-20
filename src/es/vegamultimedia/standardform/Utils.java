@@ -8,11 +8,15 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 
 import javax.persistence.EntityManager;
 
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.annotations.Id;
+
+import com.vaadin.ui.Component;
+import com.vaadin.ui.HasComponents;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.DAO.BeanJPADAO;
@@ -274,4 +278,51 @@ abstract public class Utils {
 				((ParameterizedType)genericType).getActualTypeArguments();
 		return parameterizedtypes[0];
 	}
+	
+	/**
+     * Find a Component form his root component and its id.
+     * This method is recursive for nested components.
+     * @param root
+     * @param id
+     * @return
+     */
+	public static Component findComponentById(HasComponents root, String id) {
+        Iterator<Component> iterate = root.iterator();
+        while (iterate.hasNext()) {
+            Component c = iterate.next();
+            if (id.equals(c.getId())) {
+                return c;
+            }
+            if (c instanceof HasComponents) {
+                Component cc = findComponentById((HasComponents) c, id);
+                if (cc != null)
+                    return cc;
+            }
+        }
+
+        return null;
+    }
+	
+	/**
+     * Iterate all subcomponents of a root component.
+     * This method is recursive for nested components.
+	 * @param root Root component
+	 * @param disableSubcomponents If is true, disable all components.
+	 * @param showHiddenComponents If is true, show all hidden components.
+	 * @return
+	 */
+	protected static void iterateSubComponents(HasComponents root,
+			boolean disableSubcomponents, boolean showHiddenComponents) {
+        Iterator<Component> iterate = root.iterator();
+        while (iterate.hasNext()) {
+            Component c = iterate.next();
+            if (disableSubcomponents)
+                c.setEnabled(false);
+            if (showHiddenComponents)
+            	c.setVisible(true);
+            if (c instanceof HasComponents) {
+                iterateSubComponents((HasComponents) c, disableSubcomponents, showHiddenComponents);
+            }
+        }
+    }
 }

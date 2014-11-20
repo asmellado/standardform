@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 
 import javax.persistence.Lob;
@@ -93,6 +92,12 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	// Indica que estamos en modo alta
 	protected boolean insertMode;
 	
+	// Botón guardar
+	protected Button saveButton;
+	
+	// Botón cancelar
+	protected Button cancelButton;
+	
 	/**
 	 * Create a DetailForm for updating an existing bean or for inserting a new bean
 	 * @param currentBeanUI
@@ -136,9 +141,10 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Si estamos en alta o se permite edición
 			if (insertMode || standardForm.allowsEditing()) {
 				// Añadimos el botón guardar
-				Button botónGuardar = new Button("Guardar");
-				botónGuardar.setClickShortcut(KeyCode.ENTER);
-				botónGuardar.addClickListener(new ClickListener(){
+				saveButton = new Button("Guardar");
+				saveButton.setId("saveButton");
+				saveButton.setClickShortcut(KeyCode.ENTER);
+				saveButton.addClickListener(new ClickListener(){
 		
 					private static final long serialVersionUID = 1L;
 		
@@ -147,11 +153,12 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						save(event);
 					}
 				});
-				form.addComponent(botónGuardar);
+				form.addComponent(saveButton);
 			}
 			
-			Button botónCancelar = new Button("Cancelar");
-			botónCancelar.addClickListener(new ClickListener(){
+			cancelButton = new Button("Cancelar");
+			cancelButton.setId("cancelButton");
+			cancelButton.addClickListener(new ClickListener(){
 	
 				private static final long serialVersionUID = 1L;
 	
@@ -160,7 +167,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					showListForm();
 				}
 			});
-			form.addComponent(botónCancelar);
+			form.addComponent(cancelButton);
 			
 		} catch (Exception e) {
 			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
@@ -878,30 +885,6 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		}
 	}
 	
-    /**
-     * Find a Component form his root component and its id.
-     * This method is recursive for nested components.
-     * @param root
-     * @param id
-     * @return
-     */
-	public Component findComponentById(HasComponents root, String id) {
-        Iterator<Component> iterate = root.iterator();
-        while (iterate.hasNext()) {
-            Component c = iterate.next();
-            if (id.equals(c.getId())) {
-                return c;
-            }
-            if (c instanceof HasComponents) {
-                Component cc = findComponentById((HasComponents) c, id);
-                if (cc != null)
-                    return cc;
-            }
-        }
-
-        return null;
-    }
-	
 	/**
 	 * Gets the form field from a bean name field.
 	 * Supports nested fields with dot notation.
@@ -909,46 +892,28 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * @return The form Field or null if there is no bean name field
 	 */
 	public Component findFormField(String nameField) {
-		return findComponentById(form, nameField);
+		return Utils.findComponentById(form, nameField);
 	}
 	
 	/**
-     * Disabled all form fields
-     * @param root
-     * @param id
-     * @return
-     */
-	public void disabledAllFields() {
-		iterateSubComponents(form, true, false);
-    }
-	
-	public void showHiddenFields() {
-		iterateSubComponents(form, false, true);
-	}
-	
-	/**
-     * Iterate all subcomponents of a root component.
-     * This method is recursive for nested components.
-	 * @param root Root component
-	 * @param disableSubcomponents If is true, disable all components.
-	 * @param showHiddenComponents If is true, show all hidden components.
-	 * @return
+	 * Shows all the hidden fields form
 	 */
-	protected void iterateSubComponents(HasComponents root,
-			boolean disableSubcomponents, boolean showHiddenComponents) {
-        Iterator<Component> iterate = root.iterator();
-        while (iterate.hasNext()) {
-            Component c = iterate.next();
-            if (disableSubcomponents)
-                c.setEnabled(false);
-            if (showHiddenComponents)
-            	c.setVisible(true);
-            if (c instanceof HasComponents) {
-                iterateSubComponents((HasComponents) c, disableSubcomponents, showHiddenComponents);
-            }
-        }
-    }
-
+	public void showHiddenFields() {
+		Utils.iterateSubComponents(form, false, true);
+	}
+	
+	/**
+	 * Disable the form. Disables all the fields and hides the save button
+	 */
+	public void disableForm() {
+		// Deshabilitamos todos los componentes
+		Utils.iterateSubComponents(form, true, false);
+		// Ocultamos el botón guardar
+		saveButton.setVisible(false);
+		// Habilitamos el botón cancelar
+		cancelButton.setEnabled(true);
+	}
+	
 	public FormLayout getForm() {
 		return form;
 	}
