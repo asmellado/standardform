@@ -914,6 +914,45 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		cancelButton.setEnabled(true);
 	}
 	
+	/**
+	 * Hides a field from a bean name field
+	 * @param nameField
+	 * @return The field or null if there is no name field
+	 */
+	@SuppressWarnings("rawtypes")
+	public Component hideField(String nameField) {
+		Component component = findFormField(nameField);
+		if (component != null) {
+			component.setVisible(false);
+			if (component instanceof AbstractField) {
+				AbstractField formField = (AbstractField) component;
+				formField.removeAllValidators();
+				formField.setRequired(false);
+			}
+		}
+		return component;
+	}
+	
+	/**
+	 * Shows and disables a field from a bean name field
+	 * @param nameField
+	 * @return The field or null if there is no name field
+	 */
+	@SuppressWarnings("rawtypes")
+	public Component showAndDisableField(String nameField) {
+		Component component = findFormField(nameField);
+		if (component != null) {
+			component.setVisible(true);
+			component.setEnabled(false);
+			if (component instanceof AbstractField) {
+				AbstractField formField = (AbstractField) component;
+				formField.removeAllValidators();
+				formField.setRequired(false);
+			}
+		}
+		return component;
+	}
+	
 	public FormLayout getForm() {
 		return form;
 	}
