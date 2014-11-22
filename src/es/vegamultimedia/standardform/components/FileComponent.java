@@ -25,10 +25,10 @@ import com.vaadin.ui.Upload.SucceededEvent;
 import com.vaadin.ui.Upload.SucceededListener;
 import com.vaadin.ui.VerticalLayout;
 
-import es.vegamultimedia.standardform.model.FileType;
+import es.vegamultimedia.standardform.model.File;
 
 @SuppressWarnings("serial")
-public class FileComponent extends CustomField<FileType> {
+public class FileComponent extends CustomField<File> {
 	
 	VerticalLayout mainLayout;
 	Upload upload;
@@ -37,7 +37,7 @@ public class FileComponent extends CustomField<FileType> {
 	Button downloadButton;
 	FileUploader fileUploader;
 	
-	public FileComponent(String caption, final FileType file,
+	public FileComponent(String caption, final File file,
 			String id, boolean insertMode) {
 		setCaption(caption);
 		
@@ -71,8 +71,8 @@ public class FileComponent extends CustomField<FileType> {
 		filenameLabel = new Label();
 		filenameLabel.setCaption("Ningún archivo subido");
 		
-		// Si estamos en modo modificación
-		if (!insertMode) {
+		// Si estamos en modo modificación y existe el archivo
+		if (!insertMode && file != null) {
 			filenameLabel.setCaption("Archivo actual: " + file.getFilename());
 			
 			// Añadimos un botón para descargar archivo
@@ -95,8 +95,8 @@ public class FileComponent extends CustomField<FileType> {
 	}
 
 	@Override
-	public Class<FileType> getType() {
-		return FileType.class;
+	public Class<File> getType() {
+		return File.class;
 	}
 
 	@Override
@@ -131,7 +131,9 @@ public class FileComponent extends CustomField<FileType> {
 		@Override
 		public void uploadSucceeded(SucceededEvent event) {
 			filenameLabel.setCaption("Archivo subido: " + event.getFilename());
-			downloadButton.setEnabled(false);
+			if (downloadButton != null) {
+				downloadButton.setEnabled(false);
+			}
 		}
 
 		public ByteArrayOutputStream getByteArrayOutputStream() {

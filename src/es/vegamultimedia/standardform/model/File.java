@@ -1,6 +1,6 @@
 package es.vegamultimedia.standardform.model;
 
-public class FileType {
+public class File {
 	
 	private byte[] bytes;
 	

@@ -56,7 +56,7 @@ import es.vegamultimedia.standardform.components.FileComponent;
 import es.vegamultimedia.standardform.components.FileComponent.FileUploader;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
-import es.vegamultimedia.standardform.model.FileType;
+import es.vegamultimedia.standardform.model.File;
 
 @SuppressWarnings("serial")
 public class DetailForm<T extends Bean, K> extends Panel {
@@ -312,8 +312,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				// Si es un campo de tipo archivo
 				case FILE:
 					// CON FileComponent
-					FileType standardFormFile =
-						(FileType) Utils.getFieldValue(bean, currentBeanFields[i]);
+					File standardFormFile =
+						(File) Utils.getFieldValue(bean, currentBeanFields[i]);
 					String id = prefixParentBean + currentBeanFields[i].getName();
 					currentFields[i] = new FileComponent(caption, standardFormFile, id, insertMode);
 					break;
@@ -587,7 +587,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			}
 		}
 		// Si el tipo es standardForm.model.File
-		else if (tipoBean == FileType.class) {
+		else if (tipoBean == File.class) {
 			return StandardFormField.Type.FILE;
 		}
 		return null;
@@ -716,7 +716,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					}
 				}
 				// Creamos un objeto file con los datos del fileUploader
-				FileType file = new FileType();
+				File file = new File();
 				file.setBytes(fileUploader.getByteArrayOutputStream().toByteArray());
 				file.setFilename(fileUploader.getFilename());
 				file.setMimeType(fileUploader.getMimeType());
