@@ -61,4 +61,12 @@ public @interface StandardFormField {
 	 * @return
 	 */
 	public String help() default "";
+	
+	/**
+	 * Name of the master field. Only valid for ComboBoxes
+	 * If you specify it, when the user selects in the DetailForm an element of the master field,
+	 * DetailForm loads and shows the dependent elements in the this field.
+	 * @return
+	 */
+	public String nameMasterField() default "";
 }

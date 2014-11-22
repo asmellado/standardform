@@ -15,9 +15,13 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.Reference;
+import org.mongodb.morphia.query.Query;
 
+import com.vaadin.data.Property.ValueChangeEvent;
+import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItemContainer;
@@ -48,6 +52,7 @@ import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
+import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardForm.DAOType;
 import es.vegamultimedia.standardform.annotations.StandardFormEnum;
@@ -267,7 +272,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				case MULTIPLE_SELECTION:
 					// En este caso tenemos que crear el campo a mano
 					// con todas las opciones y seleccionar el elemento actual
-					currentFields[i] = getSelectField(currentBean, currentBeanFields[i], tipo, caption);
+					currentFields[i] = getSelectField(currentBean, prefixParentBean, currentBeanFields[i],
+							tipo, caption);
 					// No añadimos el campo al binder porque no funciona correctamente en este caso
 					break;
 				// Si es un área de texto
@@ -744,11 +750,12 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 */
 	@SuppressWarnings({"rawtypes", "unchecked" })
 	protected AbstractSelect getSelectField(
-				Bean currentBean,
-				java.lang.reflect.Field field, 
-				es.vegamultimedia.standardform.annotations.StandardFormField.Type type, 
+				final Bean currentBean,
+				String prefixParentBean,
+				final java.lang.reflect.Field field,
+				es.vegamultimedia.standardform.annotations.StandardFormField.Type type,
 				String caption)
-				throws NoSuchMethodException, IllegalAccessException,
+			throws NoSuchMethodException, IllegalAccessException,
 				InvocationTargetException, ClassNotFoundException,
 				IllegalArgumentException, InstantiationException {
 		// El tipo de campo debe ser COMBO_BOX, OPTION_GROUP ó MULTIPLE_SELECTION
@@ -757,8 +764,10 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			type != StandardFormField.Type.MULTIPLE_SELECTION) {
 			return null;
 		}
+		StandardFormField standardFormField = field.getAnnotation(StandardFormField.class);
 		AbstractSelect campoSelect = null;
-		Class tipoElementos;
+		final Class tipoElementos;
+		List<? extends Bean> listaElementos;
 		
 		// Si es un List ó ArrayList
 		if (field.getType() == ArrayList.class) {
@@ -770,17 +779,28 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		else {
 			tipoElementos = field.getType();
 		}
-		
 		// Si es un bean anidado
 		if (Utils.isSubClass(tipoElementos, Bean.class)) {
 			// Obtenemos todos los elementos del bean anidado
 			// Obtenemos la clase del Bean anidado
-			Class<? extends Bean> claseBeanAnidado = (Class<? extends Bean>)tipoElementos;
-			// Obtenemos una instancia del BeanDAO anidado
-			BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO());
-			// Obtenemos todos los elementos del bean anidado
-			List<? extends Bean> listaElementos = beanDAO.getAllElements();
-			
+			final Class<? extends Bean> claseBeanAnidado = (Class<? extends Bean>)tipoElementos;
+
+			// Si no tiene un campo maestro, no es un campo oculto ni deshabilitado
+			if (standardFormField == null ||
+					(standardFormField != null &&
+						standardFormField.nameMasterField().isEmpty() &&
+						!standardFormField.disabled() &&
+						!standardFormField.hidden())) {
+				// Obtenemos una instancia del BeanDAO anidado
+				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO());
+				// Obtenemos todos los elementos del bean anidado
+				listaElementos = beanDAO.getAllElements();
+			}
+			else {
+				// Creamos una lista vacía
+				listaElementos = new ArrayList();
+			}
+
 			// Creamos un contenedor con todos los elementos
 			BeanItemContainer container =
 					new BeanItemContainer(claseBeanAnidado, listaElementos);
@@ -805,6 +825,56 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			
 			// Añadimos un validador de tipo BeanValidator para el campo
 			campoSelect.addValidator(new BeanValidator(currentBean.getClass(), field.getName()));
+			
+			// Si tiene un campo maestro
+			if (standardFormField != null &&
+					!standardFormField.nameMasterField().isEmpty()) {
+				// Obtenemos el campo maestro
+				final String nameMasterField = standardFormField.nameMasterField();
+				Component masterField = findFormField(prefixParentBean + nameMasterField);
+				// Si no se encuentra o no es un select
+				if (masterField == null ||
+						!(masterField instanceof AbstractSelect)) {
+					Notification.show("No se encuentra el campo maestro de " + field.getName(),
+							Type.ERROR_MESSAGE);
+				}
+				else {
+					final AbstractSelect campoEsclavo = campoSelect;
+					// Añadimos un escuchador al campo maestro para cuando cambie su valor
+					// En ese caso, tenemos que obtener los elementos del bean esclavo 
+					// que tengan el valor seleccionado en el campo maestro
+					((AbstractSelect)masterField).addValueChangeListener(new ValueChangeListener() {
+						@Override
+						public void valueChange(ValueChangeEvent event) {
+							Object value = event.getProperty().getValue();
+							// Si no es un BeanMongo
+							if (!Utils.isSubClass(currentBean.getClass(), BeanMongo.class)) {
+								// TODO Hacer para JPA
+								return;
+							}
+							// Obtenemos una instancia del BeanDAO anidado
+							BeanMongoDAO<? extends Bean, K> beanMongoDAO;
+							try {
+								// Creamos un BeanMongoDAO para obtener el datastore
+								beanMongoDAO = (BeanMongoDAO<? extends Bean, K>)
+									Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO());
+								Datastore datastore = beanMongoDAO.getDatastore();
+								// Creamos una query para obtener los elementos del bean esclavo 
+								Query<?> query = datastore.createQuery(tipoElementos);
+								query = query.field(nameMasterField).equal(value.toString());
+								List<?> listaElementosEsclavo = query.asList();
+								// Ponemos los elementos en el campo esclavo
+								BeanItemContainer containerEsclavo =
+										new BeanItemContainer(claseBeanAnidado, listaElementosEsclavo);
+								campoEsclavo.setContainerDataSource(containerEsclavo);
+							} catch (Exception e) {
+								Notification.show("No se pueden obtener los elementos dependientes",
+										Type.ERROR_MESSAGE);
+							}
+						}
+					});
+				}
+			}
 		}
 		
 		// Si es un enumerado
