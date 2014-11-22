@@ -52,8 +52,11 @@ import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardForm.DAOType;
 import es.vegamultimedia.standardform.annotations.StandardFormEnum;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
+import es.vegamultimedia.standardform.components.FileComponent;
+import es.vegamultimedia.standardform.components.FileComponent.FileUploader;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
+import es.vegamultimedia.standardform.model.FileType;
 
 @SuppressWarnings("serial")
 public class DetailForm<T extends Bean, K> extends Panel {
@@ -145,9 +148,6 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				saveButton.setId("saveButton");
 				saveButton.setClickShortcut(KeyCode.ENTER);
 				saveButton.addClickListener(new ClickListener(){
-		
-					private static final long serialVersionUID = 1L;
-		
 					@Override
 					public void buttonClick(ClickEvent event) {
 						save(event);
@@ -159,9 +159,6 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			cancelButton = new Button("Cancelar");
 			cancelButton.setId("cancelButton");
 			cancelButton.addClickListener(new ClickListener(){
-	
-				private static final long serialVersionUID = 1L;
-	
 				@Override
 				public void buttonClick(ClickEvent event) {
 					showListForm();
@@ -302,7 +299,6 @@ public class DetailForm<T extends Bean, K> extends Panel {
 								((TextField)currentFields[i]).setMaxLength(digitos);
 							}
 						}
-
 					}
 					break;
 				// Si es un campo de fecha
@@ -312,6 +308,14 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					// Deshabilitamos el campo de texto
 					((PopupDateField)currentFields[i]).setTextFieldEnabled(false);
 					binder.bind((Field) currentFields[i], prefixParentBean + currentBeanFields[i].getName());
+					break;
+				// Si es un campo de tipo archivo
+				case FILE:
+					// CON FileComponent
+					FileType standardFormFile =
+						(FileType) Utils.getFieldValue(bean, currentBeanFields[i]);
+					String id = prefixParentBean + currentBeanFields[i].getName();
+					currentFields[i] = new FileComponent(caption, standardFormFile, id, insertMode);
 					break;
 				// Si es un campo embedded
 				case EMBEDDED:
@@ -582,6 +586,10 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				return StandardFormField.Type.COMBO_BOX;
 			}
 		}
+		// Si el tipo es standardForm.model.File
+		else if (tipoBean == FileType.class) {
+			return StandardFormField.Type.FILE;
+		}
 		return null;
 	}
 
@@ -605,6 +613,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		try {
 			// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
 			commitSelectFields(bean, formFields);
+			// Hacemos commit de los campos de tipo archivo
+			commitFileFields();
 			// Hacemos commit del resto de campos
 			binder.commit();
 			// Si hay escuchador
@@ -624,6 +634,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				// Obtenemos el tipo de campo en función de los metadatos
 				StandardFormField.Type tipo = getTypeFormField(standardForm, beanFields[i], standardFormField);
 				if (tipo == StandardFormField.Type.EMBEDDED) {
+					// TODO Sólo se permite un nivel de anidamiento
 					// Obtenemos el DAO
 					BeanDAO dao = 
 							Utils.getBeanDAO((Class)(beanFields[i].getType()), beanUI.getBeanDAO());
@@ -655,7 +666,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			}
 			
 			// Si todo ha ido bien, mostramos mensaje informativo
-			Notification.show("El elemento se ha actualizado correctamente");
+			Notification.show("El elemento se ha actualizado correctamente",
+					Type.TRAY_NOTIFICATION);
 			// Y mostramos el listado
 			showListForm();
 		} catch (CommitException e) {
@@ -676,6 +688,44 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		}
 	}
 	
+	/**
+	 * Executes a commit for every file fields in the form.
+	 * It is neccesary because the file fields aren't included inside the binder
+	 * @throws NoSuchMethodException
+	 * @throws SecurityException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 * @throws InvocationTargetException
+	 * @throws CommitException
+	 */
+	private void commitFileFields() throws NoSuchMethodException,SecurityException,
+		IllegalAccessException, IllegalArgumentException, InvocationTargetException, CommitException {
+		// Recorremos los campos
+		java.lang.reflect.Field[] beanFields = Utils.getBeanFields(bean.getClass());
+		for (int i=0;i<beanFields.length;i++) {
+			if (formFields[i] instanceof FileComponent) {
+				FileComponent fileComponent = (FileComponent) formFields[i];
+				FileUploader fileUploader = fileComponent.getFileUploader();
+				// Si no se ha subido archivo
+				if (fileUploader == null ||
+						fileUploader.getByteArrayOutputStream() == null ||
+						fileUploader.getByteArrayOutputStream().size() == 0) {
+					// Si el campo es requerido
+					if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull) {
+						throw new CommitException("Debe subir un archivo");
+					}
+				}
+				// Creamos un objeto file con los datos del fileUploader
+				FileType file = new FileType();
+				file.setBytes(fileUploader.getByteArrayOutputStream().toByteArray());
+				file.setFilename(fileUploader.getFilename());
+				file.setMimeType(fileUploader.getMimeType());
+				// Asignamos el objeto file al campo del bean
+				Utils.setFieldValue(bean, beanFields[i], file);
+			}
+		}
+	}
+
 	/**
 	 * It creates a select field (Vaadin abstract select, ComboBox or Option Group) for a specific beanField
 	 * It gets everty options using the BeanDAO, adds then to the abstract field and selects the current element(s)

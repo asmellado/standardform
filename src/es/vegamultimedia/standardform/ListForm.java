@@ -307,11 +307,13 @@ public class ListForm<T extends Bean, K> extends Panel {
 			                	T elementoSeleccionado = container.getItem(itemId).getBean();
 			                	try {
 			                		beanUI.getBeanDAO().remove(elementoSeleccionado);
-				                	Notification.show("El elemento se ha eliminado correctamente");
+				                	Notification.show("El elemento se ha eliminado correctamente",
+				                			Type.TRAY_NOTIFICATION);
 				                	// Eliminamos el item de la tabla
 				                	container.removeItem(itemId);
 			                	} catch (Exception e) {
-			    					Notification.show("No se ha podido eliminar el elemento", e.getMessage(), Type.ERROR_MESSAGE);
+			    					Notification.show("No se ha podido eliminar el elemento",
+			    							e.getMessage(), Type.ERROR_MESSAGE);
 			    				}			                	
 			                }
 			            }
