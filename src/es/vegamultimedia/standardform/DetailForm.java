@@ -672,7 +672,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			}
 			
 			// Si todo ha ido bien, mostramos mensaje informativo
-			Notification.show("El elemento se ha actualizado correctamente",
+			Notification.show("Información",
+					"El elemento se ha actualizado correctamente",
 					Type.TRAY_NOTIFICATION);
 			// Y mostramos el listado
 			showListForm();
@@ -721,13 +722,15 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						throw new CommitException("Debe subir un archivo");
 					}
 				}
-				// Creamos un objeto file con los datos del fileUploader
-				File file = new File();
-				file.setBytes(fileUploader.getByteArrayOutputStream().toByteArray());
-				file.setFilename(fileUploader.getFilename());
-				file.setMimeType(fileUploader.getMimeType());
-				// Asignamos el objeto file al campo del bean
-				Utils.setFieldValue(bean, beanFields[i], file);
+				else {
+					// Creamos un objeto file con los datos del fileUploader
+					File file = new File();
+					file.setBytes(fileUploader.getByteArrayOutputStream().toByteArray());
+					file.setFilename(fileUploader.getFilename());
+					file.setMimeType(fileUploader.getMimeType());
+					// Asignamos el objeto file al campo del bean
+					Utils.setFieldValue(bean, beanFields[i], file);
+				}
 			}
 		}
 	}
@@ -781,10 +784,6 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		}
 		// Si es un bean anidado
 		if (Utils.isSubClass(tipoElementos, Bean.class)) {
-			// Obtenemos todos los elementos del bean anidado
-			// Obtenemos la clase del Bean anidado
-			final Class<? extends Bean> claseBeanAnidado = (Class<? extends Bean>)tipoElementos;
-
 			// Si no tiene un campo maestro, no es un campo oculto ni deshabilitado
 			if (standardFormField == null ||
 					(standardFormField != null &&
@@ -792,7 +791,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						!standardFormField.disabled() &&
 						!standardFormField.hidden())) {
 				// Obtenemos una instancia del BeanDAO anidado
-				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO());
+				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(tipoElementos, beanUI.getBeanDAO());
 				// Obtenemos todos los elementos del bean anidado
 				listaElementos = beanDAO.getAllElements();
 			}
@@ -803,7 +802,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 
 			// Creamos un contenedor con todos los elementos
 			BeanItemContainer container =
-					new BeanItemContainer(claseBeanAnidado, listaElementos);
+					new BeanItemContainer(tipoElementos, listaElementos);
 			
 			// Creamos el campo en función del tipo
 			if (type == StandardFormField.Type.COMBO_BOX) {
@@ -829,51 +828,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Si tiene un campo maestro
 			if (standardFormField != null &&
 					!standardFormField.nameMasterField().isEmpty()) {
-				// Obtenemos el campo maestro
-				final String nameMasterField = standardFormField.nameMasterField();
-				Component masterField = findFormField(prefixParentBean + nameMasterField);
-				// Si no se encuentra o no es un select
-				if (masterField == null ||
-						!(masterField instanceof AbstractSelect)) {
-					Notification.show("No se encuentra el campo maestro de " + field.getName(),
-							Type.ERROR_MESSAGE);
-				}
-				else {
-					final AbstractSelect campoEsclavo = campoSelect;
-					// Añadimos un escuchador al campo maestro para cuando cambie su valor
-					// En ese caso, tenemos que obtener los elementos del bean esclavo 
-					// que tengan el valor seleccionado en el campo maestro
-					((AbstractSelect)masterField).addValueChangeListener(new ValueChangeListener() {
-						@Override
-						public void valueChange(ValueChangeEvent event) {
-							Object value = event.getProperty().getValue();
-							// Si no es un BeanMongo
-							if (!Utils.isSubClass(currentBean.getClass(), BeanMongo.class)) {
-								// TODO Hacer para JPA
-								return;
-							}
-							// Obtenemos una instancia del BeanDAO anidado
-							BeanMongoDAO<? extends Bean, K> beanMongoDAO;
-							try {
-								// Creamos un BeanMongoDAO para obtener el datastore
-								beanMongoDAO = (BeanMongoDAO<? extends Bean, K>)
-									Utils.getBeanDAO(claseBeanAnidado, beanUI.getBeanDAO());
-								Datastore datastore = beanMongoDAO.getDatastore();
-								// Creamos una query para obtener los elementos del bean esclavo 
-								Query<?> query = datastore.createQuery(tipoElementos);
-								query = query.field(nameMasterField).equal(value.toString());
-								List<?> listaElementosEsclavo = query.asList();
-								// Ponemos los elementos en el campo esclavo
-								BeanItemContainer containerEsclavo =
-										new BeanItemContainer(claseBeanAnidado, listaElementosEsclavo);
-								campoEsclavo.setContainerDataSource(containerEsclavo);
-							} catch (Exception e) {
-								Notification.show("No se pueden obtener los elementos dependientes",
-										Type.ERROR_MESSAGE);
-							}
-						}
-					});
-				}
+				// Configuramos los campos maestro y esclavo
+				configureMasterSlaveSelects(currentBean, prefixParentBean, field,
+						standardFormField, campoSelect, tipoElementos);
 			}
 		}
 		
@@ -923,6 +880,103 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			}
 		}
 		return campoSelect;
+	}
+
+	/**
+	 * Configures the master-slave selects:
+	 * Adds a ValueChangeListener to the master select than obtains the elements in the slave select
+	 * Selects the current value in the master select
+	 * @param currentBean
+	 * @param prefixParentBean
+	 * @param field
+	 * @param standardFormField
+	 * @param slaveSelect
+	 * @param slaveBeanClass
+	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private void configureMasterSlaveSelects(
+			final Bean currentBean,
+			String prefixParentBean,
+			final java.lang.reflect.Field field,
+			StandardFormField standardFormField,
+			final AbstractSelect slaveSelect,
+			final Class<? extends Bean> slaveBeanClass) {
+		// Obtenemos el campo maestro
+		final String nameMasterField = standardFormField.nameMasterField();
+		Component masterField = findFormField(prefixParentBean + nameMasterField);
+		// Si no se encuentra o no es un select
+		if (masterField == null ||
+				!(masterField instanceof AbstractSelect)) {
+			Notification.show("No se encuentra el campo maestro de " + field.getName(),
+					Type.ERROR_MESSAGE);
+			return;
+		}
+		AbstractSelect masterSelect = (AbstractSelect) masterField;
+		// Añadimos un escuchador al campo maestro para cuando cambie su valor
+		masterSelect.addValueChangeListener(new ValueChangeListener() {
+			// En ese caso, tenemos que obtener los elementos del bean esclavo 
+			// que tengan el valor seleccionado en el campo maestro
+			@Override
+			public void valueChange(ValueChangeEvent event) {
+				Object value = event.getProperty().getValue();
+				// Si no es un BeanMongo
+				if (!Utils.isSubClass(currentBean.getClass(), BeanMongo.class)) {
+					// TODO Pendiente de implementar para JPA
+					return;
+				}
+				try {
+					List<?> listaElementosEsclavo;
+					// Si se ha seleccionado un elemento en el campo maestro
+					if (value != null) {
+						// Creamos un BeanMongoDAO para obtener el datastore
+						BeanMongoDAO<? extends Bean, K> beanMongoDAO = (BeanMongoDAO<? extends Bean, K>)
+							Utils.getBeanDAO(slaveBeanClass, beanUI.getBeanDAO());
+						Datastore datastore = beanMongoDAO.getDatastore();
+						// Creamos una query para obtener los elementos del bean esclavo 
+						Query<?> query = datastore.createQuery(slaveBeanClass);
+						query = query.field(nameMasterField).equal(value.toString());
+						listaElementosEsclavo = query.asList();
+					}
+					// En caso contrario, se crea una lista vacía
+					else {
+						listaElementosEsclavo = new ArrayList();
+					}
+					// Creamos un contenedor y se lo asignamos al campo esclavo
+					BeanItemContainer containerEsclavo =
+							new BeanItemContainer(slaveBeanClass, listaElementosEsclavo);
+					slaveSelect.setContainerDataSource(containerEsclavo);
+				} catch (Exception e) {
+					Notification.show("No se pueden obtener los elementos del campo " + field.getName(),
+							Type.ERROR_MESSAGE);
+				}
+			}
+		});
+		// Debemos forzar la selección del elemento en el campo maestro
+		// para que se genere un ValueChangeEvent y se obtengan los elementos del campo esclavo
+		try {
+			// Eliminamos la posible selección (la hay si el campo maestro no es Transient)
+			masterSelect.setValue(null);
+			// Obtenemos el bean esclavo del bean actual
+			Bean beanEsclavo = (Bean) Utils.getFieldValue(currentBean, field);
+			// Se está informado el bean esclavo
+			if (beanEsclavo != null) {
+				// Obtenemos todos los campos del bean esclavo
+				java.lang.reflect.Field[] beanFields = Utils.getBeanFields(beanEsclavo.getClass());
+				for (java.lang.reflect.Field slaveField : beanFields) {
+					if (slaveField.getName().equals(nameMasterField)) {
+						// Obtenemos el valor del elemento maestro en el bean esclavo
+						Object masterValue = Utils.getFieldValue(beanEsclavo, slaveField);
+						// Seleccionamos el elemento en el campo maestro
+						masterSelect.setValue(masterValue);
+						break;
+					}			
+				}
+			}
+		} catch (Exception e) {
+			Notification.show("No se puede seleccionar el elemento en el campo " + field.getName(),
+					Type.ERROR_MESSAGE);
+			e.printStackTrace();
+		}
 	}
 
 	/**
