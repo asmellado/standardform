@@ -903,7 +903,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			final Class<? extends Bean> slaveBeanClass) {
 		// Obtenemos el campo maestro
 		final String nameMasterField = standardFormField.nameMasterField();
-		Component masterField = findFormField(prefixParentBean + nameMasterField);
+		final Component masterField = findFormField(prefixParentBean + nameMasterField);
 		// Si no se encuentra o no es un select
 		if (masterField == null ||
 				!(masterField instanceof AbstractSelect)) {
@@ -934,7 +934,18 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						Datastore datastore = beanMongoDAO.getDatastore();
 						// Creamos una query para obtener los elementos del bean esclavo 
 						Query<?> query = datastore.createQuery(slaveBeanClass);
-						query = query.field(nameMasterField).equal(value.toString());
+						
+						// Obtenemos el campo Id del bean maestro
+						java.lang.reflect.Field masterIdField =
+								Utils.getIdField((Class<? extends Bean>) field.getType());
+						if (masterIdField == null) {
+							throw new IllegalArgumentException(
+									"No se encuentra el campo Id de " + field.getType().getName());
+						}
+						// Obtenemos el id del valor seleccionado en el select maestro
+						Object masterIdValue = Utils.getFieldValue((Bean) value, masterIdField);
+
+						query = query.field(nameMasterField).equal(masterIdValue);
 						listaElementosEsclavo = query.asList();
 					}
 					// En caso contrario, se crea una lista vacía

@@ -51,6 +51,24 @@ abstract public class Utils {
 		return currentBeanFields;
 	}
 	
+	
+	/**
+	 * Returns the Id field from a beanClass or null if doesn't exist.
+	 * @param beanClass
+	 * @return
+	 */
+	public static java.lang.reflect.Field getIdField(Class<? extends Bean> beanClass) {
+		java.lang.reflect.Field[] fieldsBean = Utils.getBeanFields(beanClass);
+		for (java.lang.reflect.Field fieldBean : fieldsBean) {
+			// TODO Pendiente de hacer para JPA
+			if (fieldBean.getAnnotation(Id.class) != null) {
+				return fieldBean;
+			}
+		}
+		return null;
+	}
+	
+	
 	/**
 	 * Return the string with the first letter capitalized
 	 * @param string
