@@ -10,7 +10,7 @@ import org.mongodb.morphia.annotations.Id;
  * This bean has an automatic id field of the ObjectId type
  */
 @SuppressWarnings("serial")
-public abstract class BeanMongoWithId extends BeanMongo implements BeanWithId, Serializable {
+public abstract class BeanMongoWithId extends BeanMongoEntity implements BeanWithId, Serializable {
 
 	@Id
 	protected ObjectId id;
