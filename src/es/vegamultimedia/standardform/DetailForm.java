@@ -672,8 +672,15 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			}
 			
 			// Si todo ha ido bien, mostramos mensaje informativo
+			String texto;
+			if (insertMode) {
+				texto = "El elemento se ha insertado correctamente";
+			}
+			else {
+				texto = "El elemento se ha actualizado correctamente";
+			}
 			Notification.show("Información",
-					"El elemento se ha actualizado correctamente",
+					texto,
 					Type.TRAY_NOTIFICATION);
 			// Y mostramos el listado
 			showListForm();
