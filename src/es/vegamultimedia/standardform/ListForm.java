@@ -111,6 +111,15 @@ public class ListForm<T extends Bean, K> extends Panel {
 						}
 					}
 		        }
+		        else if (property.getType() == Boolean.class ||
+		        		property.getType() == Boolean.TYPE) {
+		        	if ((property.getValue() != null) && (Boolean)property.getValue() == true) {
+		        		return "Sí";
+		        	}
+		        	else {
+		        		return "No";
+		        	}
+		        }
 		        return super.formatPropertyValue(rowId, colId, property);
 		    }
 		};
