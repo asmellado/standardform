@@ -46,7 +46,7 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 * @return
 	 */
 	public Component buidListForm() {
-		return new ListForm<T, K>(this);
+		return new ListForm<T, K>(this, null);
 	}
 	
 	/**

@@ -32,8 +32,23 @@ import es.vegamultimedia.standardform.model.Bean;
 @SuppressWarnings("serial")
 public class ListForm<T extends Bean, K> extends Panel {
 	
+	/**
+	 * Interface for loading the table elements
+	 */
+	public interface QueryListener<T extends Bean> {
+		/**
+		 * Called to obtain the table elements
+		 */
+		public abstract List<T> getElements();
+	}
+	
+	protected QueryListener<T> queryListener;
+	
 	// BeanUI that created this standard list form
 	protected BeanUI<T, K> beanUI;
+	
+	// StandardForm annotation bean
+	StandardForm standardFormAnnotation;
 	
 	// Container del formulario
 	protected BeanItemContainer<T> container;
@@ -50,23 +65,24 @@ public class ListForm<T extends Bean, K> extends Panel {
 	// Botón alta
 	protected Button addButton;
 	
-	public ListForm(BeanUI<T, K> beanUI) {
+	public ListForm(BeanUI<T, K> beanUI, QueryListener<T> queryListener) {
 		this.beanUI = beanUI;
+		this.queryListener = queryListener;
 		
 		// Columnas de la tabla
 		List<String> visibledColumns;
 
-		// Obtenemos la anotación ListForm del bean
-		StandardForm listForm = beanUI.getBeanClass().getAnnotation(StandardForm.class);
+		// Obtenemos la anotación StandardForm del bean
+		standardFormAnnotation = beanUI.getBeanClass().getAnnotation(StandardForm.class);
 		
 		// Asignamos el título al panel
-		setCaption(listForm.listViewName());
+		setCaption(standardFormAnnotation.listViewName());
 		
 		// Añadimos estilo personalizado
 		addStyleName("standard-form");
 
 		// Si el bean NO tiene anotación StandardForm
-		if (!(listForm instanceof StandardForm)) {
+		if (!(standardFormAnnotation instanceof StandardForm)) {
 			Notification.show("Faltan metadatos",
 					"El bean " + beanUI.getBeanClass().getSimpleName() +" no permite formulario de listado",
 					Type.ERROR_MESSAGE);
@@ -132,7 +148,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 			loadData();
 			
 			// Si no se especifican las columnas visibles
-			if (listForm.columns()[0].isEmpty()) {
+			if (standardFormAnnotation.columns()[0].isEmpty()) {
 				// Se muestran todas excepto el id
 				visibledColumns = new ArrayList<String>();
 				// Obtenemos todos los campos del bean
@@ -151,7 +167,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 			// Si se especifican las columnas visibles
 			else {
 				// Hacemos visibles las columnas especificadas
-				visibledColumns = new ArrayList<String>(Arrays.asList(listForm.columns()));
+				visibledColumns = new ArrayList<String>(Arrays.asList(standardFormAnnotation.columns()));
 				// Obtenemos todos los campos del bean
 				Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
 				// Para cada columna, añadimos su cabecera
@@ -167,7 +183,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 				}
 			}
 			// Si se permite edición
-			if (listForm.allowsEditing()) {
+			if (standardFormAnnotation.allowsEditing()) {
 				nombreColumnaEditarConsultar = "Editar";
 			}
 			else {
@@ -178,7 +194,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 					new EditColumnGenerator(nombreColumnaEditarConsultar));
 			visibledColumns.add(nombreColumnaEditarConsultar);
 			// Si se permite eliminar
-			if (listForm.allowsDeleting()) {
+			if (standardFormAnnotation.allowsDeleting()) {
 				// Añadimos columna para eliminar
 				table.addGeneratedColumn("Eliminar", new DeleteColumnGenerator());
 				visibledColumns.add("Eliminar");
@@ -187,7 +203,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 			layout.addComponent(table);
 		
 			// Si se permite añadir
-			if (listForm.allowsAdding()) {
+			if (standardFormAnnotation.allowsAdding()) {
 				// Botón Alta
 				addButton = new Button("Alta");
 				addButton.addClickListener(new ClickListener(){
@@ -207,6 +223,13 @@ public class ListForm<T extends Bean, K> extends Panel {
 					e.getMessage(), Type.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Adds the listener
+	 */
+	public void addQueryListener(QueryListener<T> queryListener) {
+		this.queryListener = queryListener;
 	}
 
 	/**
@@ -229,7 +252,18 @@ public class ListForm<T extends Bean, K> extends Panel {
 	 * Gets every elements of this bean type using thee BeanDAO
 	 */
 	protected void loadData() {
-		List<T> listaElementos = beanUI.getBeanDAO().getAllElements();
+		// TODO No obtener todos los elementos, sino trabajar con un cursor y paginar
+		List<T> listaElementos;
+		// Si hay escuchador queryListener
+		if (queryListener != null) {
+			// Llamamos a su método para obtener los elementos
+			listaElementos = queryListener.getElements();
+		}
+		// En caso contrario
+		else {
+			// Obtenemos todos los elementos
+			listaElementos = beanUI.getBeanDAO().getAllElements();
+		}
 		container = new BeanItemContainer<T>(beanUI.getBeanClass(), listaElementos);
 		table.setContainerDataSource(container);
 	}
@@ -341,13 +375,19 @@ public class ListForm<T extends Bean, K> extends Panel {
 	/**
 	 * Disables this Listform:
 	 * Removes Edit and Delete columns, adds Consult column and hides the Add button
+	 * @param allowConsulting if true, it shows the consult column. If false, it doesn't show the
+	 * consult column
 	 */
-	public void disableForm() {
-		// Quitamos columna eliminar
-		table.removeGeneratedColumn("Eliminar");
-		// Modificamos la columna editar por columna Consultar 
+	public void disableForm(boolean allowConsulting) {
+		// Quitamos columnas editar, consultar y eliminar
 		table.removeGeneratedColumn("Editar");
-		table.addGeneratedColumn("Consultar", new EditColumnGenerator("Consultar"));
+		table.removeGeneratedColumn("Consultar");
+		table.removeGeneratedColumn("Eliminar");
+		// Si se permite consultar
+		if (allowConsulting) {
+			// Añadimos la columna consultar
+			table.addGeneratedColumn("Consultar", new EditColumnGenerator("Consultar"));
+		}
 		// Ocultamos el botón añadir
 		addButton.setVisible(false);
 	}
