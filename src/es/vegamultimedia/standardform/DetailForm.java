@@ -351,7 +351,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						}
 					}
 					// Creamos un panel con el caption
-					Panel panel = new Panel(caption);
+					Panel panel = new Panel("<b>"+caption+"<b/>");
 					// Asignamos el formulario al panel
 					panel.setContent(embeddedForm);
 					// Añadimos el panel al formulario principal
