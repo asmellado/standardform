@@ -1,9 +1,13 @@
 package es.vegamultimedia.standardform.components;
 
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import javax.imageio.ImageIO;
 
 import com.vaadin.server.FileDownloader;
 import com.vaadin.server.StreamResource;
@@ -13,7 +17,9 @@ import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.CustomField;
+import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Image;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
@@ -23,25 +29,26 @@ import com.vaadin.ui.Upload.ChangeListener;
 import com.vaadin.ui.Upload.Receiver;
 import com.vaadin.ui.Upload.SucceededEvent;
 import com.vaadin.ui.Upload.SucceededListener;
-import com.vaadin.ui.VerticalLayout;
 
 import es.vegamultimedia.standardform.model.File;
 
 @SuppressWarnings("serial")
 public class FileComponent extends CustomField<File> {
 	
-	VerticalLayout mainLayout;
-	Upload upload;
-	Button loadButton;
-	Label filenameLabel;
-	Button downloadButton;
-	FileUploader fileUploader;
+	private GridLayout mainLayout;
+	private Upload upload;
+	private Button loadButton;
+	private Label filenameLabel;
+	private Button downloadButton;
+	private FileUploader fileUploader;
+	private final int alturaMiniatura = 100;
 	
 	public FileComponent(String caption, final File file,
 			String id, boolean insertMode) {
 		setCaption(caption);
 		
-		mainLayout = new VerticalLayout();
+		mainLayout = new GridLayout();
+		mainLayout.setRows(3);
 		
 		// Añadimos el Upload sin botón
 		upload = new Upload();
@@ -50,7 +57,7 @@ public class FileComponent extends CustomField<File> {
 		upload.setButtonCaption(null);
 		upload.addChangeListener(fileUploader);
 		upload.addSucceededListener(fileUploader);
-		mainLayout.addComponent(upload);
+		mainLayout.addComponent(upload, 0, 0);
 		
 		// Añadimos un botón para subir archivo
 		loadButton = new Button("Subir");
@@ -62,10 +69,10 @@ public class FileComponent extends CustomField<File> {
 			}
 		});
 		loadButton.setEnabled(false);
-		mainLayout.addComponent(loadButton);
+		mainLayout.addComponent(loadButton, 0, 1);
 		
 		HorizontalLayout buttonsLayout = new HorizontalLayout();
-		mainLayout.addComponent(buttonsLayout);
+		mainLayout.addComponent(buttonsLayout, 0, 2);
 		
 		// Añadimos la etiqueta con el nombre del archivo
 		filenameLabel = new Label();
@@ -90,6 +97,23 @@ public class FileComponent extends CustomField<File> {
 			FileDownloader fileDownloader = new FileDownloader(streamResource);
 	        fileDownloader.extend(downloadButton);
 	        buttonsLayout. addComponent(downloadButton);
+	        // Si es una imagen
+	        if (file instanceof es.vegamultimedia.standardform.model.Image) {
+	        	// Mostramos una miniatura de la imagen
+	        	try {
+					Image image = new Image("", streamResource);
+	        		BufferedImage bimg = ImageIO.read(streamSource.getStream());
+		        	float height = bimg.getHeight();
+		        	float width = bimg.getWidth();
+		        	image.setHeight(alturaMiniatura + "px");
+		        	int newWidth = (int)(width*alturaMiniatura/height);
+		        	image.setWidth(newWidth + "px");
+		        	mainLayout.setColumns(2);
+		        	mainLayout.addComponent(image, 1, 0, 1, 2);
+				} catch (IOException ignorada) {
+					ignorada.printStackTrace();
+				}
+	        }
 		}
 		buttonsLayout.addComponent(filenameLabel);
 	}

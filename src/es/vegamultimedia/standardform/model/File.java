@@ -1,5 +1,8 @@
 package es.vegamultimedia.standardform.model;
 
+/**
+ * An object of this class represents a generic file
+ */
 public class File {
 	
 	private byte[] bytes;

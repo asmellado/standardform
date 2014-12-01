@@ -62,6 +62,7 @@ import es.vegamultimedia.standardform.components.FileComponent.FileUploader;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
 import es.vegamultimedia.standardform.model.File;
+import es.vegamultimedia.standardform.model.Image;
 
 @SuppressWarnings("serial")
 public class DetailForm<T extends Bean, K> extends Panel {
@@ -315,9 +316,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					((PopupDateField)currentFields[i]).setTextFieldEnabled(false);
 					binder.bind((Field) currentFields[i], prefixParentBean + currentBeanFields[i].getName());
 					break;
-				// Si es un campo de tipo archivo
-				case FILE:
-					// CON FileComponent
+				// Si es un campo de tipo archivo o imagen
+				case FILE: case IMAGE:
+					// Podemos usar como tipo File porque Image es subclase de File
 					File standardFormFile =
 						(File) Utils.getFieldValue(bean, currentBeanFields[i]);
 					String id = prefixParentBean + currentBeanFields[i].getName();
@@ -596,6 +597,10 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		else if (tipoBean == File.class) {
 			return StandardFormField.Type.FILE;
 		}
+		// Si el tipo es standardForm.model.Image
+		else if (tipoBean == Image.class) {
+			return StandardFormField.Type.IMAGE;
+		}
 		return null;
 	}
 
@@ -620,7 +625,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
 			commitSelectFields(bean, formFields);
 			// Hacemos commit de los campos de tipo archivo
-			commitFileFields();
+			commitFileImageFields();
 			// Hacemos commit del resto de campos
 			binder.commit();
 			// Si hay escuchador
@@ -703,8 +708,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	}
 	
 	/**
-	 * Executes a commit for every file fields in the form.
-	 * It is neccesary because the file fields aren't included inside the binder
+	 * Executes a commit for every file and image fields in the form.
+	 * It is neccesary because the file and image fields aren't included inside the binder
 	 * @throws NoSuchMethodException
 	 * @throws SecurityException
 	 * @throws IllegalAccessException
@@ -712,7 +717,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * @throws InvocationTargetException
 	 * @throws CommitException
 	 */
-	private void commitFileFields() throws NoSuchMethodException,SecurityException,
+	private void commitFileImageFields() throws NoSuchMethodException,SecurityException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException, CommitException {
 		// Recorremos los campos
 		java.lang.reflect.Field[] beanFields = Utils.getBeanFields(bean.getClass());
@@ -729,7 +734,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						throw new CommitException("Debe subir un archivo");
 					}
 				}
-				else {
+				// Si el campo es de tipo File
+				else if (beanFields[i].getType() == File.class){
 					// Creamos un objeto file con los datos del fileUploader
 					File file = new File();
 					file.setBytes(fileUploader.getByteArrayOutputStream().toByteArray());
@@ -737,6 +743,15 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					file.setMimeType(fileUploader.getMimeType());
 					// Asignamos el objeto file al campo del bean
 					Utils.setFieldValue(bean, beanFields[i], file);
+				}
+				else if (beanFields[i].getType() == Image.class) {
+					// Creamos un objeto image con los datos del fileUploader
+					Image image = new Image();
+					image.setBytes(fileUploader.getByteArrayOutputStream().toByteArray());
+					image.setFilename(fileUploader.getFilename());
+					image.setMimeType(fileUploader.getMimeType());
+					// Asignamos el objeto file al campo del bean
+					Utils.setFieldValue(bean, beanFields[i], image);
 				}
 			}
 		}
