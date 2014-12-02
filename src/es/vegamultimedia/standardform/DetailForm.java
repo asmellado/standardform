@@ -15,6 +15,7 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.Reference;
@@ -379,6 +380,20 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					BeanItemContainer container = new BeanItemContainer((Class)parametrizedType, lista);
 					((Table) currentFields[i]).setContainerDataSource(container);
 					break;
+				case MONGO_ID:
+					// Si estamos en modo modificación
+					if (!insertMode) {
+						// Creamos un campo de texto oculto
+						// Esto permite que pueda ser mostrado para los administradores de la aplicación
+						currentFields[i] = new TextField(caption);
+						// Obtenemos  valor para mostrarlo
+						ObjectId objectId=
+								(ObjectId) Utils.getFieldValue(currentBean, currentBeanFields[i]);
+						((TextField)currentFields[i]).setValue(objectId.toString());
+						// Deshabilitamos y hacemos invisible el campo
+						currentFields[i].setVisible(false);
+						currentFields[i].setEnabled(false);
+					}
 				default:
 					break;
 				}
@@ -601,6 +616,11 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		else if (tipoBean == Image.class) {
 			return StandardFormField.Type.IMAGE;
 		}
+		// Si el tipo es ObjectId usado por MongoBD
+		else if (tipoBean == ObjectId.class) {
+			return StandardFormField.Type.MONGO_ID;
+		}
+		// Si no es ninguno de los anteriores, no se crea el campo
 		return null;
 	}
 

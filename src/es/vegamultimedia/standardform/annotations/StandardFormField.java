@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
 public @interface StandardFormField {
 	enum Type {DEFAULT, TEXT_FIELD, NUM_FIELD, TEXT_AREA, COMBO_BOX,
 		CHECK_BOX, OPTION_GROUP, MULTIPLE_SELECTION, DATE, EMBEDDED,
-		TABLE, FILE, IMAGE}
+		TABLE, FILE, IMAGE, MONGO_ID}
 	
 	/**
 	 * Field type. If you don't specify one type, the type will be Type.DEFAULT.
