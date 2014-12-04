@@ -103,11 +103,13 @@ public class FileComponent extends CustomField<File> {
 	        	try {
 					Image image = new Image("", streamResource);
 	        		BufferedImage bimg = ImageIO.read(streamSource.getStream());
-		        	float height = bimg.getHeight();
-		        	float width = bimg.getWidth();
-		        	image.setHeight(alturaMiniatura + "px");
-		        	int newWidth = (int)(width*alturaMiniatura/height);
-		        	image.setWidth(newWidth + "px");
+	        		if (bimg != null) {
+	        			float height = bimg.getHeight();
+			        	float width = bimg.getWidth();
+			        	image.setHeight(alturaMiniatura + "px");
+			        	int newWidth = (int)(width*alturaMiniatura/height);
+			        	image.setWidth(newWidth + "px");
+	        		}
 		        	mainLayout.setColumns(2);
 		        	mainLayout.addComponent(image, 1, 0, 1, 2);
 				} catch (IOException ignorada) {
