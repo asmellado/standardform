@@ -749,8 +749,11 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				if (fileUploader == null ||
 						fileUploader.getByteArrayOutputStream() == null ||
 						fileUploader.getByteArrayOutputStream().size() == 0) {
-					// Si el campo es requerido
-					if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull) {
+					// Obtenemos el valor del campo en el bean
+					Object currentValue = Utils.getFieldValue(bean, beanFields[i]);
+					// Si el campo no estaba informado previamente y es requerido
+					if (currentValue == null &&
+							beanFields[i].getAnnotation(NotNull.class) instanceof NotNull) {
 						throw new CommitException("Debe subir un archivo");
 					}
 				}
