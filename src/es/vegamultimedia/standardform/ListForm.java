@@ -392,6 +392,31 @@ public class ListForm<T extends Bean, K> extends Panel {
 		addButton.setVisible(false);
 	}
 	
+	/**
+	 * Hides the column with de id specified
+	 * @param columnId It must be the fieldname of the bean
+	 */
+	public void hideVisibledColumn(String columnId) {
+		ArrayList<Object> listVisibleColumns = new ArrayList<Object>();
+		Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
+		for (Object column : table.getVisibleColumns()) {
+			// Si la columna visible no coincide con la que se quiere ocultar
+			if (!columnId.equals(column)) {
+				// Se añade a la nueva lista de columnas visibles
+				listVisibleColumns.add(column);
+				// Obtenemos el campo que coincide con el nombre de la columna
+				for (Field beanField : beanFields) {
+					if (beanField.getName().equals(column)) {
+						// Lo añadimos a la cabecera
+						addHeaderColumn(beanField);
+						break;
+					}
+				}
+			}
+		}
+		table.setVisibleColumns(listVisibleColumns.toArray());
+	}
+	
 //	/**
 //	 * Modify the name of the editColumn
 //	 * @param nameColumn
