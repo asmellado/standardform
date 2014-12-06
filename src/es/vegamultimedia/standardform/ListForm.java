@@ -79,7 +79,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 		setCaption(standardFormAnnotation.listViewName());
 		
 		// Añadimos estilo personalizado
-		addStyleName("standard-form");
+		addStyleName("standardform");
 
 		// Si el bean NO tiene anotación StandardForm
 		if (!(standardFormAnnotation instanceof StandardForm)) {

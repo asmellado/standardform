@@ -109,14 +109,29 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	protected Button cancelButton;
 	
 	/**
-	 * Create a DetailForm for updating an existing bean or for inserting a new bean
+	 * Create a complete DetailForm for updating an existing bean or for inserting a new bean
+	 * with OK and Cancel buttons
 	 * @param currentBeanUI
 	 * @param currentBean Existing bean o null for a new bean
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 */
-	@SuppressWarnings("unchecked")
 	public DetailForm(BeanUI<T, K> currentBeanUI, T currentBean)
+			throws InstantiationException, IllegalAccessException {
+		this(currentBeanUI, currentBean, true);
+	}
+	
+	/**
+	 * Create a DetailForm for updating an existing bean or for inserting a new bean
+	 * @param currentBeanUI
+	 * @param currentBean Existing bean o null for a new bean
+	 * @param withOKAndCancelButtons if false, the form doesn't have OK neither cancel button
+	 * It may be used for building custom forms
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 */
+	@SuppressWarnings("unchecked")
+	public DetailForm(BeanUI<T, K> currentBeanUI, T currentBean, boolean withOKAndCancelButtons)
 			throws InstantiationException, IllegalAccessException {
 		beanUI = currentBeanUI;
 		bean = currentBean;
@@ -143,36 +158,38 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			setCaption(standardForm.detailViewName());
 			
 			// Añadimos estilo personalizado
-			addStyleName("standard-form");
+			addStyleName("standardform");
 			
 			// Obtenemos los campos del formulario
 			formFields = getFormFields(bean, "");
 			
-			// Si estamos en alta o se permite edición
-			if (insertMode || standardForm.allowsEditing()) {
-				// Añadimos el botón guardar
-				saveButton = new Button("Guardar");
-				saveButton.setId("saveButton");
-				saveButton.setClickShortcut(KeyCode.ENTER);
-				saveButton.addClickListener(new ClickListener(){
+			// Si se desean botones aceptar y cancelar
+			if (withOKAndCancelButtons) {
+				// Si estamos en alta o se permite edición
+				if (insertMode || standardForm.allowsEditing()) {
+					// Añadimos el botón guardar
+					saveButton = new Button("Guardar");
+					saveButton.setId("saveButton");
+					saveButton.setClickShortcut(KeyCode.ENTER);
+					saveButton.addClickListener(new ClickListener(){
+						@Override
+						public void buttonClick(ClickEvent event) {
+							save(event);
+						}
+					});
+					form.addComponent(saveButton);
+				}
+				
+				cancelButton = new Button("Cancelar");
+				cancelButton.setId("cancelButton");
+				cancelButton.addClickListener(new ClickListener(){
 					@Override
 					public void buttonClick(ClickEvent event) {
-						save(event);
+						showListForm();
 					}
 				});
-				form.addComponent(saveButton);
+				form.addComponent(cancelButton);
 			}
-			
-			cancelButton = new Button("Cancelar");
-			cancelButton.setId("cancelButton");
-			cancelButton.addClickListener(new ClickListener(){
-				@Override
-				public void buttonClick(ClickEvent event) {
-					showListForm();
-				}
-			});
-			form.addComponent(cancelButton);
-			
 		} catch (Exception e) {
 			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
 			e.printStackTrace();
@@ -180,7 +197,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	}
 	
 	/**
-	 * Adds the listener
+	 * Adds the SaveListener
 	 */
 	public void addListener(SaveListener saveListener) {
 		this.saveListener = saveListener;
@@ -397,7 +414,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				default:
 					break;
 				}
-				// Comprobamos por precaución si se ha creado el campo
+				// Si se ha creado el campo
 				if (currentFields[i] != null) {
 					// Asignamos al campo como id el nombre del campo del bean actual
 					currentFields[i].setId(prefixParentBean + currentBeanFields[i].getName());
@@ -405,9 +422,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					// Si no es un embedded field ni una tabla
 					if (tipo != StandardFormField.Type.EMBEDDED &&
 							tipo != StandardFormField.Type.TABLE) {
-						// Se especifica la anchura del campo
-						// TODO Hacer con estilos css?
-						currentFields[i].setWidth(30, Unit.EM);
+						// Se le añade al campo el estilo standardform-field
+						currentFields[i].addStyleName("standardform-field");
 					}
 				
 					// Si es un campo, no oculto y tiene anotación NotNull
