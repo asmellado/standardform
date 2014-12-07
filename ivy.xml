@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE ivy-module [
-	<!ENTITY vaadin.version "7.3.1">
+	<!ENTITY vaadin.version "7.3.6">
 ]>
 <ivy-module version="2.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -26,6 +26,12 @@
 		<!-- Push support -->
 		<dependency org="com.vaadin" name="vaadin-push" rev="&vaadin.version;" />
 
+		<!-- Servlet 3.0 API -->
+		<dependency org="javax.servlet" name="javax.servlet-api" rev="3.0.1" conf="nodeploy->default" />
+
+		<!-- TestBench 4 -->
+		<dependency org="com.vaadin" name="vaadin-testbench-api" rev="latest.release" conf="nodeploy -> default" />
+
 		<!-- Precompiled DefaultWidgetSet -->
 		<dependency org="com.vaadin" name="vaadin-client-compiled"
 			rev="&vaadin.version;" />
@@ -38,7 +44,7 @@
 		<dependency org="com.vaadin" name="vaadin-client-compiler"
 			rev="&vaadin.version;" conf="widgetset-compile->default" />
 		
-		<!-- ConfirmDialog Add-on -->	
+		<!-- Vaadin Add-ons -->	
 		<dependency org="org.vaadin.addon" name="confirmdialog" rev="2.1.1" />
 		
 		<!-- Connector MySQL -->
