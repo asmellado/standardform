@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import javax.persistence.Lob;
 import javax.persistence.Temporal;
@@ -332,6 +333,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					currentFields[i] = new PopupDateField(caption);
 					// Deshabilitamos el campo de texto
 					((PopupDateField)currentFields[i]).setTextFieldEnabled(false);
+					// TODO Parametrizar locale
+					((PopupDateField)currentFields[i]).setLocale(new Locale("es", "ES"));
 					binder.bind((Field) currentFields[i], prefixParentBean + currentBeanFields[i].getName());
 					break;
 				// Si es un campo de tipo archivo o imagen
@@ -1155,9 +1158,13 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		// Deshabilitamos todos los componentes
 		Utils.iterateSubComponents(form, true, false);
 		// Ocultamos el botón guardar
-		saveButton.setVisible(false);
+		if (saveButton != null) {
+			saveButton.setVisible(false);
+		}
 		// Habilitamos el botón cancelar
-		cancelButton.setEnabled(true);
+		if (cancelButton != null) {
+			cancelButton.setEnabled(true);
+		}
 	}
 	
 	/**

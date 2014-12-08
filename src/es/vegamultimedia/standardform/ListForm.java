@@ -1,5 +1,6 @@
 package es.vegamultimedia.standardform;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
+import com.vaadin.ui.CustomField;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
@@ -50,6 +52,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 	// StandardForm annotation bean
 	StandardForm standardFormAnnotation;
 	
+	// Lista de elementos
+	protected List<T> listElements;
+	
 	// Container del formulario
 	protected BeanItemContainer<T> container;
 	
@@ -71,7 +76,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 		
 		// Columnas de la tabla
 		List<String> visibledColumns;
-
+		
 		// Obtenemos la anotación StandardForm del bean
 		standardFormAnnotation = beanUI.getBeanClass().getAnnotation(StandardForm.class);
 		
@@ -88,6 +93,16 @@ public class ListForm<T extends Bean, K> extends Panel {
 					Type.ERROR_MESSAGE);
 			return;
 		}
+
+		try {
+			// Obtenemos los elementos
+			listElements = loadData();
+		} catch (Exception e) {
+			Notification.show("No se pueden obtener los elementos",
+					e.getMessage(), Type.ERROR_MESSAGE);
+			e.printStackTrace();
+			return;
+		}
 		
 		// Creamos el formulario para albergar todos los campos del bean
 		form = new FormLayout();
@@ -97,55 +112,56 @@ public class ListForm<T extends Bean, K> extends Panel {
 		VerticalLayout layout = new VerticalLayout();
 		form.addComponent(layout);
 		
-		// Tabla
-		table = new Table(){
-			// Damos formato de sólo fecha a los campos de tipo Date 
-		    @Override
-		    protected String formatPropertyValue(Object rowId, Object colId, Property<?> property) {
-		        if (property.getType() == Date.class) {
-		            SimpleDateFormat df = new SimpleDateFormat("dd-MM-yyyy");
-		            return df.format((Date)property.getValue());
-		        }
-		        else if (property.getType().isEnum()) {
-		        	// Obtenemos los elementos del enumerado
-					Object[] elementosEnum = property.getType().getEnumConstants();
-					// Recorremos todos los elementos del enumerado
-					for (Object elementoEnum: elementosEnum) {
-						// Se obtiene anotación StandardFormEnum del elemento
-						try {
-							java.lang.reflect.Field elementoField = property.getType().getField(elementoEnum.toString());
-							StandardFormEnum anotación = elementoField.getAnnotation(StandardFormEnum.class);
-							// Si tiene anotación StandardFormEnum informada
-							if (anotación != null && anotación.value().length() != 0) {
-								// Si el enumerado coincide con el valor la propiedad
-								if (elementoEnum == property.getValue())
-									// Se retorna el valor de la anotación
-									return anotación.value();
+		// Si NO tiene customRowListComponent
+		if (standardFormAnnotation.customRowListComponent().isEmpty()) {
+			// Creamos una tabla para mostrar los elementos
+			table = new Table(){
+				// Damos formato de sólo fecha a los campos de tipo Date 
+			    @Override
+			    protected String formatPropertyValue(Object rowId, Object colId, Property<?> property) {
+			        if (property.getType() == Date.class) {
+			            SimpleDateFormat df = new SimpleDateFormat("dd-MM-yyyy");
+			            return df.format((Date)property.getValue());
+			        }
+			        else if (property.getType().isEnum()) {
+			        	// Obtenemos los elementos del enumerado
+						Object[] elementosEnum = property.getType().getEnumConstants();
+						// Recorremos todos los elementos del enumerado
+						for (Object elementoEnum: elementosEnum) {
+							// Se obtiene anotación StandardFormEnum del elemento
+							try {
+								java.lang.reflect.Field elementoField = property.getType().getField(elementoEnum.toString());
+								StandardFormEnum anotación = elementoField.getAnnotation(StandardFormEnum.class);
+								// Si tiene anotación StandardFormEnum informada
+								if (anotación != null && anotación.value().length() != 0) {
+									// Si el enumerado coincide con el valor la propiedad
+									if (elementoEnum == property.getValue())
+										// Se retorna el valor de la anotación
+										return anotación.value();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
 							}
-						} catch (Exception e) {
-							e.printStackTrace();
 						}
-					}
-		        }
-		        else if (property.getType() == Boolean.class ||
-		        		property.getType() == Boolean.TYPE) {
-		        	if ((property.getValue() != null) && (Boolean)property.getValue() == true) {
-		        		return "Sí";
-		        	}
-		        	else {
-		        		return "No";
-		        	}
-		        }
-		        return super.formatPropertyValue(rowId, colId, property);
-		    }
-		};
-		table.setImmediate(true);
-		// TODO Parametrizar la longitud de la página
-		table.setPageLength(10);
-		
-		try {
-			// Obtenemos los elementos
-			loadData();
+			        }
+			        else if (property.getType() == Boolean.class ||
+			        		property.getType() == Boolean.TYPE) {
+			        	if ((property.getValue() != null) && (Boolean)property.getValue() == true) {
+			        		return "Sí";
+			        	}
+			        	else {
+			        		return "No";
+			        	}
+			        }
+			        return super.formatPropertyValue(rowId, colId, property);
+			    }
+			};
+			table.setImmediate(true);
+			// TODO Parametrizar la longitud de la página
+			table.setPageLength(10);
+			
+			container = new BeanItemContainer<T>(beanUI.getBeanClass(), listElements);
+			table.setContainerDataSource(container);
 			
 			// Si no se especifican las columnas visibles
 			if (standardFormAnnotation.columns()[0].isEmpty()) {
@@ -201,27 +217,58 @@ public class ListForm<T extends Bean, K> extends Panel {
 			}
 			table.setVisibleColumns(visibledColumns.toArray());
 			layout.addComponent(table);
-		
-			// Si se permite añadir
-			if (standardFormAnnotation.allowsAdding()) {
-				// Botón Alta
-				addButton = new Button("Alta");
-				addButton.addClickListener(new ClickListener(){
-		
-					private static final long serialVersionUID = 1L;
-		
-					@Override
-					public void buttonClick(ClickEvent event) {
-						showDetailForm(null);
-					}
-					
-				});
-				layout.addComponent(addButton);
+		}
+		// Si tiene customRowListComponent
+		else {
+			try {
+				// Obtnemos el customComponent para mostrar cada elemento
+				// La anotación es el nombre de la clase del beanDAO
+				String customClassName = standardFormAnnotation.customRowListComponent();
+				// Obtenemos la clase del Componente personalizado
+				Class<?> customComponentClass = Class.forName(customClassName);
+				// Obtenemos el constructor con el parámetro del tipo del bean
+				Constructor<?> constructor = customComponentClass.getConstructor(beanUI.getBeanClass());
+				for (T element : listElements) {
+					@SuppressWarnings("unchecked")
+					CustomField<T> rowComponent = (CustomField<T>) constructor.newInstance(element);
+					layout.addComponent(rowComponent);
+				}
+				
+			} catch (ClassNotFoundException e) {
+				Notification.show("Error",
+					"No está implementado el componente personalizado para mostrar el listado de"
+						+ " los elementos del bean " + beanUI.getBeanClass().getSimpleName(),
+					Type.ERROR_MESSAGE);
+				e.printStackTrace();
+			} catch (NoSuchMethodException | SecurityException e) {
+				Notification.show("Error",
+					"No está implementado el constructor del componente personalizado para mostrar "
+						+ "los elementos del bean " + beanUI.getBeanClass().getSimpleName(),
+						Type.ERROR_MESSAGE);
+				e.printStackTrace();
+			} catch (Exception e) {
+				Notification.show("Error",
+					"No se puede crear el componente personalizado para mostrar "
+						+ "los elementos del bean " + beanUI.getBeanClass().getSimpleName(),
+					Type.ERROR_MESSAGE);
+				e.printStackTrace();
 			}
-		} catch (Exception e) {
-			Notification.show("No se pueden obtener los elementos",
-					e.getMessage(), Type.ERROR_MESSAGE);
-			e.printStackTrace();
+		}
+		// Si se permite añadir
+		if (standardFormAnnotation.allowsAdding()) {
+			// Botón Alta
+			addButton = new Button("Alta");
+			addButton.addClickListener(new ClickListener(){
+	
+				private static final long serialVersionUID = 1L;
+	
+				@Override
+				public void buttonClick(ClickEvent event) {
+					showDetailForm(null);
+				}
+				
+			});
+			layout.addComponent(addButton);
 		}
 	}
 	
@@ -251,7 +298,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 	/**
 	 * Gets every elements of this bean type using thee BeanDAO
 	 */
-	protected void loadData() {
+	protected List<T> loadData() {
 		// TODO No obtener todos los elementos, sino trabajar con un cursor y paginar
 		List<T> listaElementos;
 		// Si hay escuchador queryListener
@@ -264,8 +311,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 			// Obtenemos todos los elementos
 			listaElementos = beanUI.getBeanDAO().getAllElements();
 		}
-		container = new BeanItemContainer<T>(beanUI.getBeanClass(), listaElementos);
-		table.setContainerDataSource(container);
+		return listaElementos;
 	}
 	
 	/**

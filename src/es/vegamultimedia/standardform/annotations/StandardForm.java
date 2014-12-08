@@ -27,9 +27,11 @@ public @interface StandardForm {
 	/**
 	 * BeanDAO Class name, qualified name containing package
 	 * You only need to specify it if the bean uses a custom BeanDAO
-	 * If you use a BeanJPADAO or BeanMongoDAO, you don't specify it (standard form obtains the name depending on the DAOType)
+	 * If you use a BeanJPADAO or BeanMongoDAO, you don't specify it 
+	 * (standard form obtains the name depending on the DAOType)
 	 * @return
 	 */
+	// TODO Este campo no es necesario, pues el beanUI contiene ya el beanDAO.
 	public String beanDAOClassName() default "";
 	/**
 	 * List View Name showed in the URL
@@ -53,6 +55,17 @@ public @interface StandardForm {
 	 * It indicates if it's allowed to delete elements of the POJO
 	 */
 	public boolean allowsDeleting() default true;
+	
+	/**
+	 * Row list component class: qualified name containing package.
+	 * If you don't specify it, ListForm use a table to show every elements in the list.
+	 * If you specify it, you must implement a component class that must inherit CustomField<BeanType>
+	 * and you must create a constructor CustomComponent(Bean bean) because ListForm calls this constructor for
+	 * every row of the list.
+	 * @return
+	 */
+	public String customRowListComponent() default "";
+	 
 	/**
 	 * Visibled columns in the table in the correct order. Each element must math with a POJO's field
 	 * If empty, the table shows every field in the same order.
