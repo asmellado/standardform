@@ -58,9 +58,6 @@ public class ListForm<T extends Bean, K> extends Panel {
 	// Container del formulario
 	protected BeanItemContainer<T> container;
 	
-	// Formulario
-	protected FormLayout form;
-	
 	// Tabla del formulario
 	protected Table table;
 	
@@ -104,13 +101,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 			return;
 		}
 		
-		// Creamos el formulario para albergar todos los campos del bean
-		form = new FormLayout();
-		setContent(form);
-		
 		// Layout
 		VerticalLayout layout = new VerticalLayout();
-		form.addComponent(layout);
+		setContent(layout);
 		
 		// Si NO tiene customRowListComponent
 		if (standardFormAnnotation.customRowListComponent().isEmpty()) {
