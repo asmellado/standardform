@@ -6,8 +6,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map.Entry;
 
 import javax.persistence.Lob;
 import javax.persistence.Temporal;
@@ -26,6 +28,7 @@ import com.vaadin.data.Property.ValueChangeEvent;
 import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
+import com.vaadin.data.util.BeanItem;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.validator.BeanValidator;
 import com.vaadin.event.ShortcutAction.KeyCode;
@@ -88,8 +91,10 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	// BeanUI that created this standard detail form
 	protected BeanUI<T, K> beanUI;
 	
-	// Binder del formulario
-	protected BeanFieldGroup<T> binder;
+	// Mapa de binders del formulario.
+	// La clave para el binder principal es "" y para los binders de los bean anidados
+	// el prefijo del campo
+	protected HashMap<String, BeanFieldGroup<?>> binderMap;
 	
 	// Bean actual
 	protected T bean;
@@ -144,9 +149,13 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				bean = (T) newBean(beanUI.getBeanClass());
 			}
 			
-			// Creamos el binder
-			binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
+			// Creamos el mapa de binders
+			binderMap = new HashMap<String, BeanFieldGroup<?>>();
+			// Creamos el binder principal (el bean)
+			BeanFieldGroup<T> binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
 			binder.setItemDataSource(bean);
+			// Añadimos el binder al mapa de binders
+			binderMap.put("", binder);
 			
 			// Creamos el formulario para albergar todos los campos del bean
 			form = new FormLayout();
@@ -162,7 +171,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			addStyleName("standardform");
 			
 			// Obtenemos los campos del formulario
-			formFields = getFormFields(bean, "");
+			formFields = getFormFields(bean, binder, "");
 			
 			// Si se desean botones aceptar y cancelar
 			if (withOKAndCancelButtons) {
@@ -243,6 +252,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * Returns an array of Vaadin fields from the argument currentBean.
 	 * This method is recursive for nested beans
 	 * @param currentBean
+	 * @param currentBinder 
 	 * @param prefixParentBean
 	 * @return
 	 * @throws NoSuchMethodException
@@ -251,8 +261,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * @throws ClassNotFoundException
 	 * @throws InstantiationException
 	 */
-	@SuppressWarnings("rawtypes")
-	protected Component[] getFormFields(Bean currentBean, String prefixParentBean)
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	protected Component[] getFormFields(Bean currentBean,
+			BeanFieldGroup<?> currentBinder, String prefixParentBean)
 			throws NoSuchMethodException, IllegalAccessException,
 			InvocationTargetException, ClassNotFoundException,
 			InstantiationException {
@@ -300,16 +311,19 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				case TEXT_AREA:
 					// Creamos el campo a mano y lo añadimos al binder
 					currentFields[i] = new TextArea(caption);
-					binder.bind((Field) currentFields[i], prefixParentBean + currentBeanFields[i].getName());
+					currentBinder.bind((Field) currentFields[i], currentBeanFields[i].getName());
 					break;
 				// Si es un campo "normal"
 				case TEXT_FIELD:
 				case NUM_FIELD:
 				case CHECK_BOX:
 					// Construimos el campo directamente con el binder
-					currentFields[i] = binder.buildAndBind(caption, prefixParentBean + currentBeanFields[i].getName());
+					currentFields[i] = currentBinder.buildAndBind(caption,
+							currentBeanFields[i].getName());
 					// Si es un campo de texto TextField, especificamos la longitud máxima (Vaadin no lo hace)
 					if (currentFields[i] instanceof TextField) {
+						// TODO Parametrizar locale
+						((TextField)currentFields[i]).setLocale(new Locale("es", "ES"));
 						// Obtenemos la anotación Size del campo del bean
 						Size size = currentBeanFields[i].getAnnotation(Size.class);
 						// Si hay anotación Size
@@ -335,7 +349,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					((PopupDateField)currentFields[i]).setTextFieldEnabled(false);
 					// TODO Parametrizar locale
 					((PopupDateField)currentFields[i]).setLocale(new Locale("es", "ES"));
-					binder.bind((Field) currentFields[i], prefixParentBean + currentBeanFields[i].getName());
+					currentBinder.bind((Field) currentFields[i], currentBeanFields[i].getName());
 					break;
 				// Si es un campo de tipo archivo o imagen
 				case FILE: case IMAGE:
@@ -348,7 +362,6 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				// Si es un campo embedded
 				case EMBEDDED:
 					// Obtenemos la clase del Bean anidado
-					@SuppressWarnings("unchecked")
 					Class<? extends Bean> embeddedBeanClass =
 					(Class<? extends Bean>)currentBeanFields[i].getType();
 					// Obtenemos el bean anidado
@@ -362,9 +375,17 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					}					
 					// Creamos un formulario anidado para albergar todos los campos del bean anidado
 					FormLayout embeddedForm = new FormLayout();
+					// Creamos un binder para el elemento anidado
+					BeanFieldGroup<? extends Bean> embeddedBinder = new BeanFieldGroup(embeddedBeanClass);
+					BeanItem embeddedItem = new BeanItem(embeddedBean);
+					embeddedBinder.setItemDataSource(embeddedItem);
+					String newPrefixParentBean =
+							prefixParentBean + currentBeanFields[i].getName()  + ".";
+					// Lo añadimos al mapa de binders
+					binderMap.put(newPrefixParentBean, embeddedBinder);
 					// Obtenemos los campos llamando recursivamente a esta función
-					Component[] embeddedFields = getFormFields(embeddedBean, 
-							prefixParentBean + currentBeanFields[i].getName() + ".");
+					Component[] embeddedFields = getFormFields(embeddedBean, embeddedBinder,
+							newPrefixParentBean);
 					// Añadimos los campos al formulario
 					for (Component field: embeddedFields) {
 						// Comprobamos que existe (los campos deshabilitados no se crean en alta)
@@ -396,7 +417,6 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					((Table) currentFields[i]).setImmediate(true);
 					((Table) currentFields[i]).setPageLength(3);
 					// Creamos el container y se lo asignamos
-					@SuppressWarnings("unchecked")
 					BeanItemContainer container = new BeanItemContainer((Class)parametrizedType, lista);
 					((Table) currentFields[i]).setContainerDataSource(container);
 					break;
@@ -666,7 +686,12 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Hacemos commit de los campos de tipo archivo
 			commitFileImageFields();
 			// Hacemos commit del resto de campos
-			binder.commit();
+			// Commit de todos los binders
+			// Recorremos el binderMap (todos los binders)
+			for (Entry<String, BeanFieldGroup<?>> entry : binderMap.entrySet()) {
+				 BeanFieldGroup<?> binder = entry.getValue();
+				 binder.commit();
+			}
 			// Si hay escuchador
 			if (saveListener != null) {
 				// Llamamos al método beforeSave(), antes de que se guarde el bean
@@ -1210,8 +1235,14 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		return form;
 	}
 
-	public BeanFieldGroup<T> getBinder() {
-		return binder;
+	/**
+	 * Gets the main bean binder.
+	 * Note: If there are embedded fields, every embedded bean has its own binder.
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public BeanFieldGroup<T> getMainBinder() {
+		return (BeanFieldGroup<T>) binderMap.get("");
 	}
 
 	public T getBean() {
