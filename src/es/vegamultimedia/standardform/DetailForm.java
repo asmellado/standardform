@@ -151,10 +151,10 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			
 			// Creamos el mapa de binders
 			binderMap = new HashMap<String, BeanFieldGroup<?>>();
-			// Creamos el binder principal (el bean)
+			// Creamos el binder principal para el bean
 			BeanFieldGroup<T> binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
 			binder.setItemDataSource(bean);
-			// Añadimos el binder al mapa de binders
+			// Añadimos el binder principal al mapa de binders
 			binderMap.put("", binder);
 			
 			// Creamos el formulario para albergar todos los campos del bean
@@ -379,13 +379,11 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					BeanFieldGroup<? extends Bean> embeddedBinder = new BeanFieldGroup(embeddedBeanClass);
 					BeanItem embeddedItem = new BeanItem(embeddedBean);
 					embeddedBinder.setItemDataSource(embeddedItem);
-					String newPrefixParentBean =
-							prefixParentBean + currentBeanFields[i].getName()  + ".";
 					// Lo añadimos al mapa de binders
-					binderMap.put(newPrefixParentBean, embeddedBinder);
+					binderMap.put(prefixParentBean + currentBeanFields[i].getName(), embeddedBinder);
 					// Obtenemos los campos llamando recursivamente a esta función
 					Component[] embeddedFields = getFormFields(embeddedBean, embeddedBinder,
-							newPrefixParentBean);
+							prefixParentBean + currentBeanFields[i].getName()  + ".");
 					// Añadimos los campos al formulario
 					for (Component field: embeddedFields) {
 						// Comprobamos que existe (los campos deshabilitados no se crean en alta)
@@ -686,8 +684,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Hacemos commit de los campos de tipo archivo
 			commitFileImageFields();
 			// Hacemos commit del resto de campos
-			// Commit de todos los binders
-			// Recorremos el binderMap (todos los binders)
+			// Recorremos el binderMap para hacer commit de cada binder
 			for (Entry<String, BeanFieldGroup<?>> entry : binderMap.entrySet()) {
 				 BeanFieldGroup<?> binder = entry.getValue();
 				 binder.commit();
@@ -1240,9 +1237,14 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * Note: If there are embedded fields, every embedded bean has its own binder.
 	 * @return
 	 */
+	/**
+	 * Gets the main binder of the speciefied key
+	 * @param key "" for the main bean binder, field name for nested beans
+	 * @return The binder for the key or null is there isn't binder for the key
+	 */
 	@SuppressWarnings("unchecked")
-	public BeanFieldGroup<T> getMainBinder() {
-		return (BeanFieldGroup<T>) binderMap.get("");
+	public BeanFieldGroup<T> getBinder(String key) {
+		return (BeanFieldGroup<T>) binderMap.get(key);
 	}
 
 	public T getBean() {
