@@ -1228,6 +1228,13 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		return component;
 	}
 	
+	/**
+	 * Hides the cancel button
+	 */
+	public void hideCancelButton() {
+		cancelButton.setVisible(false);
+	}
+	
 	public FormLayout getForm() {
 		return form;
 	}
