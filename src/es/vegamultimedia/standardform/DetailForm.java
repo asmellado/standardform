@@ -79,7 +79,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		/**
 		 * Called before saving the bean
 		 */
-		public abstract void beforeSave(Bean bean, boolean insertMode);
+		public abstract void beforeSave(Bean bean, boolean insertMode) throws SaveException;
 		/**
 		 * Called after saving the bean
 		 */
@@ -209,7 +209,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	/**
 	 * Adds the SaveListener
 	 */
-	public void addListener(SaveListener saveListener) {
+	public void addSaveListener(SaveListener saveListener) {
 		this.saveListener = saveListener;
 	}
 	
@@ -689,6 +689,19 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				 BeanFieldGroup<?> binder = entry.getValue();
 				 binder.commit();
 			}
+			// Si estamos en modo inserción
+			if (insertMode) {
+				// Comprobamos si existe ya un bean con la misma clave
+				Bean beanExistente = beanUI.getBeanDAO().get((K) Utils.getId(bean));
+				if (beanExistente != null) {
+					Notification.show("Error", 
+						"Ya existe un registro con la misma clave.\n"
+						+ "No se puede realizar el alta",
+						Type.ERROR_MESSAGE);
+					return;
+				}
+			}
+			
 			// Si hay escuchador
 			if (saveListener != null) {
 				// Llamamos al método beforeSave(), antes de que se guarde el bean
@@ -712,8 +725,18 @@ public class DetailForm<T extends Bean, K> extends Panel {
 							Utils.getBeanDAO((Class)(beanFields[i].getType()), beanUI.getBeanDAO());
 					// Obtenemos el bean anidado
 					Bean embeddedBean = (Bean) Utils.getFieldValue(bean, beanFields[i]);
-					// Tenemos que insertar el documento
+					// Tenemos que insertar o actualizar el bean
 					if (insertMode) {
+						// Comprobamos si existía
+						Bean beanExistente = dao.get(Utils.getId(embeddedBean));
+						if (beanExistente != null) {
+							Notification.show("Error", 
+								"Ya existe un elemento para el campo " + standardFormField.caption()
+									+ " con la misma clave.\n"
+									+ "No se puede realizar el alta",
+								Type.ERROR_MESSAGE);
+							return;
+						}
 						dao.insert(embeddedBean);
 					}
 					else {
@@ -724,6 +747,14 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			
 			// Si estamos en modo inserción, insertamos el bean en base de datos
 			if (insertMode) {
+				// Comprobamos si existía
+				Bean beanExistente = beanUI.getBeanDAO().get((K) Utils.getId(bean));
+				if (beanExistente != null) {
+					Notification.show("Error", 
+						"Ya existe un elemento con la misma clave",
+						Type.ERROR_MESSAGE);
+					return;
+				}
 				beanUI.getBeanDAO().insert(bean);
 			}
 			// Si no, actualizamos el bean en base de datos
@@ -757,13 +788,20 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					(e.getCause() == null) ? e.getMessage() : e.getCause().getMessage(),
 					Type.WARNING_MESSAGE);
 		} catch (java.util.ConcurrentModificationException e) {
-			Notification.show("No se puede guardar",
-					"Este elemento ha sido modificado mientras lo estaba editando. Inténtelo de nuevo",
+			Notification.show("Error", 
+					"No se puede guardar.\n"
+					 + "Este elemento ha sido modificado mientras lo estaba editando. Inténtelo de nuevo",
 					Type.ERROR_MESSAGE);
 			// Mostramos el listado
 			showListForm();
+		} catch (SaveException e) {
+			Notification.show("Error",
+					"No se puede grabar el registro.\n" + e.getMessage(),
+					Type.ERROR_MESSAGE);
 		} catch (Exception e) {
-			Notification.show("No se ha podido realizar la operación", e.getMessage(), Type.ERROR_MESSAGE);
+			Notification.show("Error",
+					"No se ha podido realizar la operación.\n" + e.getMessage(),
+					Type.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
 	}
