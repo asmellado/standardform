@@ -20,6 +20,7 @@ import javax.validation.constraints.Size;
 
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.annotations.Embedded;
 import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.Reference;
 import org.mongodb.morphia.query.Query;
@@ -718,7 +719,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				StandardFormField standardFormField = beanFields[i].getAnnotation(StandardFormField.class);
 				// Obtenemos el tipo de campo en función de los metadatos
 				StandardFormField.Type tipo = getTypeFormField(standardForm, beanFields[i], standardFormField);
-				if (tipo == StandardFormField.Type.EMBEDDED) {
+				// Si el tipo de campo es EMBEDDED y NO es un EMBEDDED de Morphia
+				if (tipo == StandardFormField.Type.EMBEDDED &&
+						beanFields[i].getAnnotation(Embedded.class) == null) {
 					// TODO Sólo se permite un nivel de anidamiento
 					// Obtenemos el DAO
 					BeanDAO dao = 
