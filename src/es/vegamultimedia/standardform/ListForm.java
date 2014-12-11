@@ -428,7 +428,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 			table.addGeneratedColumn("Consultar", new EditColumnGenerator("Consultar"));
 		}
 		// Ocultamos el botón añadir
-		addButton.setVisible(false);
+		if (addButton != null) {
+			addButton.setVisible(false);
+		}
 	}
 	
 	/**
