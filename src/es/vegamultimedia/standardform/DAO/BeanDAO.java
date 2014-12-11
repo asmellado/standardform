@@ -2,6 +2,7 @@ package es.vegamultimedia.standardform.DAO;
 
 import java.util.List;
 
+import es.vegamultimedia.standardform.SaveException;
 import es.vegamultimedia.standardform.model.Bean;
 
 public interface BeanDAO<T extends Bean, K> {
@@ -9,8 +10,9 @@ public interface BeanDAO<T extends Bean, K> {
 	/**
 	 * Inserts the element T in the database
 	 * @param element
+	 * @throws SaveException 
 	 */
-	public abstract void insert(T bean);
+	public abstract void insert(T bean) throws SaveException;
 	
 	/**
 	 * Updates the element T in the database
