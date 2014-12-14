@@ -413,7 +413,6 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					}
 					// Creamos la tabla
 					currentFields[i] = new Table(caption);
-					((Table) currentFields[i]).setImmediate(true);
 					((Table) currentFields[i]).setPageLength(3);
 					// Creamos el container y se lo asignamos
 					BeanItemContainer container = new BeanItemContainer((Class)parametrizedType, lista);
@@ -440,6 +439,10 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				if (currentFields[i] != null) {
 					// Asignamos al campo como id el nombre del campo del bean actual
 					currentFields[i].setId(prefixParentBean + currentBeanFields[i].getName());
+					
+					if (currentFields[i] instanceof AbstractField) {
+						((AbstractField)currentFields[i]).setImmediate(true);
+					}
 					
 					// Si no es un embedded field ni una tabla
 					if (tipo != StandardFormField.Type.EMBEDDED &&
