@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 import javax.persistence.EntityManager;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Size;
 
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.annotations.Id;
@@ -22,6 +24,7 @@ import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.DAO.BeanJPADAO;
 import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
 import es.vegamultimedia.standardform.model.BeanWithId;
@@ -343,4 +346,46 @@ abstract public class Utils {
             }
         }
     }
+	
+	/**
+	 * Gets the caption of a bean field
+	 * @param beanField
+	 * @param standardFormField
+	 * @return
+	 */
+	public static String getCaption(Field beanField, StandardFormField standardFormField) {
+		// Si no hay anotación DetailField para este campo o el caption es ""
+		if (!(standardFormField instanceof StandardFormField) ||
+				standardFormField.caption().length() == 0) {
+			// Asignamos como caption el nombre del campo con la primera letra en mayúscula
+			return Utils.capitalizeFirstLetter(beanField.getName());
+		}
+		else {
+			return standardFormField.caption();
+		}
+	}
+	
+	/**
+	 * Returns the max length of a bean field, or -1 if there is no max length
+	 * @param beanField
+	 * @return
+	 */
+	public static int getMaxLengthField(Field beanField) {
+		// Obtenemos la anotación Size del campo del bean
+		Size size = beanField.getAnnotation(Size.class);
+		// Si hay anotación Size
+		if (size instanceof Size) {
+			return size.max();
+		}
+		else {
+			// Obtenemos la anotación Max del campo del bean
+			Max max = beanField.getAnnotation(Max.class);
+			if (max instanceof Max) {
+				// Retornamos el número de dígitos máximo posible
+				return ((int)Math.floor(Math.log10(max.value()))) + 1;
+			}
+		}
+		// Si no, retornamos -1: Vaadin considera -1 como unlimitted.
+		return -1;
+	}
 }

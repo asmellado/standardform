@@ -24,6 +24,7 @@ public @interface StandardForm {
 	 * It specifies the data access object (DAO) type.
 	 */
 	public DAOType daoType();
+	
 	/**
 	 * BeanDAO Class name, qualified name containing package
 	 * You only need to specify it if the bean uses a custom BeanDAO
@@ -31,26 +32,32 @@ public @interface StandardForm {
 	 * (standard form obtains the name depending on the DAOType)
 	 * @return
 	 */
+	
 	// TODO Este campo no es necesario, pues el beanUI contiene ya el beanDAO.
 	public String beanDAOClassName() default "";
+	
 	/**
 	 * List View Name showed in the URL
 	 * @return
 	 */
 	public String listViewName();
+	
 	/**
 	 * Detail View Name showed in the URL
 	 * @return
 	 */
 	public String detailViewName();
+	
 	/**
 	 * It indicates if it's allowed to create new elements of the POJO 
 	 */
 	public boolean allowsAdding() default true;
+	
 	/**
 	 * It indicates if it's allowed to edit the elements of the POJO 
 	 */
 	public boolean allowsEditing() default true;
+	
 	/**
 	 * It indicates if it's allowed to delete elements of the POJO
 	 */
@@ -72,4 +79,14 @@ public @interface StandardForm {
 	 * @return
 	 */
 	public String[] columns() default {""};
+	
+	/**
+	 * Showed fields above the list to make searches.
+	 * The user could fill in information in these fields to make searches and filter 
+	 * the registers showed in the list.
+	 * Each array element must math with a POJO's field.
+	 * If empty, it's not possible to make searches.
+	 * @return
+	 */
+	public String[] searchFields() default {""};
 }

@@ -34,6 +34,13 @@ public interface BeanDAO<T extends Bean, K> {
 	public abstract List<T> getAllElements();
 	
 	/**
+	 * Gets the elements that match a search criteria from the database
+	 * @param searchCriteria Array with the search criteria
+	 * @return Elements that match the search criteria
+	 */
+	public abstract List<T> getElements(SearchCriterion[] searchCriteria);
+	
+	/**
 	 * Remove the element from the database
 	 * @param element
 	 */

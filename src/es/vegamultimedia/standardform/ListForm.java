@@ -12,19 +12,25 @@ import org.vaadin.dialogs.ConfirmDialog;
 
 import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanItemContainer;
+import com.vaadin.event.ShortcutAction.KeyCode;
+import com.vaadin.ui.AbstractTextField;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.CustomField;
+import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.BaseTheme;
 
+import es.vegamultimedia.standardform.DAO.SearchCriterion;
+import es.vegamultimedia.standardform.DAO.SearchCriterion.SearchType;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormEnum;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
@@ -49,7 +55,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 	protected BeanUI<T, K> beanUI;
 	
 	// StandardForm annotation bean
-	StandardForm standardFormAnnotation;
+	protected StandardForm standardFormAnnotation;
 	
 	// Lista de elementos
 	protected List<T> listElements;
@@ -57,8 +63,17 @@ public class ListForm<T extends Bean, K> extends Panel {
 	// Container del formulario
 	protected BeanItemContainer<T> container;
 	
-	// Tabla del formulario
+	// Layout principal
+	protected VerticalLayout layout;
+	
+	// Campos de búsqueda
+	protected Component[] searchFields;
+	
+	// Tabla para listado por defecto
 	protected Table table;
+	
+	// Layout para listado personalizado
+	protected VerticalLayout listLayout;
 	
 	// Nombre columna editar
 	protected String nombreColumnaEditarConsultar;
@@ -69,9 +84,6 @@ public class ListForm<T extends Bean, K> extends Panel {
 	public ListForm(BeanUI<T, K> beanUI, QueryListener<T> queryListener) {
 		this.beanUI = beanUI;
 		this.queryListener = queryListener;
-		
-		// Columnas de la tabla
-		List<String> visibledColumns;
 		
 		// Obtenemos la anotación StandardForm del bean
 		standardFormAnnotation = beanUI.getBeanClass().getAnnotation(StandardForm.class);
@@ -101,11 +113,50 @@ public class ListForm<T extends Bean, K> extends Panel {
 		}
 		
 		// Layout
-		VerticalLayout layout = new VerticalLayout();
+		layout = new VerticalLayout();
 		setContent(layout);
+			
+		// Creamos el panel de busqueda
+		createSearchPanel();
 		
+		// Creamos el listLayout
+		listLayout = new VerticalLayout();
+		layout.addComponent(listLayout);
+		
+		// Creamos el listado
+		createList();
+		
+		// Si se permite añadir
+		if (standardFormAnnotation.allowsAdding()) {
+			// Botón Alta
+			addButton = new Button("Alta");
+			addButton.addClickListener(new ClickListener(){
+				private static final long serialVersionUID = 1L;
+				@Override
+				public void buttonClick(ClickEvent event) {
+					showDetailForm(null);
+				}
+			});
+			layout.addComponent(addButton);
+		}
+	}
+	
+	/**
+	 * Adds the listener
+	 */
+	public void addQueryListener(QueryListener<T> queryListener) {
+		this.queryListener = queryListener;
+	}
+
+	/**
+	 * Adds the list to the listLayout:
+	 * A custom component for each element or a table for all the elements by default
+	 */
+	protected void createList() {
 		// Si NO tiene customRowListComponent
 		if (standardFormAnnotation.customRowListComponent().isEmpty()) {
+			// Columnas de la tabla
+			List<String> visibledColumns;
 			// Creamos una tabla para mostrar los elementos
 			table = new Table(){
 				// Damos formato de sólo fecha a los campos de tipo Date 
@@ -208,12 +259,12 @@ public class ListForm<T extends Bean, K> extends Panel {
 				visibledColumns.add("Eliminar");
 			}
 			table.setVisibleColumns(visibledColumns.toArray());
-			layout.addComponent(table);
+			listLayout.addComponent(table);
 		}
 		// Si tiene customRowListComponent
 		else {
 			try {
-				// Obtnemos el customComponent para mostrar cada elemento
+				// Obtenemos el customComponent para mostrar cada elemento
 				// La anotación es el nombre de la clase del beanDAO
 				String customClassName = standardFormAnnotation.customRowListComponent();
 				// Obtenemos la clase del Componente personalizado
@@ -223,7 +274,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 				for (T element : listElements) {
 					@SuppressWarnings("unchecked")
 					CustomField<T> rowComponent = (CustomField<T>) constructor.newInstance(element);
-					layout.addComponent(rowComponent);
+					listLayout.addComponent(rowComponent);
 				}
 				
 			} catch (ClassNotFoundException e) {
@@ -246,29 +297,93 @@ public class ListForm<T extends Bean, K> extends Panel {
 				e.printStackTrace();
 			}
 		}
-		// Si se permite añadir
-		if (standardFormAnnotation.allowsAdding()) {
-			// Botón Alta
-			addButton = new Button("Alta");
-			addButton.addClickListener(new ClickListener(){
-	
-				private static final long serialVersionUID = 1L;
-	
-				@Override
-				public void buttonClick(ClickEvent event) {
-					showDetailForm(null);
-				}
-				
-			});
-			layout.addComponent(addButton);
+	}
+
+	/**
+	 * Creates the search panel
+	 */
+	protected void createSearchPanel() {
+		// Si no hay campos de búsqueda
+		if (standardFormAnnotation.searchFields()[0].isEmpty()) {
+			// No creamos panel de búsqueda
+			return;
 		}
+		// Añadimos el panel de búsqueda
+		Panel searchPanel = new Panel("Buscar");
+		layout.addComponent(searchPanel);
+		// Creamos el layour de búsqueda
+		FormLayout searchLayout = new FormLayout();
+		searchPanel.setContent(searchLayout);
+		// Inicializamos el array searchFields
+		searchFields = new Component[standardFormAnnotation.searchFields().length];
+		// Obtenemos todos los campos del bean
+		Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
+		// Recorremos los nombres de los campos de búsqueda
+		for (int i=0; i<standardFormAnnotation.searchFields().length; i++) {
+			String fieldName = standardFormAnnotation.searchFields()[i];
+			// Obtenemos el campo que coincide con el nombre
+			for (Field beanField : beanFields) {
+				if (beanField.getName().equals(fieldName)) {
+					// TODO Sólo está preparado para campos de tipo TextField
+					// Obtenemos la anotación StandardFormField
+					StandardFormField standardFormField =
+							beanField.getAnnotation(StandardFormField.class);
+					// Obtenemos el caption
+					String caption = Utils.getCaption(beanField, standardFormField);
+					// Creamos el campo
+					searchFields[i] = new TextField(caption);
+					// Asignamos longitud máxima
+					int maxLength = Utils.getMaxLengthField(beanField);
+					((AbstractTextField) searchFields[i]).setMaxLength(maxLength);
+					// Lo añadimos al layout de búsqueda
+					searchLayout.addComponent(searchFields[i]);
+					// Asignamos el nombre del campo como id
+					searchFields[i].setId(fieldName);
+					searchFields[i].addStyleName("standardform-field");
+					
+					break;
+				}
+			}
+		}
+		// Añadimos el botón para buscar
+		Button searchButton = new Button("Buscar");
+		searchButton.setClickShortcut(KeyCode.ENTER);
+		searchButton.addClickListener(new ClickListener() {
+			@Override
+			public void buttonClick(ClickEvent event) {
+				search();
+			}
+		});
+		searchLayout.addComponent(searchButton);
 	}
 	
 	/**
-	 * Adds the listener
+	 * Makes the search. This method is called when the user clicks on the search button
 	 */
-	public void addQueryListener(QueryListener<T> queryListener) {
-		this.queryListener = queryListener;
+	protected void search() {
+		int numCriteria = 0;
+		ArrayList<SearchCriterion> criteria = new ArrayList<SearchCriterion>();
+		// Recorremos los campos de búsqueda
+		for (int i=0; i<searchFields.length; i++) {
+			if (searchFields[i] instanceof TextField) {
+				// Obtenemos el valor introducido en el campo
+				String valorCampo = ((TextField)searchFields[i]).getValue().trim();
+				// Si hay algún valor
+				if (!valorCampo.isEmpty()) {
+					String nombreCampo = searchFields[i].getId();
+					criteria.add(new SearchCriterion(nombreCampo, valorCampo, SearchType.TEXT));
+					numCriteria++;
+				}
+			}
+		}
+		// Hacemos la búsqueda
+		SearchCriterion[] arrayCriteria = new SearchCriterion[numCriteria];
+		arrayCriteria = criteria.toArray(arrayCriteria);
+		listElements = beanUI.getBeanDAO().getElements(arrayCriteria);
+		// Eliminamos los componentes del listLayout
+		listLayout.removeAllComponents();
+		// Creamos un nuevo listado
+		createList();
 	}
 
 	/**

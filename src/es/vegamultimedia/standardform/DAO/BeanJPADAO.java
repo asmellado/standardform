@@ -93,4 +93,10 @@ public class BeanJPADAO<T extends BeanJPA, K> implements BeanDAO<T, K>{
     	entityManager.remove(bean);
     	transaction.commit();
 	}
+
+	@Override
+	public List<T> getElements(SearchCriterion[] searchCriteria) {
+		// TODO Pendiente de implementar para JPA
+		return null;
+	}
 }

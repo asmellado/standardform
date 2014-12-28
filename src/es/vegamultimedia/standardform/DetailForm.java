@@ -14,9 +14,7 @@ import java.util.Map.Entry;
 import javax.persistence.Lob;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
@@ -287,15 +285,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			StandardFormField.Type tipo = getTypeFormField(standardForm, currentBeanFields[i], standardFormField);
 			// Si se ha encontrado un tipo
 			if (tipo != null) {
-				// Si no hay anotación DetailField para este campo o el caption es ""
-				if (!(standardFormField instanceof StandardFormField) ||
-						standardFormField.caption().length() == 0) {
-					// Asignamos como caption el nombre del campo con la primera letra en mayúscula
-					caption = Utils.capitalizeFirstLetter(currentBeanFields[i].getName());
-				}
-				else {
-					caption = standardFormField.caption();
-				}
+				// Obtenemos el caption
+				caption = Utils.getCaption(currentBeanFields[i], standardFormField);
 				// Comprobamos el tipo de campo
 				switch (tipo) {
 				// Si es un campo de selección
@@ -325,21 +316,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					if (currentFields[i] instanceof TextField) {
 						// TODO Parametrizar locale
 						((TextField)currentFields[i]).setLocale(new Locale("es", "ES"));
-						// Obtenemos la anotación Size del campo del bean
-						Size size = currentBeanFields[i].getAnnotation(Size.class);
-						// Si hay anotación Size
-						if (size instanceof Size) {
-							((TextField)currentFields[i]).setMaxLength(size.max());
-						}
-						else {
-							// Obtenemos la anotación Max del campo del bean
-							Max max = currentBeanFields[i].getAnnotation(Max.class);
-							if (max instanceof Max) {
-								// Obtenemos el número de dígitos máximo posible
-								int digitos = ((int)Math.floor(Math.log10(max.value()))) + 1;
-								((TextField)currentFields[i]).setMaxLength(digitos);
-							}
-						}
+						// Asignamos el tamaño máximo del campo
+						int maxLength = Utils.getMaxLengthField(currentBeanFields[i]);
+						((TextField)currentFields[i]).setMaxLength(maxLength);
 					}
 					break;
 				// Si es un campo de fecha
