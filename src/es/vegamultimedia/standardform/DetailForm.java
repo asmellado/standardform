@@ -59,7 +59,6 @@ import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardForm.DAOType;
-import es.vegamultimedia.standardform.annotations.StandardFormEnum;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.components.FileComponent;
 import es.vegamultimedia.standardform.components.FileComponent.FileUploader;
@@ -963,22 +962,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					campoSelect.setMultiSelect(true);
 				}
 			}
-			
-			campoSelect.setItemCaptionMode(ItemCaptionMode.EXPLICIT_DEFAULTS_ID);
-			// Recorremos todos los elementos del enumerado
-			for (Object elementoEnum: elementosEnum) {
-				// Se obtiene anotación StandardFormEnum del elemento
-				try {
-					java.lang.reflect.Field elementoField = enumeradoClass.getField(elementoEnum.toString());
-					StandardFormEnum anotación = elementoField.getAnnotation(StandardFormEnum.class);
-					// Si tiene anotación StandardFormEnum informada
-					if (anotación != null && anotación.value().length() != 0)
-						// Se asigna el valor como caption
-						campoSelect.setItemCaption(elementoEnum, anotación.value());
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			// Asignamos los captions del enum select
+			Utils.setCaptionsEnumSelect(campoSelect, enumeradoClass, elementosEnum);
 		}
 		if (campoSelect != null) {
 			// Obtenemos el valor del elemento actual para seleccionarlo

@@ -6,7 +6,9 @@ public class SearchCriterion {
 	 * Criteria Type
 	 */
 	public enum SearchType {
-		TEXT
+		TEXT,
+		ENUM,
+		BEAN
 	}
 	
 	private String nameField;

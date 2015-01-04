@@ -13,10 +13,12 @@ import org.vaadin.dialogs.ConfirmDialog;
 import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.event.ShortcutAction.KeyCode;
+import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.AbstractTextField;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.CustomField;
@@ -29,6 +31,7 @@ import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.BaseTheme;
 
+import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.DAO.SearchCriterion;
 import es.vegamultimedia.standardform.DAO.SearchCriterion.SearchType;
 import es.vegamultimedia.standardform.annotations.StandardForm;
@@ -66,8 +69,15 @@ public class ListForm<T extends Bean, K> extends Panel {
 	// Layout principal
 	protected VerticalLayout layout;
 	
+	// Panel de búsqueda
+	protected Panel searchPanel;
+	
 	// Campos de búsqueda
 	protected Component[] searchFields;
+	
+	// Tipos de los campos de búsqueda
+	@SuppressWarnings("rawtypes")
+	protected Class[] searchFieldTypes;
 	
 	// Tabla para listado por defecto
 	protected Table table;
@@ -303,19 +313,21 @@ public class ListForm<T extends Bean, K> extends Panel {
 	 * Creates the search panel
 	 */
 	protected void createSearchPanel() {
+		// Creamos el panel de búsqueda
+		searchPanel = new Panel("Buscar");
 		// Si no hay campos de búsqueda
 		if (standardFormAnnotation.searchFields()[0].isEmpty()) {
 			// No creamos panel de búsqueda
 			return;
 		}
 		// Añadimos el panel de búsqueda
-		Panel searchPanel = new Panel("Buscar");
 		layout.addComponent(searchPanel);
 		// Creamos el layour de búsqueda
 		FormLayout searchLayout = new FormLayout();
 		searchPanel.setContent(searchLayout);
-		// Inicializamos el array searchFields
+		// Inicializamos los arrays searchFields y searchFieldTypes
 		searchFields = new Component[standardFormAnnotation.searchFields().length];
+		searchFieldTypes = new Class[standardFormAnnotation.searchFields().length];
 		// Obtenemos todos los campos del bean
 		Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
 		// Recorremos los nombres de los campos de búsqueda
@@ -324,23 +336,13 @@ public class ListForm<T extends Bean, K> extends Panel {
 			// Obtenemos el campo que coincide con el nombre
 			for (Field beanField : beanFields) {
 				if (beanField.getName().equals(fieldName)) {
-					// TODO Sólo está preparado para campos de tipo TextField
-					// Obtenemos la anotación StandardFormField
-					StandardFormField standardFormField =
-							beanField.getAnnotation(StandardFormField.class);
-					// Obtenemos el caption
-					String caption = Utils.getCaption(beanField, standardFormField);
-					// Creamos el campo
-					searchFields[i] = new TextField(caption);
-					// Asignamos longitud máxima
-					int maxLength = Utils.getMaxLengthField(beanField);
-					((AbstractTextField) searchFields[i]).setMaxLength(maxLength);
-					// Lo añadimos al layout de búsqueda
-					searchLayout.addComponent(searchFields[i]);
-					// Asignamos el nombre del campo como id
-					searchFields[i].setId(fieldName);
-					searchFields[i].addStyleName("standardform-field");
-					
+					searchFieldTypes[i] = beanField.getType();
+					searchFields[i] = getSearchField(beanField);
+					// Comprobamos por seguridad que el campo no es null
+					if (searchFields[i] != null) {
+						// Lo añadimos al layout de búsqueda
+						searchLayout.addComponent(searchFields[i]);
+					}
 					break;
 				}
 			}
@@ -356,6 +358,61 @@ public class ListForm<T extends Bean, K> extends Panel {
 		});
 		searchLayout.addComponent(searchButton);
 	}
+
+	/**
+	 * Gets a search field for the specified bean field
+	 * @param beanField
+	 * @return
+	 */
+	protected Component getSearchField(Field beanField) {
+		Component searchField = null;
+		// Obtenemos la anotación StandardFormField
+		StandardFormField standardFormField =
+				beanField.getAnnotation(StandardFormField.class);
+		// Obtenemos el caption
+		String caption = Utils.getCaption(beanField, standardFormField);
+		@SuppressWarnings("rawtypes")
+		Class tipoCampo = beanField.getType();
+		// Si el campo es de tipo String
+		if (tipoCampo == String.class) {
+			// Creamos un campo de texto
+			searchField = new TextField(caption);
+			// Asignamos longitud máxima
+			int maxLength = Utils.getMaxLengthField(beanField);
+			((AbstractTextField) searchField).setMaxLength(maxLength);
+		}
+		// Si el campo es de tipo enunerado
+		else if (tipoCampo.isEnum()) {
+			// Obtenemos los elementos del enumerado
+			Object[] elementosEnum = tipoCampo.getEnumConstants();
+			// Creamos un combo box con los elementos
+			searchField = new ComboBox(caption, Arrays.asList(elementosEnum));
+			// Asignamos los captions del enum select
+			Utils.setCaptionsEnumSelect((AbstractSelect) searchField, tipoCampo, elementosEnum);
+		}
+		// Si el campo es de tipo Bean
+		else if (Utils.isSubClass(tipoCampo, Bean.class)) {
+			try {
+				// Obtenemos una instancia del BeanDAO anidado
+				@SuppressWarnings("unchecked")
+				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(tipoCampo, beanUI.getBeanDAO());
+				// Obtenemos todos los elementos del bean anidado
+				List<?> elementosBean = beanDAO.getAllElements();
+				// Creamos un combo box con los elementos
+				searchField = new ComboBox(caption, elementosBean);
+			} catch (Exception ignorada) {
+				ignorada.printStackTrace();
+			}
+		}
+		// TODO Falta implementar campos de tipo fecha y booleanos
+		// Si hay campo
+		if (searchField != null) {
+			// Asignamos el nombre del campo como id
+			searchField.setId(beanField.getName());
+			searchField.addStyleName("standardform-field");
+		}
+		return searchField;
+	}
 	
 	/**
 	 * Makes the search. This method is called when the user clicks on the search button
@@ -365,14 +422,40 @@ public class ListForm<T extends Bean, K> extends Panel {
 		ArrayList<SearchCriterion> criteria = new ArrayList<SearchCriterion>();
 		// Recorremos los campos de búsqueda
 		for (int i=0; i<searchFields.length; i++) {
+			// Comprobamos por seguridad que el campo no es null
+			if (searchFields[i] == null) {
+				break;
+			}
+			String nombreCampo = searchFields[i].getId();
+			// Si es un campo de texto
 			if (searchFields[i] instanceof TextField) {
 				// Obtenemos el valor introducido en el campo
 				String valorCampo = ((TextField)searchFields[i]).getValue().trim();
 				// Si hay algún valor
 				if (!valorCampo.isEmpty()) {
-					String nombreCampo = searchFields[i].getId();
+					// Añadimos criterio de búsqueda de tipo TEXT
 					criteria.add(new SearchCriterion(nombreCampo, valorCampo, SearchType.TEXT));
 					numCriteria++;
+				}
+			}
+			// Si es un ComboBox
+			else if (searchFields[i] instanceof ComboBox) {
+				// Obtenemos el elemento seleccionado
+				Object elementoSeleccionado = ((ComboBox)searchFields[i]).getValue();
+				// Si hay algún elemento seleccionado
+				if (elementoSeleccionado != null) {
+					// Si el campo es de tipo enum
+					if (searchFieldTypes[i].isEnum()) {
+						// Añadimos criterio de búsqueda de tipo ENUM
+						criteria.add(
+							new SearchCriterion(nombreCampo, elementoSeleccionado, SearchType.ENUM));
+					}
+					// Si el campo es de tipo bean
+					else if (Utils.isSubClass(searchFieldTypes[i], Bean.class)) {
+						// Añadimos criterio de búsqueda de tipo BEAN
+						criteria.add(
+							new SearchCriterion(nombreCampo, elementoSeleccionado, SearchType.BEAN));
+					}
 				}
 			}
 		}
@@ -572,26 +655,10 @@ public class ListForm<T extends Bean, K> extends Panel {
 		table.setVisibleColumns(listVisibleColumns.toArray());
 	}
 	
-//	/**
-//	 * Modify the name of the editColumn
-//	 * @param nameColumn
-//	 */
-//	public void setNameEditColumn(String nameColumn) {
-//		table.removeGeneratedColumn("Editar");
-//		table.addGeneratedColumn(nameColumn, new EditColumnGenerator(nameColumn));
-//	}
-	
-//	/**
-//	 * Remove the delete column
-//	 */
-//	public void removeDeleteColumn() {
-//		table.removeGeneratedColumn("Eliminar");
-//	}
-//	
-//	/**
-//	 * Hide the add button
-//	 */
-//	public void hideAddButton() {
-//		addButton.setVisible(false);
-//	}
+	/**
+	 * Hides the search panel
+	 */
+	public void hideSearchPanel() {
+		searchPanel.setVisible(false);
+	}
 }

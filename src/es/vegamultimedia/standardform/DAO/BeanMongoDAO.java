@@ -10,7 +10,7 @@ import org.mongodb.morphia.query.Query;
 
 import es.vegamultimedia.standardform.SaveException;
 import es.vegamultimedia.standardform.Utils;
-import es.vegamultimedia.standardform.DAO.SearchCriterion.SearchType;
+import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
 
 @SuppressWarnings("serial")
@@ -93,13 +93,27 @@ public class BeanMongoDAO<T extends BeanMongo, K> extends BasicDAO<T, K>
 			String nameField = searchCriteria[i].getNameField();
 			Object valueField = searchCriteria[i].getValueField();
 			// Si es de tipo texto
-			if (searchCriteria[i].getTypeCriteria() == SearchType.TEXT) {
-				// El campo debe contener el valor de tipo String
-				// TODO Hacer "case insensitive"
-				// NO funciona con Morphia poner entre "/" y "/i" para que sea "case insensitive"
-//				String valueString = "/" + valueField.toString() + "/i";
+			switch (searchCriteria[i].getTypeCriteria()) {
+			case TEXT:
+				// El campo debe contener el valor de tipo String (ignorando mayúsculas)
 				String valueString = valueField.toString();
-				morphiaCriteria[i] = query.criteria(nameField).contains(valueString);
+				morphiaCriteria[i] = query.criteria(nameField).containsIgnoreCase(valueString);
+				break;
+			// Si es de tipo enumerado
+			case ENUM:
+				// El campo debe ser igual al valor seleccionado
+				morphiaCriteria[i] = query.criteria(nameField).equal(valueField);
+				break;
+			// Si es de tipo bean
+			case BEAN:
+				try {
+					// Obtenemos el valor del campo id del bean
+					Object id = Utils.getId((Bean) valueField);
+					// El campo debe ser igual al id
+					morphiaCriteria[i] = query.criteria(nameField).equal(id);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		// Añadimos a la query con el operador AND todos los criterios

@@ -17,13 +17,16 @@ import javax.validation.constraints.Size;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.annotations.Id;
 
+import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HasComponents;
+import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.DAO.BeanJPADAO;
 import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.annotations.StandardFormEnum;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
@@ -387,5 +390,33 @@ abstract public class Utils {
 		}
 		// Si no, retornamos -1: Vaadin considera -1 como unlimitted.
 		return -1;
+	}
+	
+	// TODO Sería más elegante crear un componente EnumSelect en vez de tener
+	// en este método código común de DetailForm y ListForm 
+	/**
+	 * Sets the captions of the specified selectField that represents an Enum
+	 * @param selectField
+	 * @param enumClass
+	 * @param enumElements
+	 */
+	@SuppressWarnings("rawtypes")
+	public static void setCaptionsEnumSelect(AbstractSelect selectField,
+			Class enumClass, Object[] enumElements) {
+		selectField.setItemCaptionMode(ItemCaptionMode.EXPLICIT_DEFAULTS_ID);
+		// Recorremos todos los elementos del enumerado
+		for (Object elementoEnum: enumElements) {
+			// Se obtiene anotación StandardFormEnum del elemento
+			try {
+				java.lang.reflect.Field elementoField = enumClass.getField(elementoEnum.toString());
+				StandardFormEnum anotación = elementoField.getAnnotation(StandardFormEnum.class);
+				// Si tiene anotación StandardFormEnum informada
+				if (anotación != null && anotación.value().length() != 0)
+					// Se asigna el valor como caption
+					selectField.setItemCaption(elementoEnum, anotación.value());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }
