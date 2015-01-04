@@ -13,6 +13,7 @@ import org.vaadin.dialogs.ConfirmDialog;
 import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.event.ShortcutAction.KeyCode;
+import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.AbstractTextField;
 import com.vaadin.ui.Button;
@@ -23,8 +24,10 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.CustomField;
 import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
+import com.vaadin.ui.Table.ColumnGenerator;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.TextField;
@@ -52,6 +55,24 @@ public class ListForm<T extends Bean, K> extends Panel {
 		public abstract List<T> getElements();
 	}
 	
+	/**
+	 * Generated column of the list table
+	 */
+	public class GeneratedColumn {
+		private Object id;
+		private ColumnGenerator columnGenerator;
+		public GeneratedColumn(Object id, ColumnGenerator generatedColumn) {
+			this.id = id;
+			this.columnGenerator = generatedColumn;
+		}
+		public Object getId() {
+			return id;
+		}
+		public ColumnGenerator getColumnGenerator() {
+			return columnGenerator;
+		}
+	}
+	
 	protected QueryListener<T> queryListener;
 	
 	// BeanUI that created this standard list form
@@ -67,7 +88,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 	protected BeanItemContainer<T> container;
 	
 	// Layout principal
-	protected VerticalLayout layout;
+	protected VerticalLayout mainLayout;
 	
 	// Panel de búsqueda
 	protected Panel searchPanel;
@@ -78,6 +99,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 	// Tipos de los campos de búsqueda
 	@SuppressWarnings("rawtypes")
 	protected Class[] searchFieldTypes;
+	
+	// Etiqueta de información de búsqueda
+	protected Label searchInfo;
 	
 	// Tabla para listado por defecto
 	protected Table table;
@@ -90,6 +114,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 	
 	// Botón alta
 	protected Button addButton;
+	
+	// Lista de columnas generadas
+	protected ArrayList<GeneratedColumn> generatedColumns;
 	
 	public ListForm(BeanUI<T, K> beanUI, QueryListener<T> queryListener) {
 		this.beanUI = beanUI;
@@ -111,27 +138,33 @@ public class ListForm<T extends Bean, K> extends Panel {
 					Type.ERROR_MESSAGE);
 			return;
 		}
-
-		try {
-			// Obtenemos los elementos
-			listElements = loadData();
-		} catch (Exception e) {
-			Notification.show("No se pueden obtener los elementos",
-					e.getMessage(), Type.ERROR_MESSAGE);
-			e.printStackTrace();
-			return;
-		}
 		
-		// Layout
-		layout = new VerticalLayout();
-		setContent(layout);
+		// Inicializamos generatedColumns
+		generatedColumns = new ArrayList<GeneratedColumn>();
+
+		// Layout principal
+		mainLayout = new VerticalLayout();
+		setContent(mainLayout);
 			
 		// Creamos el panel de busqueda
 		createSearchPanel();
 		
 		// Creamos el listLayout
 		listLayout = new VerticalLayout();
-		layout.addComponent(listLayout);
+		mainLayout.addComponent(listLayout);
+		
+		// Si no hay panel de búsqueda
+		if (searchPanel.getContent() == null) {
+			try {
+				// Obtenemos los elementos
+				listElements = loadData();
+			} catch (Exception e) {
+				Notification.show("No se pueden obtener los elementos",
+						e.getMessage(), Type.ERROR_MESSAGE);
+				e.printStackTrace();
+				return;
+			}
+		}
 		
 		// Creamos el listado
 		createList();
@@ -147,7 +180,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 					showDetailForm(null);
 				}
 			});
-			layout.addComponent(addButton);
+			mainLayout.addComponent(addButton);
 		}
 	}
 	
@@ -269,6 +302,14 @@ public class ListForm<T extends Bean, K> extends Panel {
 				visibledColumns.add("Eliminar");
 			}
 			table.setVisibleColumns(visibledColumns.toArray());
+			
+			// Añadimos las columnas generadas personalizadas
+			for (GeneratedColumn column : generatedColumns) {
+				Object id = column.getId();
+				ColumnGenerator columnGenerator = column.getColumnGenerator();
+				table.addGeneratedColumn(id, columnGenerator);
+			}
+			
 			listLayout.addComponent(table);
 		}
 		// Si tiene customRowListComponent
@@ -281,12 +322,13 @@ public class ListForm<T extends Bean, K> extends Panel {
 				Class<?> customComponentClass = Class.forName(customClassName);
 				// Obtenemos el constructor con el parámetro del tipo del bean
 				Constructor<?> constructor = customComponentClass.getConstructor(beanUI.getBeanClass());
-				for (T element : listElements) {
-					@SuppressWarnings("unchecked")
-					CustomField<T> rowComponent = (CustomField<T>) constructor.newInstance(element);
-					listLayout.addComponent(rowComponent);
+				if (listElements != null) {
+					for (T element : listElements) {
+						@SuppressWarnings("unchecked")
+						CustomField<T> rowComponent = (CustomField<T>) constructor.newInstance(element);
+						listLayout.addComponent(rowComponent);
+					}
 				}
-				
 			} catch (ClassNotFoundException e) {
 				Notification.show("Error",
 					"No está implementado el componente personalizado para mostrar el listado de"
@@ -321,7 +363,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 			return;
 		}
 		// Añadimos el panel de búsqueda
-		layout.addComponent(searchPanel);
+		mainLayout.addComponent(searchPanel);
 		// Creamos el layour de búsqueda
 		FormLayout searchLayout = new FormLayout();
 		searchPanel.setContent(searchLayout);
@@ -357,6 +399,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 			}
 		});
 		searchLayout.addComponent(searchButton);
+		// Añadimos etiqueta de información
+		searchInfo = new Label("No se ha realizado ninguna búsqueda", ContentMode.HTML);
+		searchLayout.addComponent(searchInfo);
 	}
 
 	/**
@@ -419,7 +464,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 	 */
 	protected void search() {
 		int numCriteria = 0;
-		ArrayList<SearchCriterion> criteria = new ArrayList<SearchCriterion>();
+		SearchCriterion[] temporalCriteria = new SearchCriterion[searchFields.length];
+		String[] campoCriteria = new String[searchFields.length];
+		String[] valorCriteria = new String[searchFields.length];
 		// Recorremos los campos de búsqueda
 		for (int i=0; i<searchFields.length; i++) {
 			// Comprobamos por seguridad que el campo no es null
@@ -434,7 +481,10 @@ public class ListForm<T extends Bean, K> extends Panel {
 				// Si hay algún valor
 				if (!valorCampo.isEmpty()) {
 					// Añadimos criterio de búsqueda de tipo TEXT
-					criteria.add(new SearchCriterion(nombreCampo, valorCampo, SearchType.TEXT));
+					temporalCriteria[numCriteria] =
+						new SearchCriterion(nombreCampo, valorCampo, SearchType.TEXT);
+					campoCriteria[numCriteria] = searchFields[i].getCaption();
+					valorCriteria[numCriteria] = valorCampo;
 					numCriteria++;
 				}
 			}
@@ -447,26 +497,61 @@ public class ListForm<T extends Bean, K> extends Panel {
 					// Si el campo es de tipo enum
 					if (searchFieldTypes[i].isEnum()) {
 						// Añadimos criterio de búsqueda de tipo ENUM
-						criteria.add(
-							new SearchCriterion(nombreCampo, elementoSeleccionado, SearchType.ENUM));
+						temporalCriteria[numCriteria] = 
+							new SearchCriterion(nombreCampo, elementoSeleccionado, SearchType.ENUM);
 					}
 					// Si el campo es de tipo bean
 					else if (Utils.isSubClass(searchFieldTypes[i], Bean.class)) {
 						// Añadimos criterio de búsqueda de tipo BEAN
-						criteria.add(
-							new SearchCriterion(nombreCampo, elementoSeleccionado, SearchType.BEAN));
+						temporalCriteria[numCriteria] = 
+							new SearchCriterion(nombreCampo, elementoSeleccionado, SearchType.BEAN);
 					}
+					campoCriteria[numCriteria] = searchFields[i].getCaption();
+					valorCriteria[numCriteria] =
+						((ComboBox)searchFields[i]).getItemCaption(elementoSeleccionado);
+					numCriteria++;
 				}
 			}
 		}
+		// Creamos el array definitivo
+		SearchCriterion[] searchCriteria = new SearchCriterion[numCriteria];
+		for (int i=0,j=0; i<temporalCriteria.length; i++) {
+			if (temporalCriteria[i] != null) {
+				searchCriteria[j++] = temporalCriteria[i];
+			}
+		}
 		// Hacemos la búsqueda
-		SearchCriterion[] arrayCriteria = new SearchCriterion[numCriteria];
-		arrayCriteria = criteria.toArray(arrayCriteria);
-		listElements = beanUI.getBeanDAO().getElements(arrayCriteria);
+		listElements = beanUI.getBeanDAO().getElements(searchCriteria);
 		// Eliminamos los componentes del listLayout
 		listLayout.removeAllComponents();
 		// Creamos un nuevo listado
 		createList();
+		
+		// Mostramos información de búsqueda
+		String info;
+		if (numCriteria == 0) {
+			info = "Se muestran los elementos sin aplicar ningún filtro.";
+		}
+		else {
+			info = "Se muestran los elementos que cumplen los siguientes filtros:";
+			for (int i=0; i<temporalCriteria.length; i++) {
+				// Si el criterio es null
+				if (temporalCriteria[i] == null) {
+					// Pasamos al siguiente
+					continue;
+				}
+				info +=  "<br/><b>" + campoCriteria[i] + "</b>";
+				switch (temporalCriteria[i].getTypeCriteria()) {
+				case TEXT:
+					info += " contiene el texto ";
+					break;
+				case ENUM: case BEAN:
+					info += " es igual a ";
+				}
+				info += "<b>\"" + valorCriteria[i] + "\"</b>.";
+			}
+		}
+		searchInfo.setValue(info);
 	}
 
 	/**
@@ -660,5 +745,14 @@ public class ListForm<T extends Bean, K> extends Panel {
 	 */
 	public void hideSearchPanel() {
 		searchPanel.setVisible(false);
+	}
+	
+	/**
+	 * Adds a generated column to the table
+	 * @param id
+	 * @param generatedColumn
+	 */
+	public void addGeneratedColumn(Object id, ColumnGenerator generatedColumn) {
+		generatedColumns.add(new GeneratedColumn(id, generatedColumn));
 	}
 }
