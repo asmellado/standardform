@@ -744,6 +744,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 	 * Hides the search panel
 	 */
 	public void hideSearchPanel() {
+        listElements = loadData();
+        listLayout.removeAllComponents();
+        createList();
 		searchPanel.setVisible(false);
 	}
 	
