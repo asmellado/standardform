@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 import org.vaadin.dialogs.ConfirmDialog;
@@ -27,9 +28,9 @@ import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
-import com.vaadin.ui.Table.ColumnGenerator;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.Table.ColumnGenerator;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.BaseTheme;
@@ -87,6 +88,18 @@ public class ListForm<T extends Bean, K> extends Panel {
 	// Container del formulario
 	protected BeanItemContainer<T> container;
 	
+	// Indica si el formulario está deshabilitado
+	protected boolean formEnabled;
+	
+	// Indica si se permite consulta
+	protected boolean allowConsulting;
+	
+	// Columnas visibles personalizadas
+	protected String[] customVisibledColumns;
+	
+	// Cabeceras de las columnas personalizadas
+	protected HashMap<String, String> customColumnHeaders;
+	
 	// Layout principal
 	protected VerticalLayout mainLayout;
 	
@@ -117,7 +130,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 	
 	// Lista de columnas generadas
 	protected ArrayList<GeneratedColumn> generatedColumns;
-	
+
 	public ListForm(BeanUI<T, K> beanUI, QueryListener<T> queryListener) {
 		this.beanUI = beanUI;
 		this.queryListener = queryListener;
@@ -139,7 +152,11 @@ public class ListForm<T extends Bean, K> extends Panel {
 			return;
 		}
 		
-		// Inicializamos generatedColumns
+		// Inicializamos atributos
+		formEnabled = true;
+		allowConsulting = true;
+		customVisibledColumns = null;
+		customColumnHeaders = new HashMap<String, String>();
 		generatedColumns = new ArrayList<GeneratedColumn>();
 
 		// Layout principal
@@ -152,22 +169,6 @@ public class ListForm<T extends Bean, K> extends Panel {
 		// Creamos el listLayout
 		listLayout = new VerticalLayout();
 		mainLayout.addComponent(listLayout);
-		
-		// Si no hay panel de búsqueda
-		if (searchPanel.getContent() == null) {
-			try {
-				// Obtenemos los elementos
-				listElements = loadData();
-			} catch (Exception e) {
-				Notification.show("No se pueden obtener los elementos",
-						e.getMessage(), Type.ERROR_MESSAGE);
-				e.printStackTrace();
-				return;
-			}
-		}
-		
-		// Creamos el listado
-		createList();
 		
 		// Si se permite añadir
 		if (standardFormAnnotation.allowsAdding()) {
@@ -196,6 +197,8 @@ public class ListForm<T extends Bean, K> extends Panel {
 	 * A custom component for each element or a table for all the elements by default
 	 */
 	protected void createList() {
+		// Eliminamos los componentes del listLayout (por si no es la primera vez)
+		listLayout.removeAllComponents();
 		// Si NO tiene customRowListComponent
 		if (standardFormAnnotation.customRowListComponent().isEmpty()) {
 			// Columnas de la tabla
@@ -249,24 +252,44 @@ public class ListForm<T extends Bean, K> extends Panel {
 			container = new BeanItemContainer<T>(beanUI.getBeanClass(), listElements);
 			table.setContainerDataSource(container);
 			
-			// Si no se especifican las columnas visibles
-			if (standardFormAnnotation.columns()[0].isEmpty()) {
-				// Se muestran todas excepto el id
-				visibledColumns = new ArrayList<String>();
+			// Si se ha especificado columnas visibles personalizadas
+			if (customVisibledColumns != null) {
 				// Obtenemos todos los campos del bean
-				Field[] fields = beanUI.getBeanClass().getDeclaredFields();
+				Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
+				// Se muestran las columnas especificadas (comprobando para cada una si existe el campo)
+				visibledColumns = new ArrayList<String>();
 				// Recorremos los campos
-				for (int i=0;i<fields.length;i++) {
-					// Si no es el id
-					if (!fields[i].getName().equals("id")) {
-						// Añadimos el campo a las columnas visibles
-						visibledColumns.add(fields[i].getName());
-						// Añadimos la cabecera de la columna
-						addHeaderColumn(fields[i]);
+				for (int i=0; i<customVisibledColumns.length; i++) {
+					// Obtenemos el campo que coincide con el nombre de la columna
+					for (Field beanField : beanFields) {
+						if (beanField.getName().equals(customVisibledColumns[i])) {
+							// Añadimos el campo a las columnas visibles
+							visibledColumns.add(customVisibledColumns[i]);
+							// Añadimos la cabecera de la columna
+							addHeaderColumn(beanField);
+							break;
+						}
 					}
 				}
 			}
-			// Si se especifican las columnas visibles
+			// Si no se especifican las columnas visibles en la standardFormAnnotation
+			else if (standardFormAnnotation.columns()[0].isEmpty()) {
+				// Se muestran todas excepto el id
+				visibledColumns = new ArrayList<String>();
+				// Obtenemos sólo los campos declarados en el bean
+				Field[] beanFields = beanUI.getBeanClass().getDeclaredFields();
+				// Recorremos los campos
+				for (int i=0; i<beanFields.length; i++) {
+					// Si no es el id
+					if (!beanFields[i].getName().equals("id")) {
+						// Añadimos el campo a las columnas visibles
+						visibledColumns.add(beanFields[i].getName());
+						// Añadimos la cabecera de la columna
+						addHeaderColumn(beanFields[i]);
+					}
+				}
+			}
+			// Si se especifican las columnas visibles en la standardFormAnnotation
 			else {
 				// Hacemos visibles las columnas especificadas
 				visibledColumns = new ArrayList<String>(Arrays.asList(standardFormAnnotation.columns()));
@@ -291,10 +314,13 @@ public class ListForm<T extends Bean, K> extends Panel {
 			else {
 				nombreColumnaEditarConsultar = "Consultar";
 			}
-			// Añadimos columna para editar o consultar
-			table.addGeneratedColumn(nombreColumnaEditarConsultar,
-					new EditColumnGenerator(nombreColumnaEditarConsultar));
-			visibledColumns.add(nombreColumnaEditarConsultar);
+			// Si se permite consultar
+			if (allowConsulting) {
+				// Añadimos columna para editar o consultar
+				table.addGeneratedColumn(nombreColumnaEditarConsultar,
+						new EditColumnGenerator(nombreColumnaEditarConsultar));
+				visibledColumns.add(nombreColumnaEditarConsultar);
+			}
 			// Si se permite eliminar
 			if (standardFormAnnotation.allowsDeleting()) {
 				// Añadimos columna para eliminar
@@ -309,7 +335,22 @@ public class ListForm<T extends Bean, K> extends Panel {
 				ColumnGenerator columnGenerator = column.getColumnGenerator();
 				table.addGeneratedColumn(id, columnGenerator);
 			}
-			
+			// Si el formulario está deshabilitado
+			if (!formEnabled) {
+				// Quitamos columnas editar, consultar y eliminar
+				table.removeGeneratedColumn("Editar");
+				table.removeGeneratedColumn("Consultar");
+				table.removeGeneratedColumn("Eliminar");
+				// Si se permite consultar
+				if (allowConsulting) {
+					// Añadimos la columna consultar
+					table.addGeneratedColumn("Consultar", new EditColumnGenerator("Consultar"));
+				}
+				// Ocultamos el botón añadir
+				if (addButton != null) {
+					addButton.setVisible(false);
+				}
+			}
 			listLayout.addComponent(table);
 		}
 		// Si tiene customRowListComponent
@@ -357,11 +398,6 @@ public class ListForm<T extends Bean, K> extends Panel {
 	protected void createSearchPanel() {
 		// Creamos el panel de búsqueda
 		searchPanel = new Panel("Buscar");
-		// Si no hay campos de búsqueda
-		if (standardFormAnnotation.searchFields()[0].isEmpty()) {
-			// No creamos panel de búsqueda
-			return;
-		}
 		// Añadimos el panel de búsqueda
 		mainLayout.addComponent(searchPanel);
 		// Creamos el layour de búsqueda
@@ -522,8 +558,6 @@ public class ListForm<T extends Bean, K> extends Panel {
 		}
 		// Hacemos la búsqueda
 		listElements = beanUI.getBeanDAO().getElements(searchCriteria);
-		// Eliminamos los componentes del listLayout
-		listLayout.removeAllComponents();
 		// Creamos un nuevo listado
 		createList();
 		
@@ -559,6 +593,14 @@ public class ListForm<T extends Bean, K> extends Panel {
 	 * @param beanField
 	 */
 	protected void addHeaderColumn(Field beanField) {
+		// Obtenemos la cabecera pesonalizada
+		String cabeceraPersonalizada = customColumnHeaders.get(beanField.getName());
+		// Si existe cabecera personalizada
+		if (cabeceraPersonalizada != null) {
+			// La ponemos como cabecera
+			table.setColumnHeader(beanField.getName(), cabeceraPersonalizada);
+			return;
+		}
 		// Obtenemos la anotación StandarFormField del campo
 		StandardFormField standardFormField = beanField.getAnnotation(StandardFormField.class);
 		// Si la columna tiene caption
@@ -689,73 +731,97 @@ public class ListForm<T extends Bean, K> extends Panel {
 		}
 	}
 
-	public Table getTable() {
-		return table;
-	}
-	
 	/**
 	 * Disables this Listform:
-	 * Removes Edit and Delete columns, adds Consult column and hides the Add button
+	 * Removes Edit and Delete columns, adds Consult column and hides the Add button.
+	 * Note: You must call the method refreshList() after calling this method.
 	 * @param allowConsulting if true, it shows the consult column. If false, it doesn't show the
 	 * consult column
 	 */
 	public void disableForm(boolean allowConsulting) {
-		// Quitamos columnas editar, consultar y eliminar
-		table.removeGeneratedColumn("Editar");
-		table.removeGeneratedColumn("Consultar");
-		table.removeGeneratedColumn("Eliminar");
-		// Si se permite consultar
-		if (allowConsulting) {
-			// Añadimos la columna consultar
-			table.addGeneratedColumn("Consultar", new EditColumnGenerator("Consultar"));
-		}
-		// Ocultamos el botón añadir
-		if (addButton != null) {
-			addButton.setVisible(false);
-		}
+		formEnabled = false;
+		this.allowConsulting = allowConsulting;
 	}
 	
 	/**
-	 * Hides the column with de id specified
-	 * @param columnId It must be the fieldname of the bean
+	 * Forbides consulting elements in the table: it doesn't show the edit or consult column.
 	 */
-	public void hideVisibledColumn(String columnId) {
-		ArrayList<Object> listVisibleColumns = new ArrayList<Object>();
-		Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
-		for (Object column : table.getVisibleColumns()) {
-			// Si la columna visible no coincide con la que se quiere ocultar
-			if (!columnId.equals(column)) {
-				// Se añade a la nueva lista de columnas visibles
-				listVisibleColumns.add(column);
-				// Obtenemos el campo que coincide con el nombre de la columna
-				for (Field beanField : beanFields) {
-					if (beanField.getName().equals(column)) {
-						// Lo añadimos a la cabecera
-						addHeaderColumn(beanField);
-						break;
-					}
-				}
-			}
-		}
-		table.setVisibleColumns(listVisibleColumns.toArray());
+	public void forbidConsulting() {
+		allowConsulting = false;
 	}
 	
+//	/**
+//	 * Hides the column with de id specified
+//	 * @param columnId It must be the fieldname of the bean
+//	 */
+//	public void hideVisibledColumn(String columnId) {
+//		ArrayList<Object> listVisibleColumns = new ArrayList<Object>();
+//		Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
+//		for (Object column : table.getVisibleColumns()) {
+//			// Si la columna visible no coincide con la que se quiere ocultar
+//			if (!columnId.equals(column)) {
+//				// Se añade a la nueva lista de columnas visibles
+//				listVisibleColumns.add(column);
+//				// Obtenemos el campo que coincide con el nombre de la columna
+//				for (Field beanField : beanFields) {
+//					if (beanField.getName().equals(column)) {
+//						// Lo añadimos a la cabecera
+//						addHeaderColumn(beanField);
+//						break;
+//					}
+//				}
+//			}
+//		}
+//		table.setVisibleColumns(listVisibleColumns.toArray());
+//	}
+	
 	/**
-	 * Hides the search panel
+	 * Hides the search panel.
 	 */
 	public void hideSearchPanel() {
-        listElements = loadData();
-        listLayout.removeAllComponents();
+		try {
+			// Si se oculta el panel, debemos obtener los elementos automáticamente
+			listElements = loadData();
+		} catch (Exception e) {
+			Notification.show("No se pueden obtener los elementos",
+					e.getMessage(), Type.ERROR_MESSAGE);
+			e.printStackTrace();
+		}
+		// Creamos la lista
         createList();
+        // Ocultamos el panel de búsqueda
 		searchPanel.setVisible(false);
 	}
 	
 	/**
-	 * Adds a generated column to the table
+	 * Adds a generated column to the table.
 	 * @param id
 	 * @param generatedColumn
 	 */
 	public void addGeneratedColumn(Object id, ColumnGenerator generatedColumn) {
 		generatedColumns.add(new GeneratedColumn(id, generatedColumn));
 	}
+
+	/**
+	 * Sets custom visibles columns.
+	 * @param customVisibledColumns
+	 */
+	public void setCustomVisibledColumns(String[] customVisibledColumns) {
+		this.customVisibledColumns = customVisibledColumns;
+	}
+	
+	/**
+     * Sets the column header for the specified column.
+     */
+    public void setColumnHeader(String propertyId, String header) {
+    	customColumnHeaders.put(propertyId, header);
+    }
+    
+    /**
+     * Refreshes the list. You must call this method if there has been a change in the list
+     */
+    public void refreshList() {
+		// Creamos un nuevo listado
+		createList();
+    }
 }
