@@ -25,6 +25,7 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.CustomField;
 import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
@@ -56,7 +57,14 @@ public class ListForm<T extends Bean, K> extends Panel {
 		public abstract List<T> getElements();
 	}
 	
-	/**
+    /**
+     * Event BeforeCreateList
+     */
+    public interface BeforeCreateList<T extends Bean> {
+        public abstract void beforeCreateList(List<T> elements);
+    }
+
+    /**
 	 * Generated column of the list table
 	 */
 	public class GeneratedColumn {
@@ -73,6 +81,8 @@ public class ListForm<T extends Bean, K> extends Panel {
 			return columnGenerator;
 		}
 	}
+	
+	protected BeforeCreateList<T> beforeCreateList; 
 	
 	protected QueryListener<T> queryListener;
 	
@@ -122,6 +132,8 @@ public class ListForm<T extends Bean, K> extends Panel {
 	// Layout para listado personalizado
 	protected VerticalLayout listLayout;
 	
+	protected HorizontalLayout buttonsLayout;
+		
 	// Nombre columna editar
 	protected String nombreColumnaEditarConsultar;
 	
@@ -134,6 +146,7 @@ public class ListForm<T extends Bean, K> extends Panel {
 	public ListForm(BeanUI<T, K> beanUI, QueryListener<T> queryListener) {
 		this.beanUI = beanUI;
 		this.queryListener = queryListener;
+		this.beforeCreateList = null;
 		
 		// Obtenemos la anotación StandardForm del bean
 		standardFormAnnotation = beanUI.getBeanClass().getAnnotation(StandardForm.class);
@@ -170,6 +183,8 @@ public class ListForm<T extends Bean, K> extends Panel {
 		listLayout = new VerticalLayout();
 		mainLayout.addComponent(listLayout);
 		
+		buttonsLayout = new HorizontalLayout();
+		
 		// Si se permite añadir
 		if (standardFormAnnotation.allowsAdding()) {
 			// Botón Alta
@@ -181,16 +196,27 @@ public class ListForm<T extends Bean, K> extends Panel {
 					showDetailForm(null);
 				}
 			});
-			mainLayout.addComponent(addButton);
+			buttonsLayout.addComponent(addButton);
 		}
+        mainLayout.addComponent(buttonsLayout);
 	}
 	
 	/**
 	 * Adds the listener
 	 */
-	public void addQueryListener(QueryListener<T> queryListener) {
-		this.queryListener = queryListener;
-	}
+    public void addQueryListener(QueryListener<T> queryListener) {
+        this.queryListener = queryListener;
+    }
+
+    public void addButton(Button b) {
+        buttonsLayout.addComponent(b);
+    }
+    
+    public void setBeforeCreateList(BeforeCreateList<T> beforeCreateList) {
+        this.beforeCreateList = beforeCreateList;
+    }
+	
+	
 
 	/**
 	 * Adds the list to the listLayout:
@@ -199,6 +225,9 @@ public class ListForm<T extends Bean, K> extends Panel {
 	protected void createList() {
 		// Eliminamos los componentes del listLayout (por si no es la primera vez)
 		listLayout.removeAllComponents();
+		if(beforeCreateList!=null) {
+		    beforeCreateList.beforeCreateList(listElements);
+		}
 		// Si NO tiene customRowListComponent
 		if (standardFormAnnotation.customRowListComponent().isEmpty()) {
 			// Columnas de la tabla
