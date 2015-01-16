@@ -3,7 +3,7 @@ package es.vegamultimedia.utils;
 import java.util.regex.Pattern;
 
 /**
- * ColecciÛn de mÈtodos relacionados con HTML.
+ * Colecci√≥n de m√©todos relacionados con HTML.
  * 
  * @author antonio.vera
  */
@@ -17,9 +17,9 @@ public class VmHtml{
      * @author antonio.vera
      */
     //# VmHtml
-    // TODO cambiarle el nombre, se llama asÌ porque al principio este mÈtodo
-    // hacÌa m·s cosas.
-    // TODO hacerlo de forma m· eficiente, con una sola expresion regular.
+    // TODO cambiarle el nombre, se llama as√≠ porque al principio este m√©todo
+    // hac√≠a m√°s cosas.
+    // TODO hacerlo de forma m√°s eficiente, con una sola expresion regular.
     public static String code(CharSequence str) {
         String res;
         res = Pattern.compile("&").matcher(str).replaceAll("&amp;");

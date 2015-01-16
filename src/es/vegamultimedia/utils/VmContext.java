@@ -5,29 +5,29 @@ import java.util.Date;
 import org.apache.commons.mail.EmailConstants;
 
 /**
- * Clase que almacena informaciÛn de contexto de ejecuciÛn. Esta informaciÛn
+ * Clase que almacena informaci√≥n de contexto de ejecuci√≥n. Esta informaci√≥n
  * incluye:  
  * 
- * - Una cachÈ.
+ * - Una cach√©.
  * - VmList para logs de traces de debug y excepciones.
- * - InformaciÛn del desarrollador (para recibir log en caso de excepciÛn).
- * - La fecha actual, que se puede obtener pero tambiÈn modificar, util para hacer
+ * - Informaci√≥n del desarrollador (para recibir log en caso de excepci√≥n).
+ * - La fecha actual, que se puede obtener pero tambi√©n modificar, util para hacer
  *   simulaciones en el contexto de un tiempo diferente al actual.
  * 
  * Uso: 
  * 
  * 1) extender VmContext en una subclase, inicializar el developer en el
- * constructor, o antes de usarla. Los mÈtodos se que se vayan a ejecutar en
- * el contexto creado ser·n miembros NO est·ticos de la clase, y deben usar
- * getCurrentDate para obtener la fecha actual y los mÈtodos de log para traces
+ * constructor, o antes de usarla. Los m√©todos se que se vayan a ejecutar en
+ * el contexto creado ser√°n miembros NO est√°ticos de la clase, y deben usar
+ * getCurrentDate para obtener la fecha actual y los m√©todos de log para traces
  * y excepciones. Cuando se deje de usar el contexto, llamar a sendLog para
- * enviar las excepciones al desarrollador, por mail (solo se envÌa en caso
+ * enviar las excepciones al desarrollador, por mail (solo se env√≠a en caso
  * de que hayan logueado excepciones).
  * 
  * 2) Otra posibilidad es instanciar e inicializar directamente VmContext y
- * usarlo de la misma forma (habrÌa que pasar por par·metro el contexto a 
- * los mÈtodos afectados, o guardar el contexto en una clase accesible por
- * los mÈtodos, por ejemplo, la suya propia).  
+ * usarlo de la misma forma (habr√≠a que pasar por par√°metro el contexto a 
+ * los m√©todos afectados, o guardar el contexto en una clase accesible por
+ * los m√©todos, por ejemplo, la suya propia).  
  * 
  * @author antonio.vera
  */
@@ -41,8 +41,8 @@ public class VmContext {
     private boolean _testing;
 
     /**
-     * Almacena informaciÛn que permite contactar con el desarrollador de la
-     * aplicaciÛn. 
+     * Almacena informaci√≥n que permite contactar con el desarrollador de la
+     * aplicaci√≥n. 
      * 
      * @author antonio.vera
      */
@@ -85,7 +85,7 @@ public class VmContext {
                     html(body).
                     send();
             } catch(Exception e) {
-                // Si esto falla, lo ˙nico que se puede hacer es tracear la pila a la
+                // Si esto falla, lo √∫nico que se puede hacer es tracear la pila a la
                 // consola.
                 e.printStackTrace();
             }
@@ -132,7 +132,7 @@ public class VmContext {
     
     /**
      * Obtiene una subcache
-     * @param ruta... (vararg) cada par·metro es un item de la ruta hasta la subcache
+     * @param ruta... (vararg) cada par√°metro es un item de la ruta hasta la subcache
      * @return
      * @author antonio.vera
      */
@@ -149,7 +149,7 @@ public class VmContext {
     }
     
     /**
-     * AÒade un mensaje de log a la lista interna (no imprime nada en consola)
+     * A√±ade un mensaje de log a la lista interna (no imprime nada en consola)
      * @param log Mensaje del trace.
      * @author antonio.vera
      */
@@ -159,9 +159,9 @@ public class VmContext {
     }
 
     /**
-     * AÒade un mensaje de log a la lista interna (no imprime nada en consola)
+     * A√±ade un mensaje de log a la lista interna (no imprime nada en consola)
      * @param log Mensaje del trace, que puede incluir opciones de formato.
-     * @param objs Par·metros para las opciones de formato.
+     * @param objs Par√°metros para las opciones de formato.
      * @author antonio.vera
      */
     //# VmContext

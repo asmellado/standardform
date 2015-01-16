@@ -5,23 +5,23 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 
 /**
- * Para comparar fechas y obtener mensajes de cuenta atrás. 
+ * Para comparar fechas y obtener mensajes de cuenta atrÃ¡s. 
  * 
- * Ejemplo, una aplicación puede querer que se avise de los dias que faltan para
- * un evento, o las horas que faltan si falta menos de un día, o los minutos si
+ * Ejemplo, una aplicaciÃ³n puede querer que se avise de los dias que faltan para
+ * un evento, o las horas que faltan si falta menos de un dÃ­a, o los minutos si
  * falta menos de una hora, o incluso los segundos, si falta menos de un minuto.
  * 
- * Eso se consigue con los métodos countDownTime.
+ * Eso se consigue con los mÃ©todos countDownTime.
  * 
- * Los métodos para comparar fechas que sirven para obtener cuantas unidades de
- * tiempo (dias, minutos, horas...) separan dos fechas, también pueden ser útiles.
+ * Los mÃ©todos para comparar fechas que sirven para obtener cuantas unidades de
+ * tiempo (dias, minutos, horas...) separan dos fechas, tambiÃ©n pueden ser Ãºtiles.
  * 
  * @author antonio.vera
  */
 public class VmDate {
     static public enum UNIT {SECONDS, MINUTES, HOURS, DAYS, WEEKS};
-    static private String[] unitsN = new String[] {"segundos", "minutos", "horas", "días", "semanas"};
-    static private String[] units1 = new String[] {"segundo",  "minuto",  "hora",  "día",  "semana"};
+    static private String[] unitsN = new String[] {"segundos", "minutos", "horas", "dÃ­as", "semanas"};
+    static private String[] units1 = new String[] {"segundo",  "minuto",  "hora",  "dÃ­a",  "semana"};
     
     private Calendar gc;
 
@@ -107,25 +107,15 @@ public class VmDate {
         return (ms+factor-1)/factor;
     }
     /**
-     * Ejemplo, una aplicación puede querer que se avise de los dias que faltan
-     * para un evento, o las horas si falta menos de un día, o los minutos si falta
-     * menos de una hora, o incluso los segundos
-     * 
-     * Los métodos countDownTime están pensados para obtener un mensaje del tipo
-     * "Quedan 4 días", o "Queda 1 minuto", o algo así. De forma que la unidad de 
-     * tiempo se va reduciendo conforme nos acercamos a la fecha final.
-     * 
-     *    
-     *    
-     * @param c El tiempo (posterior al del objeto) para el mensaje de cuenta atrás.
-     * @param format1 El formato del mensaje en caso de que la cuenta atrás sea
+     * @param c El tiempo (posterior al del objeto) para el mensaje de cuenta atrÃ¡s.
+     * @param format1 El formato del mensaje en caso de que la cuenta atrÃ¡s sea
      *                1 (singular) 
-     * @param formatN El formato del mensaje en caso de que la cuenta atrás sea
+     * @param formatN El formato del mensaje en caso de que la cuenta atrÃ¡s sea
      *                mayor que 1 (plural)
-     * @param unit La unidad de tiempo superior en la que hacer la cuenta atrás. Si
-     *             el resultado con esta unidad es menor que 1, lo intentará con
-     *             la inmediatamente menor, y así.
-     * @return El mensaje de cuenta atrás.
+     * @param unit La unidad de tiempo superior en la que hacer la cuenta atrÃ¡s. Si
+     *             el resultado con esta unidad es menor que 1, lo intentarÃ¡ con
+     *             la inmediatamente menor, y asÃ­.
+     * @return El mensaje de cuenta atrÃ¡s.
      * @author antonio.vera
      */
     //# VmDate

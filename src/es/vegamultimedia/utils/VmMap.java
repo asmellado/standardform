@@ -9,7 +9,7 @@ import java.util.TreeMap;
  * Uso: VmMap map = new VmMap().
  *                      entry(k1, v1).
  *                      entry(k2, v2).
- *                      items(k3, v31, v32, v33, v34...). // k3 ser· una VmList
+ *                      items(k3, v31, v32, v33, v34...). // k3 ser√° una VmList
  *                      ...
  * 
  * @author antonio.vera

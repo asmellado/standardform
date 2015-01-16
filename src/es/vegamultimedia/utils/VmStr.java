@@ -9,7 +9,7 @@ public class VmStr {
 
     /**
      * Trimea por la derecha una cadena, los caracteres trimeados son aquellos que
-     * estÈn en el segundo par·metro.
+     * est√°n en el segundo par√°metro.
      * @param str
      * @param chars
      * @return
@@ -30,7 +30,7 @@ public class VmStr {
     
     /**
      * Trimea por la izquierda una cadena, los caracteres trimeados son aquellos que
-     * estÈn en el segundo par·metro.
+     * est√°n en el segundo par√°metro.
      * @param str
      * @param chars
      * @return
@@ -50,7 +50,7 @@ public class VmStr {
     
     /**
      * Trimea por la izquierda y por la derecha una cadena, los caracteres trimeados
-     * son aquellos que estÈn en el segundo par·metro.
+     * son aquellos que est√°n en el segundo par√°metro.
      * @param str
      * @param chars
      * @return
@@ -67,7 +67,7 @@ public class VmStr {
      * @param o El objeto que hay que expresar como cadena. 
      * @param sb El StringBuilder en el que construir la cadena.
      * @param isKey true si el objeto es la clave de un Map.
-     * @param tab Una cadena con espacios, que se usar· como tabulador.
+     * @param tab Una cadena con espacios, que se usar√° como tabulador.
      * @param html true si el resultado debe estar en HTML.
      * @author antonio.vera
      */
@@ -244,9 +244,9 @@ public class VmStr {
     /**
      * Punto de entrada a _objToStr.
      *  
-     * _objToStr realiza su trabajo por recursiÛn, y algunos de sus par·metros est·n
-     * relacionados con esta recursiÛn. Esta funciÛn establece el valor inicial para
-     * estos par·metros.   
+     * _objToStr realiza su trabajo por recursi√≥n, y algunos de sus par√°metros est√°n
+     * relacionados con esta recursi√≥n. Esta funci√≥n establece el valor inicial para
+     * estos par√°metros.   
      * 
      * @param o El objeto que hay que expresar como cadena. 
      * @param sb El StringBuilder que hay que usar. 
@@ -259,10 +259,10 @@ public class VmStr {
     }
     
     /**
-     * Obtiene una representaciÛn en forma de cadena de un objeto, el formato del
-     * resultado est· inspirado en JSON, pero esta pensada para depuraciÛn 
-     * solamente (por ejemplo, las cadenas de m·s de 100 caracteres, se truncan y
-     * se les aÒade unos puntos suspensivos). 
+     * Obtiene una representaci√≥n en forma de cadena de un objeto, el formato del
+     * resultado est√° inspirado en JSON, pero esta pensada para depuraci√≥n 
+     * solamente (por ejemplo, las cadenas de m√°s de 100 caracteres, se truncan y
+     * se les a√±ade unos puntos suspensivos). 
      * 
      * @param o El objeto que hay que expresar como cadena. 
      * @param html true si el resultado debe estar en HTML.
@@ -282,7 +282,7 @@ public class VmStr {
     }
 
     /**
-     * Obtiene una representaciÛn en forma de cadena de un objeto. 
+     * Obtiene una representaci√≥n en forma de cadena de un objeto. 
      * 
      * @param o El objeto que hay que expresar como cadena. 
      * @author antonio.vera
@@ -293,7 +293,7 @@ public class VmStr {
     }
 
     /**
-     * Obtiene una representaciÛn en forma de cadena de una variable.
+     * Obtiene una representaci√≥n en forma de cadena de una variable.
      * 
      * @param nombreVar nombre de la variable.
      * @param obj valor de la variable.
@@ -321,7 +321,7 @@ public class VmStr {
     }
 
     /**
-     * Obtiene una representaciÛn en forma de cadena de una variable.
+     * Obtiene una representaci√≥n en forma de cadena de una variable.
      * 
      * @param nombreVar nombre de la variable.
      * @param obj valor de la variable.
@@ -334,7 +334,7 @@ public class VmStr {
     }
     
     /**
-     * Escribe en consola una representaciÛn como cadena de un objeto. 
+     * Escribe en consola una representaci√≥n como cadena de un objeto. 
      * 
      * @param obj Objeto a escribir.
      * @return
@@ -346,7 +346,7 @@ public class VmStr {
     }
 
     /**
-     * Escribe en consola una representaciÛn como cadena de una variable. 
+     * Escribe en consola una representaci√≥n como cadena de una variable. 
      * 
      * @param nombreVar Nombre de la variable.
      * @param obj valor de la variable.
@@ -361,9 +361,9 @@ public class VmStr {
     /**
      * Obtiene el resultado de sustituir en un texto, variables por su valor.
      * @param texto Texto de entrada, con variables con formato [nombre_variable] 
-     * @param regExp ExpresiÛn regular, con una captura para el nombre, que localiza las variables. 
+     * @param regExp Expresi√≥n regular, con una captura para el nombre, que localiza las variables. 
      * @param variables Map con las asociaciones nombre_variable = valor 
-     * @param defecto Valor que se usar· en aquellas variables que no se definan.
+     * @param defecto Valor que se usar√° en aquellas variables que no se definan.
      * @return texto con las variables sustituidas.
      */
     //# VmStr
@@ -399,7 +399,7 @@ public class VmStr {
      * Obtiene el resultado de sustituir en un texto, variables por su valor.
      * @param texto Texto de entrada, con variables con formato [nombre_variable] 
      * @param variables Map con las asociaciones nombre_variable = valor 
-     * @param defecto Valor que se usar· en aquellas variables que no se definan.
+     * @param defecto Valor que se usar√° en aquellas variables que no se definan.
      * @return texto con las variables sustituidas.
      */
     //# VmStr
@@ -411,7 +411,7 @@ public class VmStr {
      * Obtiene el resultado de sustituir en un texto, variables por su valor.
      * @param texto Texto de entrada, con variables con formato ${nombre_variable} 
      * @param variables Map con las asociaciones nombre_variable = valor 
-     * @param defecto Valor que se usar· en aquellas variables que no se definan.
+     * @param defecto Valor que se usar√° en aquellas variables que no se definan.
      * @return texto con las variables sustituidas.
      */
     //# VmStr

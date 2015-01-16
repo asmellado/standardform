@@ -11,7 +11,7 @@ public class VmFile {
 
     /**
      * Clase para almacenar datos binarios. Internamente es un array de bytes y
-     * un contador que indica cuantos bytes son válidos (la longitud del array
+     * un contador que indica cuantos bytes son vÃ¡lidos (la longitud del array
      * se debe ignorar).
      */
     //# VmFile
@@ -22,7 +22,7 @@ public class VmFile {
         /**
          * Constructor
          * @param b Array de bytes.
-         * @param n Número de bytes válidos en el array.
+         * @param n NÃºmero de bytes vÃ¡lidos en el array.
          * @author antonio.vera
          */
         //# VmFile.VmBytes
@@ -42,8 +42,8 @@ public class VmFile {
         }
 
         /**
-         * Obtiene el número de bytes guardados.
-         * @return El número de bytes que son válidos en el array devuelto por
+         * Obtiene el nÃºmero de bytes guardados.
+         * @return El nÃºmero de bytes que son vÃ¡lidos en el array devuelto por
          *         getBytes.
          * @author antonio.vera
          */
@@ -110,7 +110,7 @@ public class VmFile {
     }
     
     /**
-     * Carga un archivo de texto que está codificado en UTF-8.
+     * Carga un archivo de texto que estÃ¡ codificado en UTF-8.
      * @param fileName El nombre del archivo.
      * @return La cadena con el contenido del archivo
      * @throws IOException

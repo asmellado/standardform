@@ -8,7 +8,7 @@ import java.util.LinkedList;
  * Usos: VmList list = new VmList().item(v1).item(v2).item(v3)...;
  *       VmList list = new VmList(v1, v2, v3, v4...);
  *       VmList list = new VmList().items(v1, v2, v3...);
- *       O una combinación de las anteriores.
+ *       O una combinaciÃ³n de las anteriores.
  * 
  * @author antonio.vera
  */
