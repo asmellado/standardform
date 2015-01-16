@@ -58,5 +58,11 @@
 		
 		<!-- Hibernate Validator -->
 		<dependency org="org.hibernate" name="hibernate-validator" rev="5.1.2.Final"/>
+
+        <!-- Apache Commons -->
+        <dependency org="commons-codec" name="commons-codec" rev="1.9"/>
+        <dependency org="org.apache.commons" name="commons-lang3" rev="3.3.2"/>
+        <dependency org="org.apache.commons" name="commons-email" rev="1.3.3"/>
+
 	</dependencies>
 </ivy-module>
