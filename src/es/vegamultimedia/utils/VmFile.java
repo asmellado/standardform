@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 
 public class VmFile {
 
@@ -30,7 +32,45 @@ public class VmFile {
             bytes = b;
             numBytes = n;
         }
+
+        /**
+         * Constructor
+         * @param size tamaño inicial del array.
+         * @author antonio.vera
+         */
+        //# VmFile.VmBytes
+        public VmBytes(int size) {
+            bytes = new byte[size];
+            this.numBytes = 0;
+        }
         
+        /**
+         * @author antonio.vera
+         */
+        //# VmFile.VmBytes
+        public byte[] addBytes(byte[] in, int offset, int length) {
+            int total;
+            byte[] tmp;
+            int i;
+            total = bytes.length;
+            if((numBytes+length)>total) {
+                do {
+                    total *= 2;
+                } while((numBytes+length)>total);
+                tmp = new byte[total];
+                for(i=0; i<numBytes; i++) {
+                    tmp[i] = bytes[i];
+                }
+                bytes = tmp;
+                tmp = null;
+            }
+            for(i=0; i<length; i++) {
+                bytes[i+numBytes] = in[i];
+            }
+            numBytes += length;
+            return bytes;
+        }
+
         /**
          * Obtiene el array de bytes.
          * @return Los bytes
@@ -110,6 +150,77 @@ public class VmFile {
     }
     
     /**
+     * Carga un archivo de texto intentando detectar automáticamente su codificación.
+     * @param fileName El nombre del archivo.
+     * @return La cadena con el contenido del archivo
+     * @throws IOException
+     * @author antonio.vera
+     */
+    //# VmFile
+    public static String loadTextAutoFile(String fileName) throws IOException {
+        VmBytes vmb;
+        vmb = loadBinFile(fileName);
+        return binToString(vmb.getBytes(), vmb.getLength());
+    }
+    
+    /**
+     * A partir de un a
+     * @author antonio.vera
+     * @throws UnsupportedEncodingException 
+     */
+    //# VmFile
+    public static String binToString(byte[] bytes, int length) throws UnsupportedEncodingException {
+        int i;
+        byte b;
+        byte st;
+        i = 0;
+        
+        if(length>=3) {
+            if(bytes[0]==-17 && bytes[1]==-69 && bytes[2]==-65) {
+                return new String(bytes, 3, length-3, "UTF-8");
+            }
+        }
+        st = 0;
+        for(i=0; i<length; i++) {
+            b = bytes[i];
+            if(st==0) {
+                if((b&0x80)==0) {
+                    continue;
+                }
+                if((b&0x40)==0) {
+                    break;
+                }
+                if((b&0x20)==0) {
+                    st=1;
+                    continue;
+                }
+                if((b&0x10)==0) {
+                    st=2;
+                    continue;
+                }
+                if((b&0x08)==0) {
+                    st=3;
+                    continue;
+                }
+                break;
+            } else {
+                if((b&0x80)==0) {
+                    break;
+                }
+                if((b&0x40)!=0) {
+                    break;
+                }
+                st--;
+            }
+        }
+        if(i>=length && st==0) {
+            return new String(bytes, 0, length, "UTF-8");
+        }
+        return new String(bytes, 0, length, "ISO-8859-1");
+        
+    }
+
+    /**
      * Carga un archivo de texto que está codificado en UTF-8.
      * @param fileName El nombre del archivo.
      * @return La cadena con el contenido del archivo
@@ -122,6 +233,9 @@ public class VmFile {
         vmb = loadBinFile(fileName);
         return new String(vmb.getBytes(), 0, vmb.getLength(), "UTF-8");
     }
+    
+    
+    // 0xEF,0xBB,0xBF
     
     /**
      * Carga un archivo de texto.
@@ -155,4 +269,56 @@ public class VmFile {
         }
         return sb.toString();
     }
+
+    public static class VmBytesArrayOutputStream extends OutputStream {
+        VmFile.VmBytes bytes;
+        boolean closed;
+        
+        public VmBytesArrayOutputStream(int initialSize) {
+            bytes = new VmFile.VmBytes(initialSize);
+            closed = false;
+        }
+
+        public VmBytesArrayOutputStream() {
+            bytes = new VmFile.VmBytes(4096);
+            closed = false;
+        }
+        
+        @Override
+        public void write(int b) {
+            byte[] tmp = new byte[]{(byte)b};
+            bytes.addBytes(tmp, 0, 1);
+        }
+        @Override
+        public void write(byte[] b) {
+            bytes.addBytes(b, 0, b.length);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) {
+            bytes.addBytes(b, off, len);
+        }
+        
+        @Override
+        public void flush() {
+        }
+        
+        @Override
+        public void close() {
+            closed = true;
+        }
+
+        public boolean isClosed() {
+            return closed;
+        }
+
+        public byte[] getBytes() {
+            return bytes.getBytes();
+        }
+
+        public int getLength() {
+            return bytes.getLength();
+        }
+    }
+
 }
