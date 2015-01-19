@@ -1146,4 +1146,19 @@ public class Scheduler {
          */
         public void awake();
     }
+
+    public static abstract class BasicSchedulable implements Schedulable {
+
+        @Override 
+        public void load() {}
+        
+        @Override 
+        public void unload() {}
+        
+        @Override 
+        public void sleep() {}
+        
+        @Override 
+        public void awake() {}
+    }
 }
