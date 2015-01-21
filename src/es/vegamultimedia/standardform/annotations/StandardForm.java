@@ -89,4 +89,6 @@ public @interface StandardForm {
 	 * @return
 	 */
 	public String[] searchFields() default {""};
+
+	public Class<? extends Exception>[] catchSaveExceptions() default {};
 }

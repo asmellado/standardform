@@ -661,110 +661,133 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	protected void save(ClickEvent event) {
 		try {
-			// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
-			commitSelectFields(bean, formFields);
-			// Hacemos commit de los campos de tipo archivo
-			commitFileImageFields();
-			// Hacemos commit del resto de campos
-			// Recorremos el binderMap para hacer commit de cada binder
-			for (Entry<String, BeanFieldGroup<?>> entry : binderMap.entrySet()) {
-				 BeanFieldGroup<?> binder = entry.getValue();
-				 binder.commit();
-			}
-			// Si estamos en modo inserción
-			if (insertMode) {
-				// Comprobamos si existe ya un bean con la misma clave
-				Bean beanExistente = beanUI.getBeanDAO().get((K) Utils.getId(bean));
-				if (beanExistente != null) {
-					Notification.show("Error", 
-						"Ya existe un registro con la misma clave.\n"
-						+ "No se puede realizar el alta",
-						Type.ERROR_MESSAGE);
-					return;
-				}
-			}
-			
-			// Si hay escuchador
-			if (saveListener != null) {
-				// Llamamos al método beforeSave(), antes de que se guarde el bean
-				saveListener.beforeSave(bean, insertMode);
-			}
-			
-			// Buscamos si hay un campo de tipo EMBEDDED pero que es una referencia a otro bean
-			// Obtenemos la anotación StandardForm
-			StandardForm standardForm = bean.getClass().getAnnotation(StandardForm.class);
-			// Recorremos los campos
-			java.lang.reflect.Field[] beanFields = Utils.getBeanFields(bean.getClass());
-			for (int i=0;i<beanFields.length;i++) {
-				// Obtenemos la anotación StandardFormField
-				StandardFormField standardFormField = beanFields[i].getAnnotation(StandardFormField.class);
-				// Obtenemos el tipo de campo en función de los metadatos
-				StandardFormField.Type tipo = getTypeFormField(standardForm, beanFields[i], standardFormField);
-				// Si el tipo de campo es EMBEDDED y NO es un EMBEDDED de Morphia
-				if (tipo == StandardFormField.Type.EMBEDDED &&
-						beanFields[i].getAnnotation(Embedded.class) == null) {
-					// TODO Sólo se permite un nivel de anidamiento
-					// Obtenemos el DAO
-					BeanDAO dao = 
-							Utils.getBeanDAO((Class)(beanFields[i].getType()), beanUI.getBeanDAO());
-					// Obtenemos el bean anidado
-					Bean embeddedBean = (Bean) Utils.getFieldValue(bean, beanFields[i]);
-					// Tenemos que insertar o actualizar el bean
-					if (insertMode) {
-						// Comprobamos si existía
-						Bean beanExistente = dao.get(Utils.getId(embeddedBean));
-						if (beanExistente != null) {
-							Notification.show("Error", 
-								"Ya existe un elemento para el campo " + standardFormField.caption()
-									+ " con la misma clave.\n"
-									+ "No se puede realizar el alta",
-								Type.ERROR_MESSAGE);
-							return;
-						}
-						dao.insert(embeddedBean);
-					}
-					else {
-						dao.update(embeddedBean);
-					}
-				}
-			}
-			
-			// Si estamos en modo inserción, insertamos el bean en base de datos
-			if (insertMode) {
-				// Comprobamos si existía
-				Bean beanExistente = beanUI.getBeanDAO().get((K) Utils.getId(bean));
-				if (beanExistente != null) {
-					Notification.show("Error", 
-						"Ya existe un elemento con la misma clave",
-						Type.ERROR_MESSAGE);
-					return;
-				}
-				beanUI.getBeanDAO().insert(bean);
-			}
-			// Si no, actualizamos el bean en base de datos
-			else {
-				beanUI.getBeanDAO().update(bean);
-			}
-			
-			// Si hay escuchador
-			if (saveListener != null) {
-				// Llamamos al método aferSave(), después de guardar el bean
-				saveListener.afterSave(bean, insertMode);
-			}
-			
-			// Si todo ha ido bien, mostramos mensaje informativo
-			String texto;
-			if (insertMode) {
-				texto = "El elemento se ha insertado correctamente";
-			}
-			else {
-				texto = "El elemento se ha actualizado correctamente";
-			}
-			Notification.show("Información",
-					texto,
-					Type.TRAY_NOTIFICATION);
-			// Y mostramos el listado
-			showListForm();
+		    try{
+    			// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
+    			commitSelectFields(bean, formFields);
+    			// Hacemos commit de los campos de tipo archivo
+    			commitFileImageFields();
+    			// Hacemos commit del resto de campos
+    			// Recorremos el binderMap para hacer commit de cada binder
+    			for (Entry<String, BeanFieldGroup<?>> entry : binderMap.entrySet()) {
+    				 BeanFieldGroup<?> binder = entry.getValue();
+    				 binder.commit();
+    			}
+    			// Si estamos en modo inserción
+    			if (insertMode) {
+    				// Comprobamos si existe ya un bean con la misma clave
+    				Bean beanExistente = beanUI.getBeanDAO().get((K) Utils.getId(bean));
+    				if (beanExistente != null) {
+    					Notification.show("Error", 
+    						"Ya existe un registro con la misma clave.\n"
+    						+ "No se puede realizar el alta",
+    						Type.ERROR_MESSAGE);
+    					return;
+    				}
+    			}
+    			
+    			// Si hay escuchador
+    			if (saveListener != null) {
+    				// Llamamos al método beforeSave(), antes de que se guarde el bean
+    				saveListener.beforeSave(bean, insertMode);
+    			}
+    			
+    			// Buscamos si hay un campo de tipo EMBEDDED pero que es una referencia a otro bean
+    			// Obtenemos la anotación StandardForm
+    			StandardForm standardForm = bean.getClass().getAnnotation(StandardForm.class);
+    			// Recorremos los campos
+    			java.lang.reflect.Field[] beanFields = Utils.getBeanFields(bean.getClass());
+    			for (int i=0;i<beanFields.length;i++) {
+    				// Obtenemos la anotación StandardFormField
+    				StandardFormField standardFormField = beanFields[i].getAnnotation(StandardFormField.class);
+    				// Obtenemos el tipo de campo en función de los metadatos
+    				StandardFormField.Type tipo = getTypeFormField(standardForm, beanFields[i], standardFormField);
+    				// Si el tipo de campo es EMBEDDED y NO es un EMBEDDED de Morphia
+    				if (tipo == StandardFormField.Type.EMBEDDED &&
+    						beanFields[i].getAnnotation(Embedded.class) == null) {
+    					// TODO Sólo se permite un nivel de anidamiento
+    					// Obtenemos el DAO
+    					BeanDAO dao = 
+    							Utils.getBeanDAO((Class)(beanFields[i].getType()), beanUI.getBeanDAO());
+    					// Obtenemos el bean anidado
+    					Bean embeddedBean = (Bean) Utils.getFieldValue(bean, beanFields[i]);
+    					// Tenemos que insertar o actualizar el bean
+    					if (insertMode) {
+    						// Comprobamos si existía
+    						Bean beanExistente = dao.get(Utils.getId(embeddedBean));
+    						if (beanExistente != null) {
+    							Notification.show("Error", 
+    								"Ya existe un elemento para el campo " + standardFormField.caption()
+    									+ " con la misma clave.\n"
+    									+ "No se puede realizar el alta",
+    								Type.ERROR_MESSAGE);
+    							return;
+    						}
+    						dao.insert(embeddedBean);
+    					}
+    					else {
+    						dao.update(embeddedBean);
+    					}
+    				}
+    			}
+    			
+    			// Si estamos en modo inserción, insertamos el bean en base de datos
+    			if (insertMode) {
+    				// Comprobamos si existía
+    				Bean beanExistente = beanUI.getBeanDAO().get((K) Utils.getId(bean));
+    				if (beanExistente != null) {
+    					Notification.show("Error", 
+    						"Ya existe un elemento con la misma clave",
+    						Type.ERROR_MESSAGE);
+    					return;
+    				}
+    				beanUI.getBeanDAO().insert(bean);
+    			}
+    			// Si no, actualizamos el bean en base de datos
+    			else {
+    				beanUI.getBeanDAO().update(bean);
+    			}
+    			
+    			// Si hay escuchador
+    			if (saveListener != null) {
+    				// Llamamos al método aferSave(), después de guardar el bean
+    				saveListener.afterSave(bean, insertMode);
+    			}
+    			
+    			// Si todo ha ido bien, mostramos mensaje informativo
+    			String texto;
+    			if (insertMode) {
+    				texto = "El elemento se ha insertado correctamente";
+    			}
+    			else {
+    				texto = "El elemento se ha actualizado correctamente";
+    			}
+    			Notification.show("Información",
+    					texto,
+    					Type.TRAY_NOTIFICATION);
+    			// Y mostramos el listado
+    			showListForm();
+		    } catch(Exception e) {
+		        // Buscar si el bean tiene un mensaje para este tipo de excepción
+		        StandardForm standardForm = bean.getClass().getAnnotation(StandardForm.class);
+		        String mensaje = null;
+		        for(Class<? extends Exception> claseExcepcion: standardForm.catchSaveExceptions()) {
+		            if(claseExcepcion.isInstance(e)) {
+		                try {
+		                    Method method = bean.getClass().getMethod("saveExceptionListener", Exception.class);
+		                    mensaje = (String)method.invoke(bean, e);
+		                } catch (Exception e2) {}
+		            }
+		        }
+                // Si se he conseguido un mensaje de error, muestro el mensaje, si no es
+		        // así, relanzo la excepción.
+		        if(mensaje!=null) {
+		            Notification.show("Error de validación", 
+                                      mensaje,
+                                      Type.WARNING_MESSAGE);
+		        } else {
+		            throw e;
+		        }
+		    }
 		} catch (CommitException e) {
 			e.printStackTrace();
 			Notification.show("Error de validación",
