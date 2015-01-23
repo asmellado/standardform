@@ -674,14 +674,19 @@ public class DetailForm<T extends Bean, K> extends Panel {
     			}
     			// Si estamos en modo inserción
     			if (insertMode) {
-    				// Comprobamos si existe ya un bean con la misma clave
-    				Bean beanExistente = beanUI.getBeanDAO().get((K) Utils.getId(bean));
-    				if (beanExistente != null) {
-    					Notification.show("Error", 
-    						"Ya existe un registro con la misma clave.\n"
-    						+ "No se puede realizar el alta",
-    						Type.ERROR_MESSAGE);
-    					return;
+    				// Obtenemos la clave (id)
+    				Object id = Utils.getId(bean);
+    				// Si el id no es null
+    				if (id != null) {
+    					// Comprobamos si existe ya un bean con la misma clave
+        				Bean beanExistente = beanUI.getBeanDAO().get((K) id);
+        				if (beanExistente != null) {
+        					Notification.show("Error", 
+        						"Ya existe un registro con la misma clave.\n"
+        						+ "No se puede realizar el alta",
+        						Type.ERROR_MESSAGE);
+        					return;
+        				}
     				}
     			}
     			
@@ -712,16 +717,21 @@ public class DetailForm<T extends Bean, K> extends Panel {
     					Bean embeddedBean = (Bean) Utils.getFieldValue(bean, beanFields[i]);
     					// Tenemos que insertar o actualizar el bean
     					if (insertMode) {
-    						// Comprobamos si existía
-    						Bean beanExistente = dao.get(Utils.getId(embeddedBean));
-    						if (beanExistente != null) {
-    							Notification.show("Error", 
-    								"Ya existe un elemento para el campo " + standardFormField.caption()
-    									+ " con la misma clave.\n"
-    									+ "No se puede realizar el alta",
-    								Type.ERROR_MESSAGE);
-    							return;
-    						}
+    						// Obtenemos la clave (id)
+    	    				Object id = Utils.getId(embeddedBean);
+    	    				// Si el id no es null
+    	    				if (id != null) {
+    	    					// Comprobamos si existe ya un bean anidado con la misma clave
+	    						Bean beanExistente = dao.get(Utils.getId(embeddedBean));
+	    						if (beanExistente != null) {
+	    							Notification.show("Error", 
+	    								"Ya existe un elemento para el campo " + standardFormField.caption()
+	    									+ " con la misma clave.\n"
+	    									+ "No se puede realizar el alta",
+	    								Type.ERROR_MESSAGE);
+	    							return;
+	    						}
+    	    				}
     						dao.insert(embeddedBean);
     					}
     					else {
@@ -732,14 +742,6 @@ public class DetailForm<T extends Bean, K> extends Panel {
     			
     			// Si estamos en modo inserción, insertamos el bean en base de datos
     			if (insertMode) {
-    				// Comprobamos si existía
-    				Bean beanExistente = beanUI.getBeanDAO().get((K) Utils.getId(bean));
-    				if (beanExistente != null) {
-    					Notification.show("Error", 
-    						"Ya existe un elemento con la misma clave",
-    						Type.ERROR_MESSAGE);
-    					return;
-    				}
     				beanUI.getBeanDAO().insert(bean);
     			}
     			// Si no, actualizamos el bean en base de datos

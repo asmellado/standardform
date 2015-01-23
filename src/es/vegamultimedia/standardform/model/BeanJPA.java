@@ -7,6 +7,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 
+import es.vegamultimedia.standardform.annotations.StandardFormField;
+
 /**
  * An object of this class represents a bean that uses Java Persistence API (JPA) for persistence
  */
@@ -15,7 +17,8 @@ import javax.persistence.MappedSuperclass;
 public class BeanJPA implements BeanWithId, Serializable {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.TABLE)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@StandardFormField(hidden = true)
 	private Integer id;
 	
 	@Override
@@ -28,6 +31,8 @@ public class BeanJPA implements BeanWithId, Serializable {
 	}
 	@Override
 	public int hashCode() {
+		if (id == null)
+			return 0;
 		return id;
 	}
 	@Override

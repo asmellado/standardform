@@ -13,6 +13,7 @@ import javax.persistence.QueryTimeoutException;
 import javax.persistence.RollbackException;
 import javax.persistence.TransactionRequiredException;
 
+import es.vegamultimedia.standardform.SaveException;
 import es.vegamultimedia.standardform.model.BeanJPA;
 
 public class BeanJPADAO<T extends BeanJPA, K> implements BeanDAO<T, K>{
@@ -42,7 +43,7 @@ public class BeanJPADAO<T extends BeanJPA, K> implements BeanDAO<T, K>{
 	}
 	
 	@Override
-	public void insert(T bean) {
+	public void insert(T bean) throws SaveException {
 		update(bean);
 	}
 	
@@ -97,6 +98,6 @@ public class BeanJPADAO<T extends BeanJPA, K> implements BeanDAO<T, K>{
 	@Override
 	public List<T> getElements(SearchCriterion[] searchCriteria) {
 		// TODO Pendiente de implementar para JPA
-		return null;
+		return getAllElements();
 	}
 }
