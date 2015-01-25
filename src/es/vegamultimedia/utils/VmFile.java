@@ -6,93 +6,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
 public class VmFile {
 
-    /**
-     * Clase para almacenar datos binarios. Internamente es un array de bytes y
-     * un contador que indica cuantos bytes son válidos (la longitud del array
-     * se debe ignorar).
-     */
-    //# VmFile
-    public static class VmBytes {
-        private byte[] bytes; 
-        private int numBytes;
-        
-        /**
-         * Constructor
-         * @param b Array de bytes.
-         * @param n Número de bytes válidos en el array.
-         * @author antonio.vera
-         */
-        //# VmFile.VmBytes
-        public VmBytes(byte[]b, int n) {
-            bytes = b;
-            numBytes = n;
-        }
-
-        /**
-         * Constructor
-         * @param size tamaño inicial del array.
-         * @author antonio.vera
-         */
-        //# VmFile.VmBytes
-        public VmBytes(int size) {
-            bytes = new byte[size];
-            this.numBytes = 0;
-        }
-        
-        /**
-         * @author antonio.vera
-         */
-        //# VmFile.VmBytes
-        public byte[] addBytes(byte[] in, int offset, int length) {
-            int total;
-            byte[] tmp;
-            int i;
-            total = bytes.length;
-            if((numBytes+length)>total) {
-                do {
-                    total *= 2;
-                } while((numBytes+length)>total);
-                tmp = new byte[total];
-                for(i=0; i<numBytes; i++) {
-                    tmp[i] = bytes[i];
-                }
-                bytes = tmp;
-                tmp = null;
-            }
-            for(i=0; i<length; i++) {
-                bytes[i+numBytes] = in[i];
-            }
-            numBytes += length;
-            return bytes;
-        }
-
-        /**
-         * Obtiene el array de bytes.
-         * @return Los bytes
-         * @author antonio.vera
-         */
-        //# VmFile.VmBytes
-        public byte[] getBytes() {
-            return bytes;
-        }
-
-        /**
-         * Obtiene el número de bytes guardados.
-         * @return El número de bytes que son válidos en el array devuelto por
-         *         getBytes.
-         * @author antonio.vera
-         */
-        //# VmFile.VmBytes
-        public int getLength() {
-            return numBytes;
-        }
-    }
-    
     /**
      * Carga un archivo binario desde disco.
      * @param fileName El nombre del archivo.
@@ -270,54 +189,23 @@ public class VmFile {
         return sb.toString();
     }
 
-    public static class VmBytesArrayOutputStream extends OutputStream {
-        VmFile.VmBytes bytes;
-        boolean closed;
-        
+    /**
+     * Deprecated: usar VmBytesOutputStream en su lugar.
+     * 
+     * @author antonio.vera
+     */
+    @Deprecated
+    public static class VmBytesArrayOutputStream extends VmBytesOutputStream {
         public VmBytesArrayOutputStream(int initialSize) {
-            bytes = new VmFile.VmBytes(initialSize);
-            closed = false;
+            super(initialSize);
         }
 
         public VmBytesArrayOutputStream() {
-            bytes = new VmFile.VmBytes(4096);
-            closed = false;
-        }
-        
-        @Override
-        public void write(int b) {
-            byte[] tmp = new byte[]{(byte)b};
-            bytes.addBytes(tmp, 0, 1);
-        }
-        @Override
-        public void write(byte[] b) {
-            bytes.addBytes(b, 0, b.length);
+            super();
         }
 
-        @Override
-        public void write(byte[] b, int off, int len) {
-            bytes.addBytes(b, off, len);
-        }
-        
-        @Override
-        public void flush() {
-        }
-        
-        @Override
-        public void close() {
-            closed = true;
-        }
-
-        public boolean isClosed() {
-            return closed;
-        }
-
-        public byte[] getBytes() {
-            return bytes.getBytes();
-        }
-
-        public int getLength() {
-            return bytes.getLength();
+        public VmBytesArrayOutputStream(VmBytes bytes) {
+            super(bytes);
         }
     }
 
