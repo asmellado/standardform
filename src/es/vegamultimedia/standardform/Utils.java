@@ -290,6 +290,25 @@ abstract public class Utils {
 	}
 	
 	/**
+	 * Returns true if myClass is or implements the interface specified
+	 * @param superClass
+	 * @param subClass
+	 * @return
+	 */
+	public static boolean isOrImplementsInterface(Class<?> myClass, Class<?> interfaze) {
+		if (myClass == interfaze) {
+			return true;
+		}
+		Class<?>[] interfaces = myClass.getInterfaces();
+		for (Class<?> i : interfaces) {
+			if (i == interfaze) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
 	 * Returns the parametrized type of a generic field
 	 * @param currentField
 	 * @return

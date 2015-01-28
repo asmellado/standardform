@@ -2,6 +2,7 @@ package es.vegamultimedia.standardform.model;
 
 import java.io.Serializable;
 
+import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -17,6 +18,7 @@ import es.vegamultimedia.standardform.annotations.StandardFormField;
 public class BeanJPA implements BeanWithId, Serializable {
 
 	@Id
+	@Column(name="id")
 	@GeneratedValue(strategy = GenerationType.SEQUENCE)
 	@StandardFormField(hidden = true)
 	private Integer id;

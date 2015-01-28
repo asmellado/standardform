@@ -7,13 +7,17 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.persistence.Lob;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
 import javax.validation.constraints.NotNull;
 
 import org.bson.types.ObjectId;
@@ -380,20 +384,28 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				case TABLE:
 					// Obtenemos la clase parametrizada del arrayList
 					java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(currentBeanFields[i]);
-					// Obtenemos la lista
-					List lista = (List) Utils.getFieldValue(currentBean, currentBeanFields[i]);
-					// Si la lista está vacía
-					if (lista == null) {
-						// Creamos un nueva lista vacía
-						lista = new ArrayList();
+					// Obtenemos la colección de elementos
+					Collection collection = (Collection) Utils.getFieldValue(currentBean, currentBeanFields[i]);
+					// Si la colección está vacía
+					if (collection == null) {
+						// Si la colección es un set
+						if (Utils.isOrImplementsInterface(currentBeanFields[i].getType(), Set.class)) {
+							// Creamos un nuevo set vacío
+							collection = new HashSet();
+						}
+						// Si no, la colección debe ser una lista
+						else {
+							// Creamos un nueva lista vacía
+							collection = new ArrayList();
+						}
 						// Asignamos el embeddedBean al elementoActual
-						Utils.setFieldValue(currentBean, currentBeanFields[i], lista);
+						Utils.setFieldValue(currentBean, currentBeanFields[i], collection);
 					}
 					// Creamos la tabla
 					currentFields[i] = new Table(caption);
 					((Table) currentFields[i]).setPageLength(3);
 					// Creamos el container y se lo asignamos
-					BeanItemContainer container = new BeanItemContainer((Class)parametrizedType, lista);
+					BeanItemContainer container = new BeanItemContainer((Class)parametrizedType, collection);
 					((Table) currentFields[i]).setContainerDataSource(container);
 					break;
 				case MONGO_ID:
@@ -604,10 +616,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Retorna el tipo COMBO_BOX
 			return StandardFormField.Type.COMBO_BOX;
 		}
-		// Si el tipo de campos es un List ó ArrayList
-		else if (tipoBean == List.class ||
-				tipoBean == ArrayList.class) {
-			// Obtenemos la clase parametrizada del arrayList
+		// Si el tipo de campos es una colección
+		else if (Utils.isOrImplementsInterface(tipoBean, Collection.class)) {
+			// Obtenemos la clase parametrizada
 			java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(beanField);
 			// Si el tipo parametrizado es un Bean
 			if (Utils.isSubClass((Class<?>) parametrizedType, Bean.class))
@@ -807,7 +818,18 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			Notification.show("Error",
 					"No se puede grabar el registro.\n" + e.getMessage(),
 					Type.ERROR_MESSAGE);
-		} catch (Exception e) {
+		} catch (ConstraintViolationException e) {
+			Set<ConstraintViolation<?>> constraintViolations = e.getConstraintViolations();
+			String message = "";
+			for (ConstraintViolation c : constraintViolations) {
+				message += c.getRootBeanClass().getName() + "." + c.getPropertyPath()
+						+ " " + c.getMessage() + "\n";
+			}
+			Notification.show("Error en constraints",
+				message,
+				Type.ERROR_MESSAGE);
+			e.printStackTrace();
+		}catch (Exception e) {
 			Notification.show("Error",
 					"No se ha podido realizar la operación.\n" + e.getMessage(),
 					Type.ERROR_MESSAGE);
@@ -903,19 +925,20 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		StandardFormField standardFormField = field.getAnnotation(StandardFormField.class);
 		AbstractSelect campoSelect = null;
 		final Class tipoElementos;
-		List<? extends Bean> listaElementos;
+		Collection<? extends Bean> listaElementos;
 		
-		// Si es un List ó ArrayList
-		if (field.getType() == ArrayList.class) {
-			// Obtenemos la clase parametrizada del arrayList
+		// Si es una colección (tipos soportados: List y Set)
+		if (Utils.isOrImplementsInterface(field.getType(), Collection.class)) {
+			// Obtenemos la clase parametrizada de la colección
 			java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(field);
 			tipoElementos = (Class) parametrizedType;
 		}
-		// Si NO es un arrayList obtenemos directamente el tipo de elementos
+		// Si NO es una colección
 		else {
+			// Obtenemos directamente el tipo de elementos
 			tipoElementos = field.getType();
 		}
-		// Si es un bean anidado
+		// Si el tipo de elementos es un bean anidado
 		if (Utils.isSubClass(tipoElementos, Bean.class)) {
 			// Si no tiene un campo maestro, no es un campo oculto ni deshabilitado
 			if (standardFormField == null ||
@@ -928,6 +951,12 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				// Obtenemos todos los elementos del bean anidado
 				listaElementos = beanDAO.getAllElements();
 			}
+			// En caso contrario, si es un Set
+			else if (Utils.isOrImplementsInterface(tipoElementos, Set.class)){
+				// Creamos un Hashset vacío
+				listaElementos = new HashSet();
+			}
+			// Si no, debe ser un List
 			else {
 				// Creamos una lista vacía
 				listaElementos = new ArrayList();
@@ -1120,7 +1149,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * @throws InvocationTargetException
 	 * @throws CommitException
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	protected void commitSelectFields(Bean currentBean, Component[] currentFormFields)
 			throws NoSuchMethodException,
 			IllegalAccessException, InvocationTargetException, CommitException {
@@ -1147,22 +1176,31 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				}
 				// Si el campo sí permite selección múltiple
 				else {
-					// Creamos un arrayList y le añadimos los elementos seleccionados
-					@SuppressWarnings("rawtypes")
-					ArrayList arrayListElementosSeleccionados = new ArrayList();
+					Collection elementosSeleccionados;
+					// Si es un Set
+					if (Utils.isOrImplementsInterface(beanFields[i].getType(), Set.class)) {
+						// Creamos un HashSet
+						elementosSeleccionados = new HashSet();
+					}
+					// Si no, debe ser un List
+					else {
+						// Creamos un arrayList
+						elementosSeleccionados = new ArrayList();
+					}
+					// Le añadimos los elementos seleccionados
 					for (Object itemId : selectField.getItemIds()) {
 						if (selectField.isSelected(itemId)) {
-							arrayListElementosSeleccionados.add(itemId);
+							elementosSeleccionados.add(itemId);
 						}
 					}
 					// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
 					if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull
-							&& arrayListElementosSeleccionados.size() == 0) {
+							&& elementosSeleccionados.size() == 0) {
 						selectField.setRequiredError("Obligatorio");
 						throw new CommitException("Debe seleccionar al menos un elemento");
 					}
 					// Asignamos al elemento actual el arraylist de elementos seleccionados
-					Utils.setFieldValue(currentBean, beanFields[i], arrayListElementosSeleccionados);
+					Utils.setFieldValue(currentBean, beanFields[i], elementosSeleccionados);
 				}
 			}
 			// Si es un campo EMBEDDED, hay que hacer commit recursivamente
