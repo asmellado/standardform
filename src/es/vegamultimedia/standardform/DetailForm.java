@@ -616,8 +616,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Retorna el tipo COMBO_BOX
 			return StandardFormField.Type.COMBO_BOX;
 		}
-		// Si el tipo de campos es una colección
-		else if (Utils.isOrImplementsInterface(tipoBean, Collection.class)) {
+		// Si el tipo de campos es un Set o un List
+		else if (Utils.isOrImplementsInterface(tipoBean, Set.class) ||
+				Utils.isOrImplementsInterface(tipoBean, List.class)) {
 			// Obtenemos la clase parametrizada
 			java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(beanField);
 			// Si el tipo parametrizado es un Bean
@@ -928,7 +929,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		Collection<? extends Bean> listaElementos;
 		
 		// Si es una colección (tipos soportados: List y Set)
-		if (Utils.isOrImplementsInterface(field.getType(), Collection.class)) {
+		if (Utils.isOrImplementsInterface(field.getType(), Set.class) ||
+				Utils.isOrImplementsInterface(field.getType(), List.class)) {
 			// Obtenemos la clase parametrizada de la colección
 			java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(field);
 			tipoElementos = (Class) parametrizedType;
