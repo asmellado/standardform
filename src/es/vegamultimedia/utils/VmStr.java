@@ -77,6 +77,7 @@ public class VmStr {
                                   boolean isKey,
                                   String tab,
                                   boolean html) {
+        int c=0;
         if(o==null) {
             sb.append("null");
         } else if(o instanceof Boolean) {
@@ -125,6 +126,11 @@ public class VmStr {
             for(byte i: arr) {
                 sb.append(coma).append(i);
                 coma = ", ";
+                c++;
+                if(c>=50) {
+                    sb.append(coma).append(" + ... ");
+                    break;
+                }
             }
             sb.append("]");
         } else if(o instanceof short[]) {
@@ -134,6 +140,11 @@ public class VmStr {
             for(short i: arr) {
                 sb.append(coma).append(i);
                 coma = ", ";
+                c++;
+                if(c>=50) {
+                    sb.append(coma).append(" + ... ");
+                    break;
+                }
             }
             sb.append("]");
         } else if(o instanceof int[]) {
@@ -143,6 +154,11 @@ public class VmStr {
             for(int i: arr) {
                 sb.append(coma).append(i);
                 coma = ", ";
+                c++;
+                if(c>=50) {
+                    sb.append(coma).append(" + ... ");
+                    break;
+                }
             }
             sb.append("]");
         } else if(o instanceof long[]) {
@@ -152,6 +168,11 @@ public class VmStr {
             for(long i: arr) {
                 sb.append(coma).append(i);
                 coma = ", ";
+                c++;
+                if(c>=50) {
+                    sb.append(coma).append(" + ... ");
+                    break;
+                }
             }
             sb.append("]");
         } else if(o instanceof float[]) {
@@ -161,6 +182,11 @@ public class VmStr {
             for(float i: arr) {
                 sb.append(coma).append(i);
                 coma = ", ";
+                c++;
+                if(c>=50) {
+                    sb.append(coma).append(" + ... ");
+                    break;
+                }
             }
             sb.append("]");
         } else if(o instanceof double[]) {
@@ -170,6 +196,11 @@ public class VmStr {
             for(double i: arr) {
                 sb.append(coma).append(i);
                 coma = ", ";
+                c++;
+                if(c>=50) {
+                    sb.append(coma).append(" + ... ");
+                    break;
+                }
             }
             sb.append("]");
         } else if(o instanceof boolean[]) {
@@ -179,6 +210,11 @@ public class VmStr {
             for(boolean i: arr) {
                 sb.append(coma).append((i)?"true":"false");
                 coma = ", ";
+                c++;
+                if(c>=50) {
+                    sb.append(coma).append(" + ... ");
+                    break;
+                }
             }
             sb.append("]");
         } else if(o instanceof char[]) {
@@ -192,6 +228,11 @@ public class VmStr {
                 sb.append((html)?VmHtml.code(str):str);
                 sb.append("'");
                 coma = ", ";
+                c++;
+                if(c>=50) {
+                    sb.append(coma).append(" + ... ");
+                    break;
+                }
             }
             sb.append("]");
         } else if(o instanceof Object[]) {
@@ -203,6 +244,11 @@ public class VmStr {
                 sb.append(coma);
                 _objToStr(i, sb, false, tab, html);
                 coma = ",\n" + tab2;
+                c++;
+                if(c>=50) {
+                    sb.append(coma).append(" + ... ");
+                    break;
+                }
             }
             sb.append("\n").append(tab).append("]");
         } else if(o instanceof Iterable) {
@@ -214,6 +260,11 @@ public class VmStr {
                 sb.append(coma);
                 _objToStr(i, sb, false, tab2, html);
                 coma = ",\n" + tab2;
+                c++;
+                if(c>=50) {
+                    sb.append(coma).append(" + ... ");
+                    break;
+                }
             }
             sb.append("\n").append(tab).append("]");
         } else if(o instanceof Map) {

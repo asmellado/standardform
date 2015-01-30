@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -219,6 +221,36 @@ public class VmHTMLBuilder {
                 break;
             }
             i1 = i2+1;
+        }
+        return this;
+    }
+
+    public VmHTMLBuilder appendJSON(Map<String, Object> json) {
+        
+        return this;
+    }
+
+    public VmHTMLBuilder appendJSON(List<Object> json) {
+        appendRaw("[");
+        for(Object v: json) {
+            appendJSON(v);
+        }
+        appendRaw("]");
+        return this;
+    }
+
+    public VmHTMLBuilder appendJSON(Object json) {
+        if(json==null) {
+            appendRaw("null");
+        } else if(json instanceof Boolean) {
+            appendRaw( (((Boolean)json).booleanValue()) ? "true" : "false" );
+        } else if(json instanceof Number) {
+            appendRaw(json.toString());
+        } else if(json instanceof CharSequence) {
+            appendRaw("\"");
+            // \ antes de \ y ", caracteres no imprimibles, & y
+            // TODO ... pues todo
+            appendRaw("\"");
         }
         return this;
     }
