@@ -199,6 +199,17 @@ public class ListForm<T extends Bean, K> extends Panel {
 			buttonsLayout.addComponent(addButton);
 		}
         mainLayout.addComponent(buttonsLayout);
+        
+        // Si es búsqueda inmediata 
+ 		if (standardFormAnnotation.immediateSearch()) {
+ 			// Mostramos todos los elementos
+ 			showAllElements();
+ 			// Si no hay campos de búsqueda
+ 			if (standardFormAnnotation.searchFields().length == 0) {
+ 				// Ocultamos el panel de búsqueda
+ 				searchPanel.setVisible(false);
+ 			}
+ 		}
 	}
 	
 	/**
@@ -805,11 +816,10 @@ public class ListForm<T extends Bean, K> extends Panel {
 //	}
 	
 	/**
-	 * Hides the search panel.
+	 * Shows all the elements in the list
 	 */
-	public void hideSearchPanel() {
+	protected void showAllElements() {
 		try {
-			// Si se oculta el panel, debemos obtener los elementos automáticamente
 			listElements = loadData();
 		} catch (Exception e) {
 			Notification.show("No se pueden obtener los elementos",
@@ -817,10 +827,22 @@ public class ListForm<T extends Bean, K> extends Panel {
 			e.printStackTrace();
 		}
 		// Creamos la lista
-        createList();
+		createList();
+	}
+	
+	/**
+	 * Hides the search panel.
+	 */
+	public void hideSearchPanel() {
+		// Si no es búsqueda inmediata
+		if (!standardFormAnnotation.immediateSearch()) {
+			// Obtenemos todos los elementos automáticamente
+			showAllElements();
+		}
         // Ocultamos el panel de búsqueda
 		searchPanel.setVisible(false);
 	}
+
 	
 	/**
 	 * Adds a generated column to the table.
