@@ -18,6 +18,8 @@ import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.Table.ColumnGenerator;
+import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.BaseTheme;
 
 import es.vegamultimedia.standardform.BeanUI;
@@ -71,7 +73,33 @@ public class StandardTable<T extends Bean, K> extends Table {
 	
 	// Cabeceras de las columnas personalizadas
 	protected HashMap<String, String> customColumnHeaders;
+	
+	/**
+	 * Constructor used for a StandardTable inside a DetailForm
+	 * @param container
+	 * @param beanUI
+	 * @param formEnabled
+	 */
+	public StandardTable(String caption,
+			BeanItemContainer<T> container,
+			BeanUI<T, K> beanUI) {
+		this(container, beanUI, false, false,
+				null, null, null, null);
+		setCaption(caption);
+		setPageLength(3);
+	}
 
+	/**
+	 * Constructor used for a ListForm
+	 * @param container
+	 * @param beanUI
+	 * @param formEnabled
+	 * @param allowConsulting
+	 * @param customVisibledColumns
+	 * @param customColumnHeaders
+	 * @param customGeneratedColumns
+	 * @param showDetailListener
+	 */
 	public StandardTable(BeanItemContainer<T> container,
 			BeanUI<T, K> beanUI,
 			boolean formEnabled,
@@ -81,6 +109,13 @@ public class StandardTable<T extends Bean, K> extends Table {
 			ArrayList<GeneratedColumn> customGeneratedColumns,
 			ShowDetailListener<T> showDetailListener) {
 		
+		// Comprobación de parámetros null
+		if (customColumnHeaders == null) {
+			customColumnHeaders = new HashMap<String, String>();
+		}
+		if (customGeneratedColumns == null) {
+			customGeneratedColumns = new ArrayList<GeneratedColumn>();
+		}
 		// Inicializamos atributos
 		this.container = container;
 		this.beanUI = beanUI;
@@ -168,7 +203,7 @@ public class StandardTable<T extends Bean, K> extends Table {
 		if (allowConsulting) {
 			// Añadimos columna para editar o consultar 
 			// (Llamamos al método de la superclase para no registrarlo en generatedColumns)
-			super.addGeneratedColumn(nombreColumnaEditarConsultar,
+			addGeneratedColumn(nombreColumnaEditarConsultar,
 					new EditColumnGenerator(nombreColumnaEditarConsultar));
 			visibledColumns.add(nombreColumnaEditarConsultar);
 		}
@@ -176,7 +211,7 @@ public class StandardTable<T extends Bean, K> extends Table {
 		if (standardFormAnnotation.allowsDeleting()) {
 			// Añadimos columna para eliminar
 			// (Llamamos al método de la superclase para no registrarlo en generatedColumns)
-			super.addGeneratedColumn("Eliminar", new DeleteColumnGenerator());
+			addGeneratedColumn("Eliminar", new DeleteColumnGenerator());
 			visibledColumns.add("Eliminar");
 		}
 		setVisibleColumns(visibledColumns.toArray());
@@ -301,7 +336,7 @@ public class StandardTable<T extends Bean, K> extends Table {
 	/*
 	 * Class for the delete column
 	 */
-	public class DeleteColumnGenerator implements Table.ColumnGenerator {
+	public class DeleteColumnGenerator implements ColumnGenerator {
 
 		private static final long serialVersionUID = 1L;
 

@@ -55,7 +55,6 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.OptionGroup;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.PopupDateField;
-import com.vaadin.ui.Table;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
@@ -66,6 +65,7 @@ import es.vegamultimedia.standardform.annotations.StandardForm.DAOType;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.components.FileComponent;
 import es.vegamultimedia.standardform.components.FileComponent.FileUploader;
+import es.vegamultimedia.standardform.components.StandardTable;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
 import es.vegamultimedia.standardform.model.File;
@@ -401,12 +401,11 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						// Asignamos el embeddedBean al elementoActual
 						Utils.setFieldValue(currentBean, currentBeanFields[i], collection);
 					}
-					// Creamos la tabla
-					currentFields[i] = new Table(caption);
-					((Table) currentFields[i]).setPageLength(3);
-					// Creamos el container y se lo asignamos
+					// Creamos el container y el beanUI
 					BeanItemContainer container = new BeanItemContainer((Class)parametrizedType, collection);
-					((Table) currentFields[i]).setContainerDataSource(container);
+					BeanUI tableBeanUI = new BeanUI((Class)parametrizedType, null);
+					// Creamos la tabla
+					currentFields[i] = new StandardTable(caption, container, tableBeanUI);
 					break;
 				case MONGO_ID:
 					// Si estamos en modo modificación
@@ -434,9 +433,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						((AbstractField)currentFields[i]).setImmediate(true);
 					}
 					
-					// Si no es un embedded field ni una tabla
-					if (tipo != StandardFormField.Type.EMBEDDED &&
-							tipo != StandardFormField.Type.TABLE) {
+					// Si no es un embedded field
+					if (tipo != StandardFormField.Type.EMBEDDED) {
 						// Se le añade al campo el estilo standardform-field
 						currentFields[i].addStyleName("standardform-field");
 					}
@@ -479,7 +477,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					// Si es un campo oculto
 					if (standardFormField instanceof StandardFormField &&
 							standardFormField.hidden()) {
-						((AbstractField)currentFields[i]).removeAllValidators();
+						if (currentFields[i] instanceof AbstractField) {
+							((AbstractField)currentFields[i]).removeAllValidators();
+						}
 						// Se hace invisible y se deshabilita
 						currentFields[i].setVisible(false);
 						currentFields[i].setEnabled(false);
@@ -564,6 +564,12 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 */
 	protected StandardFormField.Type getTypeFormField(
 			StandardForm standardForm, java.lang.reflect.Field beanField, StandardFormField standardFormField) {
+		// Si hay anotación DetailField para este campo y no se debe crear el campo
+		if ((standardFormField instanceof StandardFormField) &&
+				!standardFormField.createField()) {
+			// No se crea el campo
+			return null;
+		}
 		// Si hay anotación DetailField para este campo y el type no es DEFAULT
 		if ((standardFormField instanceof StandardFormField) &&
 				standardFormField.type() != StandardFormField.Type.DEFAULT) {

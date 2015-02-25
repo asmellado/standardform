@@ -154,10 +154,6 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 		// Creamos el panel de busqueda
 		createSearchPanel();
 		
-		// Creamos el listLayout
-		listLayout = new VerticalLayout();
-		mainLayout.addComponent(listLayout);
-		
 		buttonsLayout = new HorizontalLayout();
 		
 		// Si se permite añadir
@@ -174,6 +170,10 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 			buttonsLayout.addComponent(addButton);
 		}
         mainLayout.addComponent(buttonsLayout);
+        
+        // Creamos el listLayout
+     	listLayout = new VerticalLayout();
+     	mainLayout.addComponent(listLayout);
         
         // Si es búsqueda inmediata 
  		if (standardFormAnnotation.immediateSearch()) {

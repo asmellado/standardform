@@ -34,6 +34,12 @@ public @interface StandardFormField {
 	public String caption() default "";
 	
 	/**
+	 * Specifies if DetailForm must create the field or not
+	 * @return
+	 */
+	public boolean createField() default true;	
+	
+	/**
 	 * Specifies if the field is hidden or not
 	 * @return
 	 */
