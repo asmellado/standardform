@@ -49,6 +49,7 @@ import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.Field;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.HasComponents;
+import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
@@ -109,6 +110,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	
 	// Indica que estamos en modo alta
 	protected boolean insertMode;
+	
+	// Layout para los botones
+	protected HorizontalLayout buttonsLayout;
 	
 	// Botón guardar
 	protected Button saveButton;
@@ -175,6 +179,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Obtenemos los campos del formulario
 			formFields = getFormFields(bean, binder, "");
 			
+			buttonsLayout = new HorizontalLayout();
+			form.addComponent(buttonsLayout);
+			
 			// Si se desean botones aceptar y cancelar
 			if (withOKAndCancelButtons) {
 				// Si estamos en alta o se permite edición
@@ -189,7 +196,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 							save(event);
 						}
 					});
-					form.addComponent(saveButton);
+					buttonsLayout.addComponent(saveButton);
 				}
 				
 				cancelButton = new Button("Cancelar");
@@ -200,7 +207,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						showListForm();
 					}
 				});
-				form.addComponent(cancelButton);
+				buttonsLayout.addComponent(cancelButton);
 			}
 		} catch (Exception e) {
 			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
@@ -1314,17 +1321,17 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		cancelButton.setVisible(false);
 	}
 	
+	/**
+	 * Gets the form
+	 * @return
+	 */
 	public FormLayout getForm() {
 		return form;
 	}
 
 	/**
-	 * Gets the main bean binder.
-	 * Note: If there are embedded fields, every embedded bean has its own binder.
-	 * @return
-	 */
-	/**
 	 * Gets the main binder of the speciefied key
+	 * Note: If there are embedded fields, every embedded bean has its own binder.
 	 * @param key "" for the main bean binder, field name for nested beans
 	 * @return The binder for the key or null is there isn't binder for the key
 	 */
@@ -1333,7 +1340,22 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		return (BeanFieldGroup<T>) binderMap.get(key);
 	}
 
+	/**
+	 * Gets the current bean
+	 * @return
+	 */
 	public T getBean() {
 		return bean;
+	}
+	
+	/**
+	 * Adds the specified button to the buttons layout
+	 * @param button
+	 */
+	public void addButon(Button button) {
+		// Habilitamos el ButtonsLayout por si está deshabilitado
+		buttonsLayout.setEnabled(true);
+		// Añadimos el botón
+		buttonsLayout.addComponent(button);
 	}
 }

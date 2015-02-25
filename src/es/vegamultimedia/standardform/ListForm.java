@@ -110,6 +110,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	// Layout para listado personalizado
 	protected VerticalLayout listLayout;
 	
+	// Layout para los botones
 	protected HorizontalLayout buttonsLayout;
 	
 	// Botón alta
