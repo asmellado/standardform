@@ -248,7 +248,8 @@ public class StandardTable<T extends Bean, K> extends Table {
 			for (Object elementoEnum: elementosEnum) {
 				// Se obtiene anotación StandardFormEnum del elemento
 				try {
-					java.lang.reflect.Field elementoField = property.getType().getField(elementoEnum.toString());
+					java.lang.reflect.Field elementoField =
+							property.getType().getField(((Enum<?>)elementoEnum).name());
 					StandardFormEnum anotación = elementoField.getAnnotation(StandardFormEnum.class);
 					// Si tiene anotación StandardFormEnum informada
 					if (anotación != null && anotación.value().length() != 0) {

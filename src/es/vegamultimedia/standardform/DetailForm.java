@@ -307,7 +307,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					// con todas las opciones y seleccionar el elemento actual
 					currentFields[i] = getSelectField(currentBean, prefixParentBean, currentBeanFields[i],
 							tipo, caption);
-					// No añadimos el campo al binder porque no funciona correctamente en este caso
+					currentBinder.bind((Field) currentFields[i], currentBeanFields[i].getName());
 					break;
 				// Si es un área de texto
 				case TEXT_AREA:
