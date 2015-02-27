@@ -207,7 +207,7 @@ public class StandardTable<T extends Bean, K> extends Table {
 		}
 		// Si se permite eliminar
 		if (standardFormAnnotation.allowsDeleting()) {
-			// Añadimos columna para eliminar
+			// Añadimos columna para eliminar7
 			// (Llamamos al método de la superclase para no registrarlo en generatedColumns)
 			addGeneratedColumn("Eliminar", new DeleteColumnGenerator());
 			visibledColumns.add("Eliminar");
@@ -234,12 +234,27 @@ public class StandardTable<T extends Bean, K> extends Table {
 		}
 	}
 	
-	// Damos formato de sólo fecha a los campos de tipo Date 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     protected String formatPropertyValue(Object rowId, Object colId, Property<?> property) {
-        if (property.getType() == Date.class) {
-            SimpleDateFormat df = new SimpleDateFormat("dd-MM-yyyy");
-            return df.format((Date)property.getValue());
+    	if (property.getType() == String.class) {
+    		return recortarTexto((String)property.getValue());
+    	}
+    	else if (property.getType() == Date.class) {
+			// Formato por defecto
+			SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+			try {
+				// Obtienemos anotación StandardFormField del campo
+				java.lang.reflect.Field field = Utils.getBeanField((Class<Bean>)rowId.getClass(), (String)colId);
+				StandardFormField anotación = field.getAnnotation(StandardFormField.class);
+				// Si la anotación es DATETIME cambiamos el formato
+				if (anotación != null && anotación.type() == StandardFormField.Type.DATETIME) {
+					df = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return df.format((Date)property.getValue());
         }
         else if (property.getType().isEnum()) {
         	// Obtenemos los elementos del enumerado
@@ -256,7 +271,7 @@ public class StandardTable<T extends Bean, K> extends Table {
 						// Si el enumerado coincide con el valor la propiedad
 						if (elementoEnum == property.getValue())
 							// Se retorna el valor de la anotación
-							return anotación.value();
+							return recortarTexto(anotación.value());
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -273,6 +288,13 @@ public class StandardTable<T extends Bean, K> extends Table {
         	}
         }
         return super.formatPropertyValue(rowId, colId, property);
+    }
+    
+    private String recortarTexto(String texto) {
+    	if (texto.length() < 20) {
+    		return texto;
+    	}
+    	return texto.substring(0, 18) + "...";
     }
 
     /**

@@ -333,6 +333,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					break;
 				// Si es un campo de fecha
 				case DATE:
+				case DATETIME:
+				case TIME:
 					// Creamos el campo a mano y lo añadimos al binder
 					currentFields[i] = new PopupDateField(caption);
 					// Deshabilitamos el campo de texto
@@ -614,15 +616,15 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				// Retorna el tipo DATE
 				return StandardFormField.Type.DATE;
 			}
-			// Si el tipo de DAO es JPA:
-			// Si tiene anotación Temporal con el valor TemporalType.DATE
-			if (beanField.getAnnotation(Temporal.class) != null &&
-				beanField.getAnnotation(Temporal.class).value() == TemporalType.DATE)
-				// Retorna el tipo DATE
-				return StandardFormField.Type.DATE;
-			// TODO No se soporta de momento TemporalType.TIME ni TemporalType.TIMESTAMP
-			else
-				return null;
+			// Si el tipo de DAO es JPA, obtenemos la anotación Temporal
+			Temporal temporal = beanField.getAnnotation(Temporal.class);
+			// Retornamos el tipo en función de la anotación temporal
+			if (temporal != null && temporal.value() == TemporalType.TIMESTAMP)
+				return StandardFormField.Type.DATETIME;
+			else if (temporal != null && temporal.value() == TemporalType.TIME)
+				return StandardFormField.Type.TIME;
+			// Si no hay anotación temporal o es Date
+			return StandardFormField.Type.DATE;
 		}
 		// Si el tipo de campos es un enumerado
 		else if (tipoBean.isEnum()) {
@@ -1265,6 +1267,8 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	public void disableForm() {
 		// Deshabilitamos todos los componentes
 		Utils.iterateSubComponents(form, true, false);
+		// Habilitamos el layout de botones
+		buttonsLayout.setEnabled(true);
 		// Ocultamos el botón guardar
 		if (saveButton != null) {
 			saveButton.setVisible(false);
