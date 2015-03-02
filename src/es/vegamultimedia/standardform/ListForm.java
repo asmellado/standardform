@@ -275,11 +275,18 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	protected void createSearchPanel() {
 		// Creamos el panel de búsqueda
 		searchPanel = new Panel("Buscar");
+		searchPanel.addStyleName("standardform-searchpanel");
 		// Añadimos el panel de búsqueda
 		mainLayout.addComponent(searchPanel);
-		// Creamos el layour de búsqueda
-		FormLayout searchLayout = new FormLayout();
+		// Creamos el layout de búsqueda
+		HorizontalLayout searchLayout = new HorizontalLayout();
 		searchPanel.setContent(searchLayout);
+		// Creamos el layout para los campos
+		FormLayout searchFieldsLayout = new FormLayout();
+		searchLayout.addComponent(searchFieldsLayout);
+		// Layout para botón buscar y leyenda
+		VerticalLayout buttonLayout = new VerticalLayout();
+		searchLayout.addComponent(buttonLayout);
 		// Inicializamos los arrays searchFields y searchFieldTypes
 		searchFields = new Component[standardFormAnnotation.searchFields().length];
 		searchFieldTypes = new Class[standardFormAnnotation.searchFields().length];
@@ -296,7 +303,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 					// Comprobamos por seguridad que el campo no es null
 					if (searchFields[i] != null) {
 						// Lo añadimos al layout de búsqueda
-						searchLayout.addComponent(searchFields[i]);
+						searchFieldsLayout.addComponent(searchFields[i]);
 					}
 					break;
 				}
@@ -313,10 +320,10 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 				search();
 			}
 		});
-		searchLayout.addComponent(searchButton);
+		buttonLayout.addComponent(searchButton);
 		// Añadimos etiqueta de información
 		searchInfo = new Label("No se ha realizado ninguna búsqueda", ContentMode.HTML);
-		searchLayout.addComponent(searchInfo);
+		buttonLayout.addComponent(searchInfo);
 	}
 
 	/**
