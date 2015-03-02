@@ -12,6 +12,11 @@ import javax.persistence.Query;
 import javax.persistence.QueryTimeoutException;
 import javax.persistence.RollbackException;
 import javax.persistence.TransactionRequiredException;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 
 import es.vegamultimedia.standardform.SaveException;
 import es.vegamultimedia.standardform.model.BeanJPA;
@@ -74,15 +79,12 @@ public class BeanJPADAO<T extends BeanJPA, K> implements BeanDAO<T, K>{
 		return entityManager.find(beanClass, id);
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Override
 	public List<T> getAllElements()
 		throws IllegalArgumentException, IllegalStateException, QueryTimeoutException,
 			TransactionRequiredException, PessimisticLockException, LockTimeoutException,
 			PersistenceException {
-		String consulta = "SELECT e FROM " + beanClass.getSimpleName() + " e";
-		Query query = entityManager.createQuery(consulta);
-		return query.getResultList();
+		return getElements(new SearchCriterion[]{});
 	}
 
 	@Override
@@ -97,7 +99,28 @@ public class BeanJPADAO<T extends BeanJPA, K> implements BeanDAO<T, K>{
 
 	@Override
 	public List<T> getElements(SearchCriterion[] searchCriteria) {
-		// TODO Pendiente de implementar para JPA
-		return getAllElements();
+		// Creamos la query usando Criteria API
+		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+		CriteriaQuery<T> criteriaQuery = criteriaBuilder.createQuery(beanClass);
+		Root<T> root = criteriaQuery.from(beanClass);
+		// Inicializamos un array de Predicates
+		Predicate[] predicates = new Predicate[searchCriteria.length];
+		// Recorremos los criterios de búsqueda
+		for (int i=0; i<searchCriteria.length; i++) {
+			String nameField = searchCriteria[i].getNameField();
+			Object valueField = searchCriteria[i].getValueField();
+			switch (searchCriteria[i].getTypeCriteria()) {
+			case TEXT:
+				predicates[i] =
+					criteriaBuilder.like(root.<String>get(nameField), "%" + valueField + "%");
+				break;
+			case ENUM: case BEAN:
+				predicates[i] = criteriaBuilder.equal(root.get(nameField), valueField);
+				break;
+			}
+		}
+		criteriaQuery = criteriaQuery.where(criteriaBuilder.and(predicates));
+		TypedQuery<T> typedQuery = entityManager.createQuery(criteriaQuery);
+		return typedQuery.getResultList();
 	}
 }

@@ -179,7 +179,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
         // Si es búsqueda inmediata 
  		if (standardFormAnnotation.immediateSearch()) {
  			// Mostramos todos los elementos
- 			showAllElements();
+ 			search();
  			// Si no hay campos de búsqueda
  			if (standardFormAnnotation.searchFields().length == 0) {
  				// Ocultamos el panel de búsqueda
