@@ -34,6 +34,7 @@ import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItem;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.validator.BeanValidator;
+import com.vaadin.data.validator.NullValidator;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.ui.AbstractField;
 import com.vaadin.ui.AbstractSelect;
@@ -66,6 +67,7 @@ import es.vegamultimedia.standardform.annotations.StandardForm.DAOType;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.components.FileComponent;
 import es.vegamultimedia.standardform.components.FileComponent.FileUploader;
+import es.vegamultimedia.standardform.components.SearchField;
 import es.vegamultimedia.standardform.components.StandardTable;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
@@ -76,7 +78,7 @@ import es.vegamultimedia.standardform.model.Image;
 public class DetailForm<T extends Bean, K> extends Panel {
 	
 	/**
-	 * Interface for listening for a event in a DetailForm 
+	 * Interface for listening for a event in a DetailForm
 	 */
 	public interface SaveListener{
 		/**
@@ -351,20 +353,32 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					String id = prefixParentBean + currentBeanFields[i].getName();
 					currentFields[i] = new FileComponent(caption, standardFormFile, id, insertMode);
 					break;
-				// Si es un campo embedded
-				case EMBEDDED:
+				// Si es un campo de búsqueda o embedded
+				case SEARCH: case EMBEDDED:
 					// Obtenemos la clase del Bean anidado
 					Class<? extends Bean> embeddedBeanClass =
 					(Class<? extends Bean>)currentBeanFields[i].getType();
 					// Obtenemos el bean anidado
 					Bean embeddedBean = (Bean) Utils.getFieldValue(currentBean, currentBeanFields[i]);
+					// Campo de tipo búsqueda
+					if (tipo == StandardFormField.Type.SEARCH) {
+						if (insertMode) {
+							embeddedBean = null;
+						}
+						BeanDAO searchDAO = 
+    							Utils.getBeanDAO(embeddedBeanClass, beanUI.getBeanDAO());
+						BeanUI searchBeanUI = new BeanUI(embeddedBeanClass, searchDAO);
+						currentFields[i] = new SearchField(caption, searchBeanUI, embeddedBean);
+						break;
+					}
+					// Campo de tipo embedded
 					// Si el campo del embeddedBean del elementoActual es null
 					if (embeddedBean == null) {
 						// Creamos un nuevo objeto embeddedBean vacío
 						embeddedBean = embeddedBeanClass.newInstance();
 						// Asignamos el embeddedBean al elementoActual
 						Utils.setFieldValue(currentBean, currentBeanFields[i], embeddedBean);
-					}					
+					}
 					// Creamos un formulario anidado para albergar todos los campos del bean anidado
 					FormLayout embeddedForm = new FormLayout();
 					// Creamos un binder para el elemento anidado
@@ -651,7 +665,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			}
 			else {
 				// Retorna el tipo COMBO_BOX
-				return StandardFormField.Type.COMBO_BOX;
+				return StandardFormField.Type.SEARCH;
 			}
 		}
 		// Si el tipo es standardForm.model.File
@@ -1219,6 +1233,20 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					// Asignamos al elemento actual el arraylist de elementos seleccionados
 					Utils.setFieldValue(currentBean, beanFields[i], elementosSeleccionados);
 				}
+			}
+			// Si es un campo de tipo SEARCH
+			else if (currentFormFields[i] instanceof SearchField) {
+				SearchField searchField = (SearchField) currentFormFields[i];
+				// Obtenemos el elemento seleccionado en el campo de selección
+				Object elementoSeleccionado = searchField.getValue();
+				// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
+				if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull
+						&& elementoSeleccionado == null) {
+					searchField.setRequiredError("Obligatorio");
+					throw new CommitException("El campo es obligatorio");
+				}
+				// Asignamos al elemento actual el elemento seleccionado en el combo box
+				Utils.setFieldValue(currentBean, beanFields[i], elementoSeleccionado);
 			}
 			// Si es un campo EMBEDDED, hay que hacer commit recursivamente
 			// TODO Sería más correcto usar el tipo de campo EMBEDDED, en vez del tipo de componente de Vaadin

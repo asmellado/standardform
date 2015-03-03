@@ -565,7 +565,6 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 		searchPanel.setVisible(false);
 	}
 
-	
 	/**
 	 * Adds a generated column to the table.
 	 * @param id
