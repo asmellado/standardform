@@ -14,14 +14,21 @@ import es.vegamultimedia.standardform.SearchWindow;
 import es.vegamultimedia.standardform.SearchWindow.SelectionListener;
 import es.vegamultimedia.standardform.model.Bean;
 
-public class SearchField<T extends Bean, K> extends CustomField<T> {
+public class SearchField<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	
 	private static final long serialVersionUID = -8424431382645013354L;
 
-	private BeanUI<T, K> beanUI;
-	private HorizontalLayout mainLayout;
+	public interface SearchListener<BEAN> {
+		public abstract void select(BEAN oldBean, BEAN newBean);
+		public abstract void remove(BEAN bean);
+	}
 	
-	public SearchField(String caption, final BeanUI<T, K> beanUI, T element) {
+	private SearchListener<BEAN> searchListener;
+	private BeanUI<BEAN, KEY> beanUI;
+	private HorizontalLayout mainLayout;
+	private TextField textField;
+	
+	public SearchField(String caption, final BeanUI<BEAN, KEY> beanUI, BEAN element) {
 		setCaption(caption);
 		this.beanUI = beanUI;
 		setInternalValue(element);
@@ -29,7 +36,7 @@ public class SearchField<T extends Bean, K> extends CustomField<T> {
 		mainLayout = new HorizontalLayout();
 		
 		// Campo de texto con el nombre del elemento
-		final TextField textField = new TextField();
+		textField = new TextField();
 		textField.setEnabled(false);
 		textField.setNullRepresentation("");
 		textField.addStyleName("standardform-field");
@@ -46,8 +53,7 @@ public class SearchField<T extends Bean, K> extends CustomField<T> {
 			
 			@Override
 			public void buttonClick(ClickEvent event) {
-				setInternalValue(null);
-				textField.setValue(null);
+				removeSelection();
 			}
 			
 		});
@@ -61,28 +67,57 @@ public class SearchField<T extends Bean, K> extends CustomField<T> {
 			
 			@Override
 			public void buttonClick(ClickEvent event) {
-				SearchWindow<T, K> searchForm = new SearchWindow<T, K>(beanUI, new SelectionListener<T>() {
+				SearchWindow<BEAN, KEY> searchWindow =
+						new SearchWindow<BEAN, KEY>(beanUI, new SelectionListener<BEAN>() {
 					@Override
-					public void select(T element) {
-						setInternalValue(element);
-						textField.setValue(element.toString());
+					public void select(BEAN newElement) {
+						setSelection(newElement);
 					}
 				});
-				UI.getCurrent().addWindow(searchForm);
+				UI.getCurrent().addWindow(searchWindow);
 			}
 			
 		});
 		mainLayout.addComponent(searchButton);
 	}
+	
+	/**
+	 * Removes the current selection
+	 */
+	protected void removeSelection() {
+		BEAN oldBean = getInternalValue();
+		setInternalValue(null);
+		textField.setValue(null);
+		if (searchListener != null) {
+			searchListener.remove(oldBean);
+		}
+	}
+
+	/**
+	 * Sets a new selection
+	 * @param newBean
+	 */
+	protected void setSelection(BEAN newBean) {
+		BEAN oldElement = getInternalValue();
+		setInternalValue(newBean);
+		textField.setValue(newBean.toString());
+		if (searchListener != null) {
+			searchListener.select(oldElement, newBean);
+		}
+	}
 
 	@Override
-	public Class<T> getType() {
+	public Class<BEAN> getType() {
 		return beanUI.getBeanClass();
 	}
 
 	@Override
 	protected Component initContent() {
 		return mainLayout;
+	}
+	
+	public void setSearchListener(SearchListener<BEAN> searchListener) {
+		this.searchListener = searchListener;
 	}
 
 }

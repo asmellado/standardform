@@ -34,7 +34,6 @@ import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItem;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.validator.BeanValidator;
-import com.vaadin.data.validator.NullValidator;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.ui.AbstractField;
 import com.vaadin.ui.AbstractSelect;
@@ -67,6 +66,7 @@ import es.vegamultimedia.standardform.annotations.StandardForm.DAOType;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.components.FileComponent;
 import es.vegamultimedia.standardform.components.FileComponent.FileUploader;
+import es.vegamultimedia.standardform.components.MultipleSearchField;
 import es.vegamultimedia.standardform.components.SearchField;
 import es.vegamultimedia.standardform.components.StandardTable;
 import es.vegamultimedia.standardform.model.Bean;
@@ -91,7 +91,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		public abstract void afterSave(Bean bean, boolean insertMode);
 	}
 	
-	private SaveListener saveListener;
+	protected SaveListener saveListener;
 	
 	// BeanUI that created this standard detail form
 	protected BeanUI<T, K> beanUI;
@@ -294,7 +294,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Obtenemos la anotación StandardFormField
 			StandardFormField standardFormField = currentBeanFields[i].getAnnotation(StandardFormField.class);
 			// Obtenemos el tipo de campo en función de los metadatos
-			StandardFormField.Type tipo = getTypeFormField(standardForm, currentBeanFields[i], standardFormField);
+			StandardFormField.Type tipo = getFormFieldType(standardForm, currentBeanFields[i], standardFormField);
 			// Si se ha encontrado un tipo
 			if (tipo != null) {
 				// Obtenemos el caption
@@ -404,7 +404,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					// Añadimos el panel al formulario principal
 					currentFields[i] = panel;
 					break;
-				case TABLE:
+				case MULTIPLE_SEARCH: case TABLE:
 					// Obtenemos la clase parametrizada del arrayList
 					java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(currentBeanFields[i]);
 					// Obtenemos la colección de elementos
@@ -424,11 +424,21 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						// Asignamos el embeddedBean al elementoActual
 						Utils.setFieldValue(currentBean, currentBeanFields[i], collection);
 					}
-					// Creamos el container y el beanUI
+					// Creamos el BeanUI
+					BeanDAO embeddedDAO = 
+							Utils.getBeanDAO((Class)parametrizedType, beanUI.getBeanDAO());
+					BeanUI embeddedBeanUI = new BeanUI((Class)parametrizedType, embeddedDAO);
+					// Campo de tipo MULTIPLE_SEARCH
+					if (tipo == StandardFormField.Type.MULTIPLE_SEARCH) {
+						currentFields[i] = new MultipleSearchField(
+								caption, (Class)parametrizedType, embeddedBeanUI, collection);
+						break;
+					}
+					// Campo de tipo TABLE
+					// Creamos el container
 					BeanItemContainer container = new BeanItemContainer((Class)parametrizedType, collection);
-					BeanUI tableBeanUI = new BeanUI((Class)parametrizedType, null);
 					// Creamos la tabla
-					currentFields[i] = new StandardTable(caption, container, tableBeanUI);
+					currentFields[i] = new StandardTable(caption, container, embeddedBeanUI);
 					break;
 				case MONGO_ID:
 					// Si estamos en modo modificación
@@ -581,12 +591,13 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	/**
 	 * Gets the StandardFormField type
 	 * @param standardForm StandardForm annotation of the bean
-	 * @param beanField Campo del bean
+	 * @param beanField bean field
 	 * @param standardFormField StandardFormField annotation of the bean field
-	 * @return Tipo de campo obtenido
+	 * @return Field Type obtained
 	 */
-	protected StandardFormField.Type getTypeFormField(
-			StandardForm standardForm, java.lang.reflect.Field beanField, StandardFormField standardFormField) {
+	protected StandardFormField.Type getFormFieldType(
+			StandardForm standardForm, java.lang.reflect.Field beanField,
+			StandardFormField standardFormField) {
 		// Si hay anotación DetailField para este campo y no se debe crear el campo
 		if ((standardFormField instanceof StandardFormField) &&
 				!standardFormField.createField()) {
@@ -652,7 +663,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(beanField);
 			// Si el tipo parametrizado es un Bean
 			if (Utils.isSubClass((Class<?>) parametrizedType, Bean.class))
-				return StandardFormField.Type.TABLE;
+				return StandardFormField.Type.MULTIPLE_SEARCH;
 			else
 				return StandardFormField.Type.MULTIPLE_SELECTION;
 		}
@@ -746,7 +757,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
     				// Obtenemos la anotación StandardFormField
     				StandardFormField standardFormField = beanFields[i].getAnnotation(StandardFormField.class);
     				// Obtenemos el tipo de campo en función de los metadatos
-    				StandardFormField.Type tipo = getTypeFormField(standardForm, beanFields[i], standardFormField);
+    				StandardFormField.Type tipo = getFormFieldType(standardForm, beanFields[i], standardFormField);
     				// Si el tipo de campo es EMBEDDED y NO es un EMBEDDED de Morphia
     				if (tipo == StandardFormField.Type.EMBEDDED &&
     						beanFields[i].getAnnotation(Embedded.class) == null) {
@@ -1247,6 +1258,20 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				}
 				// Asignamos al elemento actual el elemento seleccionado en el combo box
 				Utils.setFieldValue(currentBean, beanFields[i], elementoSeleccionado);
+			}
+			// Si es un campo de tipo MULTIPLE_SEARCH
+			else if (currentFormFields[i] instanceof MultipleSearchField) {
+				MultipleSearchField searchField = (MultipleSearchField) currentFormFields[i];
+				// Obtenemos el elemento seleccionado en el campo de selección
+				Collection collection = (Collection) searchField.getValue();
+				// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
+				if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull
+						&& collection.size() == 0) {
+					searchField.setRequiredError("Obligatorio");
+					throw new CommitException("Debe seleccionar al menos un elemento");
+				}
+				// Asignamos al elemento actual el elemento seleccionado en el combo box
+				Utils.setFieldValue(currentBean, beanFields[i], collection);
 			}
 			// Si es un campo EMBEDDED, hay que hacer commit recursivamente
 			// TODO Sería más correcto usar el tipo de campo EMBEDDED, en vez del tipo de componente de Vaadin
