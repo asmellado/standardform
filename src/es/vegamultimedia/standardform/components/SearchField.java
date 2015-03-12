@@ -18,8 +18,21 @@ public class SearchField<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	
 	private static final long serialVersionUID = -8424431382645013354L;
 
+	/**
+	 * Interface for listening for an event in a SearchField
+	 * @param <BEAN>
+	 */
 	public interface SearchListener<BEAN> {
+		/**
+		 * Called when the user selects an element in the search field
+		 * @param oldBean old selected element
+		 * @param newBean new selected element
+		 */
 		public abstract void select(BEAN oldBean, BEAN newBean);
+		/**
+		 * Called when the user removes the element in the search field
+		 * @param bean removed element
+		 */
 		public abstract void remove(BEAN bean);
 	}
 	

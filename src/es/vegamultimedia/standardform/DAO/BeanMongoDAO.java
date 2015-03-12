@@ -70,6 +70,13 @@ public class BeanMongoDAO<T extends BeanMongo, K> extends BasicDAO<T, K>
 	public T get(Object id) {
 		return datastore.get(beanClass, id);
 	}
+
+	@Override
+	public T get(String nameField, Object valueField) {
+		Query<T> query = createQuery();
+		query.field(nameField).equal(valueField);
+		return query.get();
+	}
 	
 	@Override
 	public List<T> getAllElements() {

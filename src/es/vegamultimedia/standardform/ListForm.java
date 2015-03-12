@@ -195,16 +195,14 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
         this.queryListener = queryListener;
     }
 
-    public void addButton(Button b) {
-        buttonsLayout.addComponent(b);
+    public void addButton(Component button) {
+        buttonsLayout.addComponent(button);
     }
     
     public void setBeforeCreateList(BeforeCreateList<T> beforeCreateList) {
         this.beforeCreateList = beforeCreateList;
     }
 	
-	
-
 	/**
 	 * Adds the list to the listLayout:
 	 * A custom component for each element or a table for all the elements by default
@@ -593,7 +591,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
      * Refreshes the list. You must call this method if there has been a change in the list
      */
     public void refreshList() {
-		// Creamos un nuevo listado
-		createList();
+    	// Realizamos una nueva búsqueda y se genera de nuevo el listado
+    	search();
     }
 }

@@ -43,6 +43,22 @@ public class FileComponent extends CustomField<File> {
 	private FileUploader fileUploader;
 	private final int alturaMiniatura = 100;
 	
+	/**
+	 * Creates a new FileComponent to upload a file in "insert mode" without a current file
+	 * @param caption
+	 */
+	public FileComponent(String caption) {
+		this(caption, new File(), "", false);
+		downloadButton.setVisible(false);
+	}
+	
+	/**
+	 * Creates a new FileComponent to upload or download an existing file 
+	 * @param caption
+	 * @param file
+	 * @param id
+	 * @param insertMode
+	 */
 	public FileComponent(String caption, final File file,
 			String id, boolean insertMode) {
 		setCaption(caption);

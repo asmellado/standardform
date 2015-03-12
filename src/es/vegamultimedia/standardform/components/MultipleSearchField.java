@@ -59,7 +59,6 @@ public class MultipleSearchField<T extends Collection<BEAN>, BEAN extends Bean, 
 		mainLayout.addComponent(addButton);
 	}
 	
-	// Añade un campo de búsqueda
 	/**
 	 * Adds a new search field with the specified bean
 	 * @param bean

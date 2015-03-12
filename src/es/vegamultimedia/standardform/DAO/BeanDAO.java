@@ -18,14 +18,23 @@ public interface BeanDAO<T extends Bean, K> {
 	 * Updates the element T in the database
 	 * @param element
 	 */
-	public abstract void update(T bean);
+	public abstract void update(T bean) throws SaveException;
 	
 	/**
-	 * Get an element using its identifier from the database 
+	 * Gets an element using its identifier from the database 
 	 * @param id Unique bean id
 	 * @return
 	 */
 	public abstract T get(K id);
+	
+	/**
+	 * Gets the first found element from the database whose specified nameField is equal 
+	 * to the specified valueField
+	 * @param nameField
+	 * @param valueField
+	 * @return The found element or null if not found
+	 */
+	public abstract T get(String nameField, Object valueField);
 	
 	/**
 	 * Get all the elements from the database

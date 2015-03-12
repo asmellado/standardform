@@ -6,9 +6,10 @@ import javax.persistence.EntityExistsException;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import javax.persistence.LockTimeoutException;
+import javax.persistence.NoResultException;
+import javax.persistence.NonUniqueResultException;
 import javax.persistence.PersistenceException;
 import javax.persistence.PessimisticLockException;
-import javax.persistence.Query;
 import javax.persistence.QueryTimeoutException;
 import javax.persistence.RollbackException;
 import javax.persistence.TransactionRequiredException;
@@ -55,14 +56,25 @@ public class BeanJPADAO<T extends BeanJPA, K> implements BeanDAO<T, K>{
 	@Override
 	public void update(T bean)
 		throws IllegalStateException, EntityExistsException,
-			IllegalArgumentException, RollbackException, PersistenceException {
+			IllegalArgumentException, RollbackException, PersistenceException, SaveException {
 		EntityTransaction transaction = null;
 		try {
 			transaction = entityManager.getTransaction();
 			transaction.begin();
 			entityManager.persist(bean);
+//			// We must persist every join
+//			for (Field field : Utils.getBeanFields(beanClass)){
+//				OneToMany oneToMany = field.getAnnotation(OneToMany.class);
+//				if (oneToMany != null) {
+//					Object value = Utils.getFieldValue(bean, field);
+//					entityManager.persist(value);
+//				}
+//			}
 			transaction.commit();
 			transaction = null;
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SaveException(e.getMessage(), e.getCause());
 		}
 		finally {
 			if (transaction!=null) {
@@ -77,6 +89,24 @@ public class BeanJPADAO<T extends BeanJPA, K> implements BeanDAO<T, K>{
 	@Override
 	public T get(Object id) {
 		return entityManager.find(beanClass, id);
+	}
+	
+	@Override
+	public T get(String nameField, Object valueField) {
+		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+		CriteriaQuery<T> criteriaQuery = criteriaBuilder.createQuery(beanClass);
+		Root<T> root = criteriaQuery.from(beanClass);
+		Predicate predicate = criteriaBuilder.equal(root.get(nameField), valueField);
+		TypedQuery<T> typedQuery = entityManager.createQuery(criteriaQuery.where(predicate));
+		try {
+			return typedQuery.getSingleResult();
+		}
+		catch(NoResultException e) {
+			return null;
+		}
+		catch(NonUniqueResultException e) {
+			return typedQuery.getResultList().get(0);
+		}
 	}
 	
 	@Override
