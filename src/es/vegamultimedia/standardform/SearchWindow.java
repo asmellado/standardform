@@ -1,13 +1,16 @@
 package es.vegamultimedia.standardform;
 
 import com.vaadin.ui.Button;
+import com.vaadin.ui.Notification;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Table.ColumnGenerator;
 import com.vaadin.ui.Window;
 import com.vaadin.ui.themes.BaseTheme;
 
+import es.vegamultimedia.standardform.DAO.BeanDAOException;
 import es.vegamultimedia.standardform.model.Bean;
 
 public class SearchWindow<T extends Bean, K> extends Window {
@@ -35,11 +38,18 @@ public class SearchWindow<T extends Bean, K> extends Window {
 		setModal(true);
 		center();
 		
-		listForm = new ListForm<T, K>(beanUI, null);
-		listForm.disableForm(false);
-		listForm.addGeneratedColumn("Seleccionar", new SeleccionarColumn());
-		listForm.refreshList();
-		setContent(listForm);
+		try {
+			listForm = new ListForm<T, K>(beanUI, null);
+			listForm.disableForm(false);
+			listForm.addGeneratedColumn("Seleccionar", new SeleccionarColumn());
+			listForm.refreshList();
+			setContent(listForm);
+		} catch (BeanDAOException e) {
+			Notification.show("Error",
+					"No se puede mostrar la ventana de selección.\n" + e.getMessage(),
+					Type.ERROR_MESSAGE);
+			e.printStackTrace();
+		}
 	}
 	
 	class SeleccionarColumn implements ColumnGenerator {

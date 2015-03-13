@@ -126,10 +126,9 @@ public class StandardTable<T extends Bean, K> extends Table {
 		// Obtenemos la anotación StandardForm del bean
 		StandardForm standardFormAnnotation = beanUI.getBeanClass().getAnnotation(StandardForm.class);
 
-		
 		setImmediate(true);
-		// TODO Parametrizar la longitud de la página
-		setPageLength(10);
+
+		setPageLength(container.getItemIds().size());
 		
 		setContainerDataSource(container);
 		

@@ -6,6 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 import com.vaadin.ui.Component;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
+import es.vegamultimedia.standardform.DAO.BeanDAOException;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
@@ -44,8 +45,9 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	/**
 	 * Returns the standard list form for this bean class
 	 * @return
+	 * @throws BeanDAOException 
 	 */
-	public Component buidListForm() {
+	public Component buidListForm() throws BeanDAOException {
 		return new ListForm<T, K>(this, null);
 	}
 	

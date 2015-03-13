@@ -30,10 +30,13 @@ import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
+import es.vegamultimedia.standardform.DAO.BeanDAOException;
 import es.vegamultimedia.standardform.DAO.SearchCriterion;
 import es.vegamultimedia.standardform.DAO.SearchCriterion.SearchType;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
+import es.vegamultimedia.standardform.components.PaginationBar;
+import es.vegamultimedia.standardform.components.PaginationBar.PaginationListener;
 import es.vegamultimedia.standardform.components.StandardTable;
 import es.vegamultimedia.standardform.components.StandardTable.GeneratedColumn;
 import es.vegamultimedia.standardform.components.StandardTable.ShowDetailListener;
@@ -59,7 +62,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
     public interface BeforeCreateList<T extends Bean> {
         public abstract void beforeCreateList(List<T> elements);
     }
-	
+    
 	protected BeforeCreateList<T> beforeCreateList; 
 	
 	protected QueryListener<T> queryListener;
@@ -69,6 +72,15 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	
 	// StandardForm annotation bean
 	protected StandardForm standardFormAnnotation;
+	
+	// Número de elementos a mostrar
+	protected long numElements;
+	
+	// Número de elementos por página
+	protected int elementsPerPage;
+	
+	// Página actual
+	protected int currentPage;
 	
 	// Lista de elementos
 	protected List<T> listElements;
@@ -119,10 +131,12 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	// Lista de columnas generadas
 	protected ArrayList<GeneratedColumn> generatedColumns;
 
-	public ListForm(BeanUI<T, K> beanUI, QueryListener<T> queryListener) {
+	public ListForm(BeanUI<T, K> beanUI, QueryListener<T> queryListener) throws BeanDAOException {
 		this.beanUI = beanUI;
 		this.queryListener = queryListener;
-		this.beforeCreateList = null;
+		beforeCreateList = null;
+		// TODO Parametrizar
+		elementsPerPage = 3;
 		
 		// Obtenemos la anotación StandardForm del bean
 		standardFormAnnotation = beanUI.getBeanClass().getAnnotation(StandardForm.class);
@@ -178,7 +192,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
         
         // Si es búsqueda inmediata 
  		if (standardFormAnnotation.immediateSearch()) {
- 			// Mostramos todos los elementos
+ 			// Mostramos la página actual
  			search();
  			// Si no hay campos de búsqueda
  			if (standardFormAnnotation.searchFields().length == 0) {
@@ -213,6 +227,26 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 		if(beforeCreateList!=null) {
 		    beforeCreateList.beforeCreateList(listElements);
 		}
+		
+		// Pagination
+		PaginationBar pagination = new PaginationBar(numElements, currentPage,
+				elementsPerPage, new PaginationListener() {
+			@Override
+			public void paginate(int page) {
+				try {
+					// Actualizamos la página actual y realizamos una nueva búsqueda
+					currentPage = page;
+					search();
+				} catch (BeanDAOException e) {
+					Notification.show("Error",
+							"No se puede mostrar el listado.\n" + e.getMessage(),
+							Type.ERROR_MESSAGE);
+					e.printStackTrace();
+				}
+			}
+		});
+		listLayout.addComponent(pagination);
+		
 		// Si NO tiene customRowListComponent
 		if (standardFormAnnotation.customRowListComponent().isEmpty()) {
 
@@ -315,7 +349,14 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				search();
+				try {
+					// Se muestra la primera página con la búsqueda actual
+					currentPage = 0;
+					search();
+				} catch (BeanDAOException e) {
+					e.printStackTrace();
+					// TODO
+				}
 			}
 		});
 		buttonLayout.addComponent(searchButton);
@@ -362,7 +403,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 				@SuppressWarnings("unchecked")
 				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(tipoCampo, beanUI.getBeanDAO());
 				// Obtenemos todos los elementos del bean anidado
-				List<?> elementosBean = beanDAO.getAllElements();
+				List<?> elementosBean = beanDAO.getElements(null, 0, 0);
 				// Creamos un combo box con los elementos
 				searchField = new ComboBox(caption, elementosBean);
 			} catch (Exception ignorada) {
@@ -381,8 +422,9 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	
 	/**
 	 * Makes the search. This method is called when the user clicks on the search button
+	 * @throws BeanDAOException 
 	 */
-	protected void search() {
+	protected void search() throws BeanDAOException {
 		int numCriteria = 0;
 		SearchCriterion[] temporalCriteria = new SearchCriterion[searchFields.length];
 		String[] campoCriteria = new String[searchFields.length];
@@ -441,7 +483,10 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 			}
 		}
 		// Hacemos la búsqueda
-		listElements = beanUI.getBeanDAO().getElements(searchCriteria);
+		numElements = beanUI.getBeanDAO().getcountElements(searchCriteria);
+
+		listElements = beanUI.getBeanDAO().getElements(searchCriteria, 
+				(int) (currentPage*elementsPerPage), elementsPerPage);
 		// Creamos un nuevo listado
 		createList();
 		
@@ -474,8 +519,9 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 
 	/**
 	 * Gets every elements of this bean type using thee BeanDAO
+	 * @throws BeanDAOException 
 	 */
-	protected List<T> loadData() {
+	protected List<T> loadData() throws BeanDAOException {
 		// TODO No obtener todos los elementos, sino trabajar con un cursor y paginar
 		List<T> listaElementos;
 		// Si hay escuchador queryListener
@@ -486,7 +532,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 		// En caso contrario
 		else {
 			// Obtenemos todos los elementos
-			listaElementos = beanUI.getBeanDAO().getAllElements();
+			listaElementos = beanUI.getBeanDAO().getElements(null, 0, elementsPerPage);
 		}
 		return listaElementos;
 	}
@@ -589,8 +635,9 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
     
     /**
      * Refreshes the list. You must call this method if there has been a change in the list
+     * @throws BeanDAOException 
      */
-    public void refreshList() {
+    public void refreshList() throws BeanDAOException {
     	// Realizamos una nueva búsqueda y se genera de nuevo el listado
     	search();
     }

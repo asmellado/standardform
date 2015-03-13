@@ -61,6 +61,7 @@ import com.vaadin.ui.TextField;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
+import es.vegamultimedia.standardform.DAO.BeanDAOException;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardForm.DAOType;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
@@ -84,7 +85,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 		/**
 		 * Called before saving the bean
 		 */
-		public abstract void beforeSave(Bean bean, boolean insertMode) throws SaveException;
+		public abstract void beforeSave(Bean bean, boolean insertMode) throws BeanDAOException;
 		/**
 		 * Called after saving the bean
 		 */
@@ -206,7 +207,14 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				cancelButton.addClickListener(new ClickListener(){
 					@Override
 					public void buttonClick(ClickEvent event) {
-						showListForm();
+						try {
+							showListForm();
+						} catch (BeanDAOException e) {
+							Notification.show("Error",
+									"No se puede mostrar el listado.\n" + e.getMessage(),
+									Type.ERROR_MESSAGE);
+							e.printStackTrace();
+						}
 					}
 				});
 				buttonsLayout.addComponent(cancelButton);
@@ -271,13 +279,15 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * @throws InvocationTargetException
 	 * @throws ClassNotFoundException
 	 * @throws InstantiationException
+	 * @throws BeanDAOException 
+	 * @throws IllegalArgumentException 
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected Component[] getFormFields(Bean currentBean,
 			BeanFieldGroup<?> currentBinder, String prefixParentBean)
 			throws NoSuchMethodException, IllegalAccessException,
 			InvocationTargetException, ClassNotFoundException,
-			InstantiationException {
+			InstantiationException, IllegalArgumentException, BeanDAOException {
 		
 		// Obtenemos la anotación StandardForm del elementoActual
 		StandardForm standardForm = currentBean.getClass().getAnnotation(StandardForm.class);
@@ -697,8 +707,9 @@ public class DetailForm<T extends Bean, K> extends Panel {
 
 	/**
 	 * Shows the ListForm inside the same component as this detailForm
+	 * @throws BeanDAOException 
 	 */
-	public void showListForm() {
+	public void showListForm() throws BeanDAOException {
 		Component vistaListado = beanUI.buidListForm();
 		ComponentContainer contentPanel = (ComponentContainer)getParent();
 		contentPanel.replaceComponent(this, vistaListado);
@@ -854,8 +865,15 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					 + "Este elemento ha sido modificado mientras lo estaba editando. Inténtelo de nuevo",
 					Type.ERROR_MESSAGE);
 			// Mostramos el listado
-			showListForm();
-		} catch (SaveException e) {
+			try {
+				showListForm();
+			} catch (BeanDAOException e1) {
+				Notification.show("Error",
+						"No se puede mostrar el listado.\n" + e.getMessage(),
+						Type.ERROR_MESSAGE);
+				e1.printStackTrace();
+			}
+		} catch (BeanDAOException e) {
 			Notification.show("Error",
 					"No se puede grabar el registro.\n" + e.getMessage(),
 					Type.ERROR_MESSAGE);
@@ -870,7 +888,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				message,
 				Type.ERROR_MESSAGE);
 			e.printStackTrace();
-		}catch (Exception e) {
+		} catch (Exception e) {
 			Notification.show("Error",
 					"No se ha podido realizar la operación.\n" + e.getMessage(),
 					Type.ERROR_MESSAGE);
@@ -946,6 +964,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * @throws ClassNotFoundException
 	 * @throws IllegalArgumentException
 	 * @throws InstantiationException
+	 * @throws BeanDAOException 
 	 */
 	@SuppressWarnings({"rawtypes", "unchecked" })
 	protected AbstractSelect getSelectField(
@@ -956,7 +975,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				String caption)
 			throws NoSuchMethodException, IllegalAccessException,
 				InvocationTargetException, ClassNotFoundException,
-				IllegalArgumentException, InstantiationException {
+				IllegalArgumentException, InstantiationException, BeanDAOException {
 		// El tipo de campo debe ser COMBO_BOX, OPTION_GROUP ó MULTIPLE_SELECTION
 		if (type != StandardFormField.Type.COMBO_BOX &&
 			type != StandardFormField.Type.OPTION_GROUP &&
@@ -991,7 +1010,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 				// Obtenemos una instancia del BeanDAO anidado
 				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(tipoElementos, beanUI.getBeanDAO());
 				// Obtenemos todos los elementos del bean anidado
-				listaElementos = beanDAO.getAllElements();
+				listaElementos = beanDAO.getElements(null, 0, 0);
 			}
 			// En caso contrario, si es un Set
 			else if (Utils.isOrImplementsInterface(tipoElementos, Set.class)){
