@@ -7,6 +7,7 @@ import com.vaadin.ui.Component;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
 import es.vegamultimedia.standardform.DAO.BeanDAOException;
+import es.vegamultimedia.standardform.DAO.SearchCriterion;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
@@ -21,6 +22,16 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 * Bean data access object (DAO) for this bean
 	 */
 	protected BeanDAO<T, K> beanDAO;
+	
+	/**
+	 * Current search in the list form
+	 */
+	protected SearchCriterion[] currentSearch;
+	
+	/**
+	 * Current page in the list form
+	 */
+	protected int currentPage;
 	
 	public BeanUI(Class<T> beanClass, BeanDAO<T, K> beanDAO)
 			throws ClassNotFoundException, SecurityException, NoSuchMethodException,
@@ -65,5 +76,21 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 */
 	public BeanDAO<T, K> getBeanDAO() {
 		return beanDAO;
+	}
+
+	public SearchCriterion[] getCurrentSearch() {
+		return currentSearch;
+	}
+
+	public void setCurrentSearch(SearchCriterion[] currentSearch) {
+		this.currentSearch = currentSearch;
+	}
+
+	public int getCurrentPage() {
+		return currentPage;
+	}
+
+	public void setCurrentPage(int currentPage) {
+		this.currentPage = currentPage;
 	}
 }

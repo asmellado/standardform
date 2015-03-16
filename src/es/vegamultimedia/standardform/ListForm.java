@@ -10,6 +10,7 @@ import java.util.List;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.shared.ui.label.ContentMode;
+import com.vaadin.ui.AbstractField;
 import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.AbstractTextField;
 import com.vaadin.ui.Button;
@@ -78,9 +79,6 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	
 	// Número de elementos por página
 	protected int elementsPerPage;
-	
-	// Página actual
-	protected int currentPage;
 	
 	// Lista de elementos
 	protected List<T> listElements;
@@ -229,13 +227,13 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 		}
 		
 		// Pagination
-		PaginationBar pagination = new PaginationBar(numElements, currentPage,
+		PaginationBar pagination = new PaginationBar(numElements, beanUI.getCurrentPage(),
 				elementsPerPage, new PaginationListener() {
 			@Override
 			public void paginate(int page) {
 				try {
 					// Actualizamos la página actual y realizamos una nueva búsqueda
-					currentPage = page;
+					beanUI.setCurrentPage(page);
 					search();
 				} catch (BeanDAOException e) {
 					Notification.show("Error",
@@ -351,7 +349,8 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 			public void buttonClick(ClickEvent event) {
 				try {
 					// Se muestra la primera página con la búsqueda actual
-					currentPage = 0;
+					beanUI.setCurrentPage(0);
+					updateSearchCriteria();
 					search();
 				} catch (BeanDAOException e) {
 					e.printStackTrace();
@@ -366,8 +365,9 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	}
 
 	/**
-	 * Gets a search field for the specified bean field
+	 * Gets a search field for the specified bean field and the value of its current searchCriterion
 	 * @param beanField
+	 * @param searchCriterion 
 	 * @return
 	 */
 	protected Component getSearchField(Field beanField) {
@@ -416,15 +416,31 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 			// Asignamos el nombre del campo como id
 			searchField.setId(beanField.getName());
 			searchField.addStyleName("standardform-field");
+			// Si hay criterios de búsqueda, los recorremos
+			if (beanUI.getCurrentSearch() != null) {
+				for (SearchCriterion search : beanUI.getCurrentSearch()) {
+					// Si hay criterio para el campo actual
+					if (search != null && search.getNameField().equals(beanField.getName())) {
+						// Asignamos al campo el valor del criterio actual
+						if (searchField instanceof AbstractSelect) {
+							((AbstractSelect) searchField).setValue(search.getValueField());						
+						}
+						else if (searchField instanceof AbstractField) {
+							((AbstractTextField) searchField).setValue((String) search.getValueField());
+						}
+						break;
+					}
+				}
+			}
 		}
 		return searchField;
 	}
 	
 	/**
-	 * Makes the search. This method is called when the user clicks on the search button
-	 * @throws BeanDAOException 
+	 * Updates the search criteria from the search fields values.
+	 * This method is called when the user clicks on the search button
 	 */
-	protected void search() throws BeanDAOException {
+	protected void updateSearchCriteria() {
 		int numCriteria = 0;
 		SearchCriterion[] temporalCriteria = new SearchCriterion[searchFields.length];
 		String[] campoCriteria = new String[searchFields.length];
@@ -482,14 +498,8 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 				searchCriteria[j++] = temporalCriteria[i];
 			}
 		}
-		// Hacemos la búsqueda
-		numElements = beanUI.getBeanDAO().getcountElements(searchCriteria);
-
-		listElements = beanUI.getBeanDAO().getElements(searchCriteria, 
-				(int) (currentPage*elementsPerPage), elementsPerPage);
-		// Creamos un nuevo listado
-		createList();
-		
+		// Guardamos la búsqueda en el BeanUI
+		beanUI.setCurrentSearch(searchCriteria);
 		// Mostramos información de búsqueda
 		String info;
 		if (numCriteria == 0) {
@@ -515,6 +525,21 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 			}
 		}
 		searchInfo.setValue(info);
+	}
+	
+	/**
+	 * Makes a search with the current search criteria and the current page 
+	 * Updates the list with the found elements
+	 * @throws BeanDAOException 
+	 */
+	protected void search() throws BeanDAOException {
+		// Obtenemos el número de elementos con el BeanDAO
+		numElements = beanUI.getBeanDAO().getcountElements(beanUI.getCurrentSearch());
+		// Obtenemos los elementos haciendo la búsqueda en el BeanDAO
+		listElements = beanUI.getBeanDAO().getElements(beanUI.getCurrentSearch(), 
+				(int) (beanUI.getCurrentPage()*elementsPerPage), elementsPerPage);
+		// Creamos un nuevo listado
+		createList();
 	}
 
 	/**
