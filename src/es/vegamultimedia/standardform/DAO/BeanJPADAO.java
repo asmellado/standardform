@@ -5,12 +5,9 @@ import java.util.List;
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
-import javax.persistence.LockTimeoutException;
 import javax.persistence.NoResultException;
 import javax.persistence.NonUniqueResultException;
 import javax.persistence.PersistenceException;
-import javax.persistence.PessimisticLockException;
-import javax.persistence.QueryTimeoutException;
 import javax.persistence.RollbackException;
 import javax.persistence.TransactionRequiredException;
 import javax.persistence.TypedQuery;
@@ -118,7 +115,9 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 		CriteriaQuery<Long> criteriaQuery = criteriaBuilder.createQuery(Long.class);
 		Root<BEAN> root = criteriaQuery.from(beanClass);
 		criteriaQuery = criteriaQuery.select(criteriaBuilder.count(root));
-		addCriteriaToQuery(searchCriteria, criteriaBuilder, criteriaQuery, root);
+		Predicate[] predicates =
+				getJPAPredicates(searchCriteria, criteriaBuilder, root);
+		criteriaQuery.where(criteriaBuilder.and(predicates));
 		TypedQuery<Long> typedQuery = entityManager.createQuery(criteriaQuery);
 		return typedQuery.getSingleResult();
 	}
@@ -129,7 +128,9 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
 		CriteriaQuery<BEAN> criteriaQuery = criteriaBuilder.createQuery(beanClass);
 		Root<BEAN> root = criteriaQuery.from(beanClass);
-		addCriteriaToQuery(searchCriteria, criteriaBuilder, criteriaQuery, root);
+		Predicate[] predicates =
+				getJPAPredicates(searchCriteria, criteriaBuilder, root);
+		criteriaQuery.where(criteriaBuilder.and(predicates));
 		TypedQuery<BEAN> typedQuery = entityManager.createQuery(criteriaQuery);
 		// Añadimos el primer y número límite de resultados
 		typedQuery.setFirstResult(firstResult);
@@ -139,15 +140,15 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 	}
 	
 	/**
-	 * Adds the searchCriteria to the criteriaQuery
+	 * Gets the JPA predicates from the searchCriteria
+	 * You can override this method if you need to modify or add some criteria to the query
 	 * @param searchCriteria
 	 * @param criteriaBuilder
-	 * @param criteriaQuery
 	 * @param root
+	 * @return predicates if there is some searchCriteria, otherwise an empty array
 	 */
-	private void addCriteriaToQuery(SearchCriterion[] searchCriteria,
-			CriteriaBuilder criteriaBuilder, CriteriaQuery<?> criteriaQuery,
-			Root<BEAN> root) {
+	protected Predicate[] getJPAPredicates(SearchCriterion[] searchCriteria,
+			CriteriaBuilder criteriaBuilder, Root<BEAN> root) {
 		if (searchCriteria != null) {
 			// Inicializamos un array de Predicates
 			Predicate[] predicates = new Predicate[searchCriteria.length];
@@ -165,7 +166,8 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 					break;
 				}
 			}
-			criteriaQuery.where(criteriaBuilder.and(predicates));
+			return predicates;
 		}
+		return new Predicate[0];
 	}
 }

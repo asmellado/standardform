@@ -59,7 +59,7 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 * @throws BeanDAOException 
 	 */
 	public Component buidListForm() throws BeanDAOException {
-		return new ListForm<T, K>(this, null);
+		return new ListForm<T, K>(this);
 	}
 	
 	/**

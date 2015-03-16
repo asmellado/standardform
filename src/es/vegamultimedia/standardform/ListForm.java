@@ -47,16 +47,6 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	
 	private static final long serialVersionUID = -8471432681552606031L;
 
-	/**
-	 * Interface for loading the table elements
-	 */
-	public interface QueryListener<T extends Bean> {
-		/**
-		 * Called to obtain the table elements
-		 */
-		public abstract List<T> getElements();
-	}
-	
     /**
      * Event BeforeCreateList
      */
@@ -65,8 +55,6 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
     }
     
 	protected BeforeCreateList<T> beforeCreateList; 
-	
-	protected QueryListener<T> queryListener;
 	
 	// BeanUI that created this standard list form
 	protected BeanUI<T, K> beanUI;
@@ -129,9 +117,8 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	// Lista de columnas generadas
 	protected ArrayList<GeneratedColumn> generatedColumns;
 
-	public ListForm(BeanUI<T, K> beanUI, QueryListener<T> queryListener) throws BeanDAOException {
+	public ListForm(BeanUI<T, K> beanUI) throws BeanDAOException {
 		this.beanUI = beanUI;
-		this.queryListener = queryListener;
 		beforeCreateList = null;
 		// TODO Parametrizar
 		elementsPerPage = 3;
@@ -188,24 +175,14 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
      	listLayout = new VerticalLayout();
      	mainLayout.addComponent(listLayout);
         
-        // Si es búsqueda inmediata 
- 		if (standardFormAnnotation.immediateSearch()) {
- 			// Mostramos la página actual
- 			search();
- 			// Si no hay campos de búsqueda
- 			if (standardFormAnnotation.searchFields().length == 0) {
- 				// Ocultamos el panel de búsqueda
- 				searchPanel.setVisible(false);
- 			}
- 		}
+		// Realizamos la búsqueda
+		search();
+		// Si no hay campos de búsqueda
+		if (standardFormAnnotation.searchFields().length == 0) {
+			// Ocultamos el panel de búsqueda
+			searchPanel.setVisible(false);
+		}
 	}
-	
-	/**
-	 * Adds the listener
-	 */
-    public void addQueryListener(QueryListener<T> queryListener) {
-        this.queryListener = queryListener;
-    }
 
     public void addButton(Component button) {
         buttonsLayout.addComponent(button);
@@ -360,8 +337,10 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 		});
 		buttonLayout.addComponent(searchButton);
 		// Añadimos etiqueta de información
-		searchInfo = new Label("No se ha realizado ninguna búsqueda", ContentMode.HTML);
+		searchInfo = new Label("", ContentMode.HTML);
 		buttonLayout.addComponent(searchInfo);
+		// Actualizamos el texto de información de búsqueda
+		updateSearchInfo();
 	}
 
 	/**
@@ -437,14 +416,12 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	}
 	
 	/**
-	 * Updates the search criteria from the search fields values.
+	 * Updates the search criteria and the search label from the search fields values.
 	 * This method is called when the user clicks on the search button
 	 */
 	protected void updateSearchCriteria() {
 		int numCriteria = 0;
 		SearchCriterion[] temporalCriteria = new SearchCriterion[searchFields.length];
-		String[] campoCriteria = new String[searchFields.length];
-		String[] valorCriteria = new String[searchFields.length];
 		// Recorremos los campos de búsqueda
 		for (int i=0; i<searchFields.length; i++) {
 			// Comprobamos por seguridad que el campo no es null
@@ -460,9 +437,8 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 				if (!valorCampo.isEmpty()) {
 					// Añadimos criterio de búsqueda de tipo TEXT
 					temporalCriteria[numCriteria] =
-						new SearchCriterion(nombreCampo, valorCampo, SearchType.TEXT);
-					campoCriteria[numCriteria] = searchFields[i].getCaption();
-					valorCriteria[numCriteria] = valorCampo;
+						new SearchCriterion(nombreCampo, searchFields[i].getCaption(),
+								valorCampo, SearchType.TEXT);
 					numCriteria++;
 				}
 			}
@@ -476,17 +452,16 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 					if (searchFieldTypes[i].isEnum()) {
 						// Añadimos criterio de búsqueda de tipo ENUM
 						temporalCriteria[numCriteria] = 
-							new SearchCriterion(nombreCampo, elementoSeleccionado, SearchType.ENUM);
+							new SearchCriterion(nombreCampo, searchFields[i].getCaption(),
+									elementoSeleccionado, SearchType.ENUM);
 					}
 					// Si el campo es de tipo bean
 					else if (Utils.isSubClass(searchFieldTypes[i], Bean.class)) {
 						// Añadimos criterio de búsqueda de tipo BEAN
 						temporalCriteria[numCriteria] = 
-							new SearchCriterion(nombreCampo, elementoSeleccionado, SearchType.BEAN);
+							new SearchCriterion(nombreCampo, searchFields[i].getCaption(),
+									elementoSeleccionado, SearchType.BEAN);
 					}
-					campoCriteria[numCriteria] = searchFields[i].getCaption();
-					valorCriteria[numCriteria] =
-						((ComboBox)searchFields[i]).getItemCaption(elementoSeleccionado);
 					numCriteria++;
 				}
 			}
@@ -498,37 +473,46 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 				searchCriteria[j++] = temporalCriteria[i];
 			}
 		}
-		// Guardamos la búsqueda en el BeanUI
+		// Guardamos los criterios de búsqueda en el BeanUI
 		beanUI.setCurrentSearch(searchCriteria);
+		// Actualizamos la información de búsqueda
+		updateSearchInfo();
+	}
+	
+	/**
+	 * Updates the search info text from the search criteria
+	 */
+	protected void updateSearchInfo() {
 		// Mostramos información de búsqueda
+		SearchCriterion[] searchCriteria = beanUI.getCurrentSearch();
 		String info;
-		if (numCriteria == 0) {
+		if (searchCriteria == null || searchCriteria.length == 0) {
 			info = "Se muestran los elementos sin aplicar ningún filtro.";
 		}
 		else {
 			info = "Se muestran los elementos que cumplen los siguientes filtros:";
-			for (int i=0; i<temporalCriteria.length; i++) {
+			for (SearchCriterion searchCriterion : searchCriteria) {
 				// Si el criterio es null
-				if (temporalCriteria[i] == null) {
+				if (searchCriterion == null) {
 					// Pasamos al siguiente
 					continue;
 				}
-				info +=  "<br/><b>" + campoCriteria[i] + "</b>";
-				switch (temporalCriteria[i].getTypeCriteria()) {
+				info +=  "<br/><b>" + searchCriterion.getCaptionField() + "</b>";
+				switch (searchCriterion.getTypeCriteria()) {
 				case TEXT:
 					info += " contiene el texto ";
 					break;
 				case ENUM: case BEAN:
 					info += " es igual a ";
 				}
-				info += "<b>\"" + valorCriteria[i] + "\"</b>.";
+				info += "<b>\"" + searchCriterion.getValueField() + "\"</b>.";
 			}
 		}
 		searchInfo.setValue(info);
 	}
 	
 	/**
-	 * Makes a search with the current search criteria and the current page 
+	 * Makes a search with the current search criteria and the current page.
 	 * Updates the list with the found elements
 	 * @throws BeanDAOException 
 	 */
@@ -542,26 +526,6 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 		createList();
 	}
 
-	/**
-	 * Gets every elements of this bean type using thee BeanDAO
-	 * @throws BeanDAOException 
-	 */
-	protected List<T> loadData() throws BeanDAOException {
-		// TODO No obtener todos los elementos, sino trabajar con un cursor y paginar
-		List<T> listaElementos;
-		// Si hay escuchador queryListener
-		if (queryListener != null) {
-			// Llamamos a su método para obtener los elementos
-			listaElementos = queryListener.getElements();
-		}
-		// En caso contrario
-		else {
-			// Obtenemos todos los elementos
-			listaElementos = beanUI.getBeanDAO().getElements(null, 0, elementsPerPage);
-		}
-		return listaElementos;
-	}
-	
 	/**
 	 * Shows the DetailForm for a bean inside the same component as this ListForm
 	 * Before, it gets again the bean using the BeanDAO (just in case it has changed)
@@ -607,30 +571,9 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	}
 	
 	/**
-	 * Shows all the elements in the list
-	 */
-	protected void showAllElements() {
-		try {
-			listElements = loadData();
-		} catch (Exception e) {
-			Notification.show("No se pueden obtener los elementos",
-					e.getMessage(), Type.ERROR_MESSAGE);
-			e.printStackTrace();
-		}
-		// Creamos la lista
-		createList();
-	}
-	
-	/**
 	 * Hides the search panel.
 	 */
 	public void hideSearchPanel() {
-		// Si no es búsqueda inmediata
-		if (!standardFormAnnotation.immediateSearch()) {
-			// Obtenemos todos los elementos automáticamente
-			showAllElements();
-		}
-        // Ocultamos el panel de búsqueda
 		searchPanel.setVisible(false);
 	}
 

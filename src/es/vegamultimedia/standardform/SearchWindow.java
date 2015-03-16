@@ -39,7 +39,7 @@ public class SearchWindow<T extends Bean, K> extends Window {
 		center();
 		
 		try {
-			listForm = new ListForm<T, K>(beanUI, null);
+			listForm = new ListForm<T, K>(beanUI);
 			listForm.disableForm(false);
 			listForm.addGeneratedColumn("Seleccionar", new SeleccionarColumn());
 			listForm.refreshList();
