@@ -65,9 +65,6 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	// Número de elementos a mostrar
 	protected long numElements;
 	
-	// Número de elementos por página
-	protected int elementsPerPage;
-	
 	// Lista de elementos
 	protected List<T> listElements;
 	
@@ -120,8 +117,6 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	public ListForm(BeanUI<T, K> beanUI) throws BeanDAOException {
 		this.beanUI = beanUI;
 		beforeCreateList = null;
-		// TODO Parametrizar
-		elementsPerPage = 3;
 		
 		// Obtenemos la anotación StandardForm del bean
 		standardFormAnnotation = beanUI.getBeanClass().getAnnotation(StandardForm.class);
@@ -204,13 +199,27 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 		}
 		
 		// Pagination
-		PaginationBar pagination = new PaginationBar(numElements, beanUI.getCurrentPage(),
-				elementsPerPage, new PaginationListener() {
+		PaginationBar pagination = new PaginationBar(numElements, beanUI.getFirstElement(),
+				beanUI.getElementsPerPage(), new PaginationListener() {
 			@Override
-			public void paginate(int page) {
+			public void paginate(int firstElement) {
 				try {
 					// Actualizamos la página actual y realizamos una nueva búsqueda
-					beanUI.setCurrentPage(page);
+					beanUI.setFirstElement(firstElement);
+					search();
+				} catch (BeanDAOException e) {
+					Notification.show("Error",
+							"No se puede mostrar el listado.\n" + e.getMessage(),
+							Type.ERROR_MESSAGE);
+					e.printStackTrace();
+				}
+			}
+
+			@Override
+			public void setElementsPerPage(int elementsPerPage) {
+				// Establecemos el nuevo número de elementos por página y realizamos una nueva búsqueda
+				try {
+					beanUI.setElementsPerPage(elementsPerPage);
 					search();
 				} catch (BeanDAOException e) {
 					Notification.show("Error",
@@ -326,7 +335,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 			public void buttonClick(ClickEvent event) {
 				try {
 					// Se muestra la primera página con la búsqueda actual
-					beanUI.setCurrentPage(0);
+					beanUI.setFirstElement(0);
 					updateSearchCriteria();
 					search();
 				} catch (BeanDAOException e) {
@@ -520,8 +529,10 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 		// Obtenemos el número de elementos con el BeanDAO
 		numElements = beanUI.getBeanDAO().getcountElements(beanUI.getCurrentSearch());
 		// Obtenemos los elementos haciendo la búsqueda en el BeanDAO
-		listElements = beanUI.getBeanDAO().getElements(beanUI.getCurrentSearch(), 
-				(int) (beanUI.getCurrentPage()*elementsPerPage), elementsPerPage);
+		listElements = beanUI.getBeanDAO().getElements(
+				beanUI.getCurrentSearch(), 
+				beanUI.getFirstElement(),
+				beanUI.getElementsPerPage());
 		// Creamos un nuevo listado
 		createList();
 	}

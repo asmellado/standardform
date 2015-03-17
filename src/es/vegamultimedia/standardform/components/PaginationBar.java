@@ -1,8 +1,12 @@
 package es.vegamultimedia.standardform.components;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.CustomField;
 import com.vaadin.ui.HorizontalLayout;
@@ -12,6 +16,8 @@ public class PaginationBar extends CustomField<Long> {
 	
 	private static final long serialVersionUID = 4629535328213002591L;
 	
+	public static final Integer[] DEFAULT_POSSIBLE_ELEMENTS_PER_PAGE = {15, 30, 50, 100};
+	
     /**
 	 * Interface for pagination
 	 */
@@ -19,16 +25,21 @@ public class PaginationBar extends CustomField<Long> {
 		/**
 		 * Called to refresh the table with a new pagination
 		 */
-		public abstract void paginate(int page);
+		public abstract void paginate(int firstElement);
+		
+		/**
+		 * Sets a new number of elements per page
+		 * @param elementsPerPage
+		 */
+		public abstract void setElementsPerPage(int elementsPerPage);
 	}
 	
 	private HorizontalLayout mainLayout;
 	
-	public PaginationBar(final long numElements, final int page, final int elementsPerPage,
-			final PaginationListener paginationListener) {
+	public PaginationBar(final long numElements, final int currentFirstElement,
+			final int elementsPerPage, final PaginationListener paginationListener) {
 		mainLayout = new HorizontalLayout();
-		final int lastPage = (int) ((numElements-1)/elementsPerPage);
-		if (page > 0) {
+		if (currentFirstElement > 0) {
 			// First page button
 			Button firstButton = new Button("<<");
 			firstButton.addClickListener(new ClickListener() {
@@ -49,20 +60,41 @@ public class PaginationBar extends CustomField<Long> {
 
 				@Override
 				public void buttonClick(ClickEvent event) {
-					paginationListener.paginate(page - 1);
+					int newFirstElement = Math.max(0, currentFirstElement - elementsPerPage);
+					paginationListener.paginate(newFirstElement);
 				}
 			});
 			mainLayout.addComponent(previousButton);
 		}
-		long firstElement = page * elementsPerPage + 1;
-		long lastElement = (page + 1) * elementsPerPage;
-		if (lastElement > numElements) {
-			lastElement = numElements;
-		}
-		Label paginationLabel = new Label(firstElement + 
-				" a " + lastElement + " de " + numElements);
+		
+		// Number elements combo
+		ArrayList<Integer> possibleNumElements =
+				new ArrayList<Integer>(Arrays.asList(DEFAULT_POSSIBLE_ELEMENTS_PER_PAGE));
+		final ComboBox numElementsCombo = new ComboBox("", possibleNumElements);
+		numElementsCombo.setNullSelectionAllowed(false);
+		numElementsCombo.setTextInputAllowed(false);
+		numElementsCombo.setValue(elementsPerPage);
+		numElementsCombo.addValueChangeListener(new ValueChangeListener() {
+
+			private static final long serialVersionUID = 5638986015301501212L;
+
+			@Override
+			public void valueChange(
+					com.vaadin.data.Property.ValueChangeEvent event) {
+				int elementsPerPage = (int) numElementsCombo.getValue();
+				paginationListener.setElementsPerPage(elementsPerPage);
+			}
+			
+		});
+		mainLayout.addComponent(numElementsCombo);
+		
+		// Info label
+		int currentLastElement = (int) Math.min(currentFirstElement + elementsPerPage, numElements);
+		Label paginationLabel = new Label((currentFirstElement + 1) + 
+				" a " + currentLastElement + " de " + numElements);
 		mainLayout.addComponent(paginationLabel);
-		if (page < lastPage) {
+		
+		if (currentFirstElement < numElements - elementsPerPage) {
 			// Next page button
 			Button nextButton = new Button(">");
 			nextButton.addClickListener(new ClickListener() {
@@ -71,7 +103,8 @@ public class PaginationBar extends CustomField<Long> {
 
 				@Override
 				public void buttonClick(ClickEvent event) {
-					paginationListener.paginate(page + 1);
+					int nextElement = (int) Math.min(numElements - 1, currentFirstElement + elementsPerPage);
+					paginationListener.paginate(nextElement);
 				}
 			});
 			mainLayout.addComponent(nextButton);
@@ -84,7 +117,8 @@ public class PaginationBar extends CustomField<Long> {
 
 				@Override
 				public void buttonClick(ClickEvent event) {
-					paginationListener.paginate(lastPage);
+					int newFirstElement = (int) (numElements - (int) (numElements % elementsPerPage));
+					paginationListener.paginate(newFirstElement);
 				}
 			});
 			mainLayout.addComponent(lastButton);

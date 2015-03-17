@@ -13,6 +13,8 @@ import es.vegamultimedia.standardform.model.Bean;
 @SuppressWarnings("serial")
 public class BeanUI<T extends Bean, K> implements Serializable {
 	
+	public static int DEFAULT_ELEMENTS_PER_PAGE = 15;
+	
 	/**
 	 * Bean class
 	 */
@@ -29,9 +31,14 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	protected SearchCriterion[] currentSearch;
 	
 	/**
-	 * Current page in the list form
+	 * Current first element in the list form
 	 */
-	protected int currentPage;
+	protected int firstElement;
+	
+	/**
+	 * Current number of elements per page in the list form
+	 */
+	protected int elementsPerPage;
 	
 	public BeanUI(Class<T> beanClass, BeanDAO<T, K> beanDAO)
 			throws ClassNotFoundException, SecurityException, NoSuchMethodException,
@@ -39,6 +46,7 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 			IllegalAccessException, InvocationTargetException {
 		this.beanClass = beanClass;
 		this.beanDAO = beanDAO;
+		elementsPerPage = DEFAULT_ELEMENTS_PER_PAGE;
 	}
 	
 	/**
@@ -86,11 +94,19 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 		this.currentSearch = currentSearch;
 	}
 
-	public int getCurrentPage() {
-		return currentPage;
+	public int getFirstElement() {
+		return firstElement;
 	}
 
-	public void setCurrentPage(int currentPage) {
-		this.currentPage = currentPage;
+	public void setFirstElement(int firstElement) {
+		this.firstElement = firstElement;
+	}
+
+	public int getElementsPerPage() {
+		return elementsPerPage;
+	}
+
+	public void setElementsPerPage(int elementsPerPage) {
+		this.elementsPerPage = elementsPerPage;
 	}
 }

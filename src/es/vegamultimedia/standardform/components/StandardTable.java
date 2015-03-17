@@ -290,7 +290,7 @@ public class StandardTable<T extends Bean, K> extends Table {
     }
     
     private String recortarTexto(String texto) {
-    	if (texto.length() < 20) {
+    	if (texto == null || texto.length() < 20) {
     		return texto;
     	}
     	return texto.substring(0, 18) + "...";
