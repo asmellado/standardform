@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import org.vaadin.dialogs.ConfirmDialog;
+
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.shared.ui.label.ContentMode;
@@ -40,24 +42,62 @@ import es.vegamultimedia.standardform.components.PaginationBar;
 import es.vegamultimedia.standardform.components.PaginationBar.PaginationListener;
 import es.vegamultimedia.standardform.components.StandardTable;
 import es.vegamultimedia.standardform.components.StandardTable.GeneratedColumn;
-import es.vegamultimedia.standardform.components.StandardTable.ShowDetailListener;
 import es.vegamultimedia.standardform.model.Bean;
 
-public class ListForm<T extends Bean, K> extends Panel implements ShowDetailListener<T> {
+public class ListForm<BEAN extends Bean, KEY> extends Panel {
 	
 	private static final long serialVersionUID = -8471432681552606031L;
 
-    /**
-     * Event BeforeCreateList
-     */
-    public interface BeforeCreateList<T extends Bean> {
-        public abstract void beforeCreateList(List<T> elements);
-    }
-    
-	protected BeforeCreateList<T> beforeCreateList; 
+	/**
+	 * Interface for listening for a show event in a ListForm
+	 */
+	public interface ShowListListener<BEAN> {
+		
+		/**
+		 * Called before creating the list
+		 * @param listElements Showed elements in the list
+		 * @param currentSearch Current used search for showing the list
+		 */
+		public abstract void beforeCreateList(List<BEAN> listElements, SearchCriterion[] currentSearch)
+				throws BeanDAOException;
+		
+		/**
+		 * Called after creating the list
+		 * @param listElements Showed elements in the list
+		 * @param currentSearch Current used search for showing the list
+		 * @throws BeanDAOException 
+		 */
+		public abstract void afterCreateList(List<BEAN> listElements, SearchCriterion[] currentSearch)
+				throws BeanDAOException;
+	}
 	
+	/**
+	 * Interface for listening for a delete event in a ListForm
+	 */
+	public interface DeleteListener<BEAN> {
+		/**
+		 * Called before deleting a bean
+		 * @param bean Bean before deleting
+		 * @throws BeanDAOException
+		 */
+		public abstract void beforeDelete(BEAN bean) throws BeanDAOException;
+		
+		/**
+		 * Called after deleting a bean
+		 * @param bean Deleted bean
+		 * @throws BeanDAOException
+		 */
+		public abstract void afterDelete(BEAN bean) throws BeanDAOException;
+	}
+
+	// Show list Listener
+    protected ShowListListener<BEAN> showListListener; 
+    
+    // Delete listener
+    protected DeleteListener<BEAN> deleteListener; 
+   
 	// BeanUI that created this standard list form
-	protected BeanUI<T, K> beanUI;
+	protected BeanUI<BEAN, KEY> beanUI;
 	
 	// StandardForm annotation bean
 	protected StandardForm standardFormAnnotation;
@@ -66,10 +106,10 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	protected long numElements;
 	
 	// Lista de elementos
-	protected List<T> listElements;
+	protected List<BEAN> listElements;
 	
 	// Container del formulario
-	protected BeanItemContainer<T> container;
+	protected BeanItemContainer<BEAN> container;
 	
 	// Indica si el formulario está deshabilitado
 	protected boolean formEnabled;
@@ -100,7 +140,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	protected Label searchInfo;
 	
 	// Tabla para listado por defecto
-	protected StandardTable<T, K> table;
+	protected StandardTable<BEAN, KEY> table;
 	
 	// Layout para listado personalizado
 	protected VerticalLayout listLayout;
@@ -114,9 +154,8 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	// Lista de columnas generadas
 	protected ArrayList<GeneratedColumn> generatedColumns;
 
-	public ListForm(BeanUI<T, K> beanUI) throws BeanDAOException {
+	public ListForm(BeanUI<BEAN, KEY> beanUI) throws BeanDAOException {
 		this.beanUI = beanUI;
-		beforeCreateList = null;
 		
 		// Obtenemos la anotación StandardForm del bean
 		standardFormAnnotation = beanUI.getBeanClass().getAnnotation(StandardForm.class);
@@ -182,20 +221,37 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
     public void addButton(Component button) {
         buttonsLayout.addComponent(button);
     }
-    
-    public void setBeforeCreateList(BeforeCreateList<T> beforeCreateList) {
-        this.beforeCreateList = beforeCreateList;
-    }
 	
+	/**
+	 * Adds a show list listener
+	 * TODO Note: In this moment only one listener is allowed!
+	 * @param showListListener
+	 */
+    public void addShowListListener(ShowListListener<BEAN> showListListener) {
+		this.showListListener = showListListener;
+	}
+
+	/**
+	 * Adds a delete listener
+	 * TODO Note: In this moment only one listener is allowed!
+	 * @param deleteListener
+	 */
+    public void addDeleteListener(DeleteListener<BEAN> deleteListener) {
+		this.deleteListener = deleteListener;
+	}
+
 	/**
 	 * Adds the list to the listLayout:
 	 * A custom component for each element or a table for all the elements by default
+	 * @throws BeanDAOException 
 	 */
-	protected void createList() {
+	protected void createList() throws BeanDAOException {
 		// Eliminamos los componentes del listLayout (por si no es la primera vez)
 		listLayout.removeAllComponents();
-		if(beforeCreateList!=null) {
-		    beforeCreateList.beforeCreateList(listElements);
+		
+		// Si existe escuchador showListListener, llamamos al método beforeCreateList() 
+		if(showListListener != null) {
+			showListListener.beforeCreateList(listElements, beanUI.getCurrentSearch());
 		}
 		
 		// Pagination
@@ -240,9 +296,9 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 					addButton.setVisible(false);
 				}
 			}
-			container = new BeanItemContainer<T>(beanUI.getBeanClass(), listElements);
+			container = new BeanItemContainer<BEAN>(beanUI.getBeanClass(), listElements);
 			// Creamos una nueva tabla (pues Vaadin da problemas si reusamos la misma)
-			table = new StandardTable<T, K>(container, beanUI, formEnabled, allowConsulting, 
+			table = new StandardTable<BEAN, KEY>(container, beanUI, formEnabled, allowConsulting, 
 					customVisibledColumns, customColumnHeaders, generatedColumns, this);
 			listLayout.addComponent(table);
 		}
@@ -257,9 +313,9 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 				// Obtenemos el constructor con el parámetro del tipo del bean
 				Constructor<?> constructor = customComponentClass.getConstructor(beanUI.getBeanClass());
 				if (listElements != null) {
-					for (T element : listElements) {
+					for (BEAN element : listElements) {
 						@SuppressWarnings("unchecked")
-						CustomField<T> rowComponent = (CustomField<T>) constructor.newInstance(element);
+						CustomField<BEAN> rowComponent = (CustomField<BEAN>) constructor.newInstance(element);
 						listLayout.addComponent(rowComponent);
 					}
 				}
@@ -282,6 +338,10 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 					Type.ERROR_MESSAGE);
 				e.printStackTrace();
 			}
+		}
+		// Si existe escuchador showListListener, llamamos al método afterCreateList() 
+		if (showListListener != null) {
+			showListListener.afterCreateList(listElements, beanUI.getCurrentSearch());
 		}
 	}
 
@@ -389,7 +449,7 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 			try {
 				// Obtenemos una instancia del BeanDAO anidado
 				@SuppressWarnings("unchecked")
-				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(tipoCampo, beanUI.getBeanDAO());
+				BeanDAO<? extends Bean, KEY> beanDAO = Utils.getBeanDAO(tipoCampo, beanUI.getBeanDAO());
 				// Obtenemos todos los elementos del bean anidado
 				List<?> elementosBean = beanDAO.getElements(null, 0, 0);
 				// Creamos un combo box con los elementos
@@ -542,15 +602,14 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 	 * Before, it gets again the bean using the BeanDAO (just in case it has changed)
 	 * @param element
 	 */
-	@Override
 	@SuppressWarnings("unchecked")
-	public void showDetailForm(T element) {
+	public void showDetailForm(BEAN element) {
 		Component vistaDetalle;
 		try {
 			// Si hay elemento
 			if (element != null) {
 				// Obtenemos el elemento de base de datos
-				element = beanUI.beanDAO.get((K) Utils.getId(element));
+				element = beanUI.beanDAO.get((KEY) Utils.getId(element));
 			}
 			vistaDetalle = beanUI.buildDetailForm(element);
 			ComponentContainer contentPanel = (ComponentContainer)getParent();
@@ -560,6 +619,43 @@ public class ListForm<T extends Bean, K> extends Panel implements ShowDetailList
 					e.getMessage(), Type.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Deletes a bean when the user orders it
+	 * @param bean
+	 */
+	public void deleteBean(final BEAN bean) {
+		ConfirmDialog.show(getUI(), "Confirmación", 
+				"¿Está seguro de que desea eliminar el elemento?",
+		        "Sí", "No", new ConfirmDialog.Listener() {
+			private static final long serialVersionUID = 1L;
+
+			public void onClose(ConfirmDialog dialog) {
+                if (dialog.isConfirmed()) {
+                	try {
+                		// Si hay deleteListener llamamos a beforeDelete()
+                		if (deleteListener != null) {
+                			deleteListener.beforeDelete(bean);
+                		}
+                		// Eliminamos el bean en la base de datos
+                		beanUI.getBeanDAO().remove(bean);
+                		// Si hay deleteListener llamamos a afterDelete()
+                		if (deleteListener != null) {
+                			deleteListener.afterDelete(bean);
+                		}
+	                	Notification.show("Información",
+	                			"El elemento se ha eliminado correctamente",
+	                			Type.TRAY_NOTIFICATION);
+	                	// Eliminamos el bean de la tabla
+	                	container.removeItem(bean);
+                	} catch (Exception e) {
+    					Notification.show("No se ha podido eliminar el elemento",
+    							e.getMessage(), Type.ERROR_MESSAGE);
+    				}			                	
+                }
+            }
+        });
 	}
 	
 	/**

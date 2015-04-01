@@ -8,41 +8,27 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
-import org.vaadin.dialogs.ConfirmDialog;
-
 import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
-import com.vaadin.ui.Notification;
-import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.themes.BaseTheme;
 
 import es.vegamultimedia.standardform.BeanUI;
+import es.vegamultimedia.standardform.ListForm;
 import es.vegamultimedia.standardform.Utils;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormEnum;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
 
-public class StandardTable<T extends Bean, K> extends Table {
+public class StandardTable<BEAN extends Bean, KEY> extends Table {
 	
 	private static final long serialVersionUID = 3412364081573747242L;
 
 	/**
-     * Interface for showing the detail form for a bean 
-     */
-    public interface ShowDetailListener<T extends Bean> {
-        /**
-         * Shows the DetailForm
-         * @param bean
-         */
-    	public abstract void showDetailForm(T bean);
-    }
-	
-    /**
 	 * Generated column of this StandardTable
 	 */
 	public static class GeneratedColumn {
@@ -60,14 +46,14 @@ public class StandardTable<T extends Bean, K> extends Table {
 		}
 	}
 	
-	// Escuchador para mostrar el detailForm
-	protected ShowDetailListener<T> showDetailListener;
+	// ListForm
+	protected ListForm<BEAN, KEY> listForm;
 	
 	// BeanUI that created this standard list form
-	protected BeanUI<T, K> beanUI;
+	protected BeanUI<BEAN, KEY> beanUI;
 	
 	// Container del formulario
-	protected BeanItemContainer<T> container;
+	protected BeanItemContainer<BEAN> container;
 	
 	// Cabeceras de las columnas personalizadas
 	protected HashMap<String, String> customColumnHeaders;
@@ -79,8 +65,8 @@ public class StandardTable<T extends Bean, K> extends Table {
 	 * @param formEnabled
 	 */
 	public StandardTable(String caption,
-			BeanItemContainer<T> container,
-			BeanUI<T, K> beanUI) {
+			BeanItemContainer<BEAN> container,
+			BeanUI<BEAN, KEY> beanUI) {
 		this(container, beanUI, false, false,
 				null, null, null, null);
 		setCaption(caption);
@@ -96,16 +82,16 @@ public class StandardTable<T extends Bean, K> extends Table {
 	 * @param customVisibledColumns
 	 * @param customColumnHeaders
 	 * @param customGeneratedColumns
-	 * @param showDetailListener
+	 * @param listForm
 	 */
-	public StandardTable(BeanItemContainer<T> container,
-			BeanUI<T, K> beanUI,
+	public StandardTable(BeanItemContainer<BEAN> container,
+			BeanUI<BEAN, KEY> beanUI,
 			boolean formEnabled,
 			boolean allowConsulting, 
 			String[] customVisibledColumns,
 			HashMap<String, String> customColumnHeaders,
 			ArrayList<GeneratedColumn> customGeneratedColumns,
-			ShowDetailListener<T> showDetailListener) {
+			ListForm<BEAN, KEY> listForm) {
 		
 		// Comprobación de parámetros null
 		if (customColumnHeaders == null) {
@@ -117,7 +103,7 @@ public class StandardTable<T extends Bean, K> extends Table {
 		// Inicializamos atributos
 		this.container = container;
 		this.beanUI = beanUI;
-		this.showDetailListener = showDetailListener;
+		this.listForm = listForm;
 		this.customColumnHeaders = customColumnHeaders;
 
 		// Columnas de la tabla
@@ -344,9 +330,9 @@ public class StandardTable<T extends Bean, K> extends Table {
 				@SuppressWarnings({ "unchecked", "rawtypes" })
 				@Override
 				public void buttonClick(ClickEvent event) {
-					T elementoSeleccionado =
-							(T) ((BeanItemContainer)getContainerDataSource()).getItem(itemId).getBean();
-					showDetailListener.showDetailForm(elementoSeleccionado);
+					BEAN elementoSeleccionado =
+							(BEAN) ((BeanItemContainer)getContainerDataSource()).getItem(itemId).getBean();
+					listForm.showDetailForm(elementoSeleccionado);
 				}
 			});
 			return button;
@@ -370,28 +356,7 @@ public class StandardTable<T extends Bean, K> extends Table {
 				
 				@Override
 				public void buttonClick(ClickEvent event) {
-					ConfirmDialog.show(getUI(), "Confirmación", 
-							"¿Está seguro de que desea eliminar el elemento?",
-					        "Sí", "No", new ConfirmDialog.Listener() {
-						private static final long serialVersionUID = 1L;
-
-						public void onClose(ConfirmDialog dialog) {
-			                if (dialog.isConfirmed()) {
-			                	T elementoSeleccionado = container.getItem(itemId).getBean();
-			                	try {
-			                		beanUI.getBeanDAO().remove(elementoSeleccionado);
-				                	Notification.show("Información",
-				                			"El elemento se ha eliminado correctamente",
-				                			Type.TRAY_NOTIFICATION);
-				                	// Eliminamos el item de la tabla
-				                	container.removeItem(itemId);
-			                	} catch (Exception e) {
-			    					Notification.show("No se ha podido eliminar el elemento",
-			    							e.getMessage(), Type.ERROR_MESSAGE);
-			    				}			                	
-			                }
-			            }
-			        });
+					listForm.deleteBean(container.getItem(itemId).getBean());
 				}
 			});
 			return button;

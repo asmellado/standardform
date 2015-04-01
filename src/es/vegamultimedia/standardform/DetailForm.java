@@ -20,6 +20,7 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 import javax.validation.constraints.NotNull;
 
+import org.apache.commons.lang3.SerializationUtils;
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.annotations.Embedded;
@@ -76,26 +77,35 @@ import es.vegamultimedia.standardform.model.File;
 import es.vegamultimedia.standardform.model.Image;
 
 @SuppressWarnings("serial")
-public class DetailForm<T extends Bean, K> extends Panel {
+public class DetailForm<BEAN extends Bean, KEY> extends Panel {
 	
 	/**
 	 * Interface for listening for a event in a DetailForm
 	 */
-	public interface SaveListener{
+	public interface SaveListener<BEAN>{
 		/**
 		 * Called before saving the bean
+		 * @param oldBean Bean before modifications, null if insert
+		 * @param newBean Bean after modifications
+		 * @throws BeanDAOException
 		 */
-		public abstract void beforeSave(Bean bean, boolean insertMode) throws BeanDAOException;
+		public abstract void beforeSave(BEAN oldBean, BEAN newBean)
+				throws BeanDAOException;
+		
 		/**
 		 * Called after saving the bean
+		 * @param oldBean Bean before modifications, null if insert
+		 * @param newBean Bean after modifications
+		 * @throws BeanDAOException 
 		 */
-		public abstract void afterSave(Bean bean, boolean insertMode);
+		public abstract void afterSave(BEAN oldBean, BEAN newBean)
+				throws BeanDAOException;
 	}
 	
-	protected SaveListener saveListener;
+	protected SaveListener<BEAN> saveListener;
 	
 	// BeanUI that created this standard detail form
-	protected BeanUI<T, K> beanUI;
+	protected BeanUI<BEAN, KEY> beanUI;
 	
 	// Mapa de binders del formulario.
 	// La clave para el binder principal es "" y para los binders de los bean anidados
@@ -103,7 +113,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	protected HashMap<String, BeanFieldGroup<?>> binderMap;
 	
 	// Bean actual
-	protected T bean;
+	protected BEAN bean;
 	
 	// Formulario
 	protected FormLayout form;
@@ -131,7 +141,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 */
-	public DetailForm(BeanUI<T, K> currentBeanUI, T currentBean)
+	public DetailForm(BeanUI<BEAN, KEY> currentBeanUI, BEAN currentBean)
 			throws InstantiationException, IllegalAccessException {
 		this(currentBeanUI, currentBean, true);
 	}
@@ -146,7 +156,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * @throws IllegalAccessException
 	 */
 	@SuppressWarnings("unchecked")
-	public DetailForm(BeanUI<T, K> currentBeanUI, T currentBean, boolean withOKAndCancelButtons)
+	public DetailForm(BeanUI<BEAN, KEY> currentBeanUI, BEAN currentBean, boolean withOKAndCancelButtons)
 			throws InstantiationException, IllegalAccessException {
 		beanUI = currentBeanUI;
 		bean = currentBean;
@@ -155,13 +165,13 @@ public class DetailForm<T extends Bean, K> extends Panel {
 			// Inicializamos el elemento actual
 			if (bean == null) {
 				insertMode = true;
-				bean = (T) newBean(beanUI.getBeanClass());
+				bean = (BEAN) newBean(beanUI.getBeanClass());
 			}
 			
 			// Creamos el mapa de binders
 			binderMap = new HashMap<String, BeanFieldGroup<?>>();
 			// Creamos el binder principal para el bean
-			BeanFieldGroup<T> binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
+			BeanFieldGroup<BEAN> binder = new BeanFieldGroup<BEAN>(beanUI.getBeanClass());
 			binder.setItemDataSource(bean);
 			// Añadimos el binder principal al mapa de binders
 			binderMap.put("", binder);
@@ -226,9 +236,10 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	}
 	
 	/**
-	 * Adds the SaveListener
+	 * Adds a save listener
+	 * TODO Note: In this moment only one listener is allowed!
 	 */
-	public void addSaveListener(SaveListener saveListener) {
+	public void addSaveListener(SaveListener<BEAN> saveListener) {
 		this.saveListener = saveListener;
 	}
 	
@@ -725,6 +736,12 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	protected void save(ClickEvent event) {
 		try {
 		    try{
+		    	BEAN oldBean = null;
+		    	// Si hay escuchador SaveListener y no está en modo inserción
+    			if (saveListener != null && !insertMode) {
+    				// Hacemos copia del bean antes de hacer los cambios
+    				oldBean = SerializationUtils.clone(bean);
+    			}
     			// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
     			commitSelectFields(bean, formFields);
     			// Hacemos commit de los campos de tipo archivo
@@ -742,7 +759,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
     				// Si el id no es null
     				if (id != null) {
     					// Comprobamos si existe ya un bean con la misma clave
-        				Bean beanExistente = beanUI.getBeanDAO().get((K) id);
+        				Bean beanExistente = beanUI.getBeanDAO().get((KEY) id);
         				if (beanExistente != null) {
         					Notification.show("Error", 
         						"Ya existe un registro con la misma clave.\n"
@@ -753,10 +770,10 @@ public class DetailForm<T extends Bean, K> extends Panel {
     				}
     			}
     			
-    			// Si hay escuchador
+    			// Si hay escuchador SaveListner
     			if (saveListener != null) {
     				// Llamamos al método beforeSave(), antes de que se guarde el bean
-    				saveListener.beforeSave(bean, insertMode);
+    				saveListener.beforeSave(oldBean, bean);
     			}
     			
     			// Buscamos si hay un campo de tipo EMBEDDED pero que es una referencia a otro bean
@@ -812,10 +829,10 @@ public class DetailForm<T extends Bean, K> extends Panel {
     				beanUI.getBeanDAO().update(bean);
     			}
     			
-    			// Si hay escuchador
+    			// Si hay escuchador SaveListener
     			if (saveListener != null) {
     				// Llamamos al método aferSave(), después de guardar el bean
-    				saveListener.afterSave(bean, insertMode);
+    				saveListener.afterSave(oldBean, bean);
     			}
     			
     			// Si todo ha ido bien, mostramos mensaje informativo
@@ -1008,7 +1025,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 						!standardFormField.disabled() &&
 						!standardFormField.hidden())) {
 				// Obtenemos una instancia del BeanDAO anidado
-				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(tipoElementos, beanUI.getBeanDAO());
+				BeanDAO<? extends Bean, KEY> beanDAO = Utils.getBeanDAO(tipoElementos, beanUI.getBeanDAO());
 				// Obtenemos todos los elementos del bean anidado
 				listaElementos = beanDAO.getElements(null, 0, 0);
 			}
@@ -1138,7 +1155,7 @@ public class DetailForm<T extends Bean, K> extends Panel {
 					// Si se ha seleccionado un elemento en el campo maestro
 					if (value != null) {
 						// Creamos un BeanMongoDAO para obtener el datastore
-						BeanMongoDAO<? extends Bean, K> beanMongoDAO = (BeanMongoDAO<? extends Bean, K>)
+						BeanMongoDAO<? extends Bean, KEY> beanMongoDAO = (BeanMongoDAO<? extends Bean, KEY>)
 							Utils.getBeanDAO(slaveBeanClass, beanUI.getBeanDAO());
 						Datastore datastore = beanMongoDAO.getDatastore();
 						// Creamos una query para obtener los elementos del bean esclavo 
@@ -1412,15 +1429,15 @@ public class DetailForm<T extends Bean, K> extends Panel {
 	 * @return The binder for the key or null is there isn't binder for the key
 	 */
 	@SuppressWarnings("unchecked")
-	public BeanFieldGroup<T> getBinder(String key) {
-		return (BeanFieldGroup<T>) binderMap.get(key);
+	public BeanFieldGroup<BEAN> getBinder(String key) {
+		return (BeanFieldGroup<BEAN>) binderMap.get(key);
 	}
 
 	/**
 	 * Gets the current bean
 	 * @return
 	 */
-	public T getBean() {
+	public BEAN getBean() {
 		return bean;
 	}
 	

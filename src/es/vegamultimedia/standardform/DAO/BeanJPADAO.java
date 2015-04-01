@@ -100,7 +100,7 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 	@Override
 	public void remove(BEAN bean)
 			throws IllegalStateException, IllegalArgumentException,
-				TransactionRequiredException, RollbackException {
+				TransactionRequiredException, RollbackException, BeanDAOException {
 		EntityTransaction transaction = entityManager.getTransaction();
 		transaction.begin();
     	entityManager.remove(bean);
