@@ -88,7 +88,7 @@ public @interface StandardForm {
 	 * If empty, it's not possible to make searches.
 	 * @return
 	 */
-	public String[] searchFields() default {};
-	
+	public String[] searchFields() default {""};
+
 	public Class<? extends Exception>[] catchSaveExceptions() default {};
 }

@@ -20,7 +20,6 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 import javax.validation.constraints.NotNull;
 
-import org.apache.commons.lang3.SerializationUtils;
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.annotations.Embedded;
@@ -28,6 +27,8 @@ import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.Reference;
 import org.mongodb.morphia.query.Query;
 
+import com.vaadin.data.Property.ValueChangeEvent;
+import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItem;
@@ -45,82 +46,52 @@ import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
-import com.vaadin.ui.CustomField;
 import com.vaadin.ui.Field;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.HasComponents;
-import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.OptionGroup;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.PopupDateField;
+import com.vaadin.ui.Table;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
-import es.vegamultimedia.standardform.DAO.BeanDAOException;
 import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardForm.DAOType;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.components.FileComponent;
 import es.vegamultimedia.standardform.components.FileComponent.FileUploader;
-import es.vegamultimedia.standardform.components.MultipleSearchField;
-import es.vegamultimedia.standardform.components.SearchField;
-import es.vegamultimedia.standardform.components.StandardTable;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
 import es.vegamultimedia.standardform.model.File;
 import es.vegamultimedia.standardform.model.Image;
 
 @SuppressWarnings("serial")
-public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
+public class DetailForm<T extends Bean, K> extends Panel {
 	
 	/**
-	 * Interface for listening for a show event, before showing a DetailForm
+	 * Interface for listening for a event in a DetailForm 
 	 */
-	public interface ShowDetailListener<BEAN> {
-		/**
-		 * Called after creating the form
-		 * @param bean Showed bean, null in insert mode
-		 * @throws BeanDAOException
-		 */
-		public abstract void afterCreateForm(BEAN bean) throws BeanDAOException;
-	}
-	
-	/**
-	 * Interface for listening for a event in a DetailForm
-	 */
-	public interface SaveListener<BEAN>{
+	public interface SaveListener{
 		/**
 		 * Called before saving the bean
-		 * @param oldBean Bean before modifications, null if insert
-		 * @param newBean Bean after modifications
-		 * @throws BeanDAOException
 		 */
-		public abstract void beforeSave(BEAN oldBean, BEAN newBean)
-				throws BeanDAOException;
-		
+		public abstract void beforeSave(Bean bean, boolean insertMode) throws SaveException;
 		/**
 		 * Called after saving the bean
-		 * @param oldBean Bean before modifications, null if insert
-		 * @param newBean Bean after modifications
-		 * @throws BeanDAOException 
 		 */
-		public abstract void afterSave(BEAN oldBean, BEAN newBean)
-				throws BeanDAOException;
+		public abstract void afterSave(Bean bean, boolean insertMode);
 	}
 	
-	// Show Listener
-    protected ShowDetailListener<BEAN> showDetailListener;
-	
-    // Save listener
-	protected SaveListener<BEAN> saveListener;
+	private SaveListener saveListener;
 	
 	// BeanUI that created this standard detail form
-	protected BeanUI<BEAN, KEY> beanUI;
+	protected BeanUI<T, K> beanUI;
 	
 	// Mapa de binders del formulario.
 	// La clave para el binder principal es "" y para los binders de los bean anidados
@@ -128,10 +99,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	protected HashMap<String, BeanFieldGroup<?>> binderMap;
 	
 	// Bean actual
-	protected BEAN bean;
-	
-	// Panel principal
-	protected Panel mainPanel;
+	protected T bean;
 	
 	// Formulario
 	protected FormLayout form;
@@ -142,17 +110,11 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	// Indica que estamos en modo alta
 	protected boolean insertMode;
 	
-	// Layout para los botones
-	protected HorizontalLayout buttonsLayout;
-	
 	// Botón guardar
 	protected Button saveButton;
 	
 	// Botón cancelar
 	protected Button cancelButton;
-	
-	// Indica si muestra botones Aceptar y Cancelar
-	protected boolean withOKAndCancelButtons;
 	
 	/**
 	 * Create a complete DetailForm for updating an existing bean or for inserting a new bean
@@ -162,7 +124,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 */
-	public DetailForm(BeanUI<BEAN, KEY> currentBeanUI, BEAN currentBean)
+	public DetailForm(BeanUI<T, K> currentBeanUI, T currentBean)
 			throws InstantiationException, IllegalAccessException {
 		this(currentBeanUI, currentBean, true);
 	}
@@ -171,13 +133,13 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	 * Create a DetailForm for updating an existing bean or for inserting a new bean
 	 * @param currentBeanUI
 	 * @param currentBean Existing bean o null for a new bean
-	 * @param withOKAndCancelButtons if false, the form doesn't have OK neither cancel button.
+	 * @param withOKAndCancelButtons if false, the form doesn't have OK neither cancel button
 	 * It may be used for building custom forms
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 */
 	@SuppressWarnings("unchecked")
-	public DetailForm(BeanUI<BEAN, KEY> currentBeanUI, BEAN currentBean, boolean withOKAndCancelButtons)
+	public DetailForm(BeanUI<T, K> currentBeanUI, T currentBean, boolean withOKAndCancelButtons)
 			throws InstantiationException, IllegalAccessException {
 		beanUI = currentBeanUI;
 		bean = currentBean;
@@ -186,38 +148,32 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			// Inicializamos el elemento actual
 			if (bean == null) {
 				insertMode = true;
-				bean = (BEAN) newBean(beanUI.getBeanClass());
+				bean = (T) newBean(beanUI.getBeanClass());
 			}
 			
 			// Creamos el mapa de binders
 			binderMap = new HashMap<String, BeanFieldGroup<?>>();
 			// Creamos el binder principal para el bean
-			BeanFieldGroup<BEAN> binder = new BeanFieldGroup<BEAN>(beanUI.getBeanClass());
+			BeanFieldGroup<T> binder = new BeanFieldGroup<T>(beanUI.getBeanClass());
 			binder.setItemDataSource(bean);
 			// Añadimos el binder principal al mapa de binders
 			binderMap.put("", binder);
 			
-			// Panel principal
-			mainPanel = new Panel();
-			
 			// Creamos el formulario para albergar todos los campos del bean
 			form = new FormLayout();
-			mainPanel.setContent(form);
+			setContent(form);
 			
 			// Obtenemos la anotación StandardForm del elementoActual
 			StandardForm standardForm = bean.getClass().getAnnotation(StandardForm.class);
 			
 			// Asignamos el título al panel
-			mainPanel.setCaption(standardForm.detailViewName());
+			setCaption(standardForm.detailViewName());
 			
 			// Añadimos estilo personalizado
-			mainPanel.addStyleName("standardform");
+			addStyleName("standardform");
 			
 			// Obtenemos los campos del formulario
 			formFields = getFormFields(bean, binder, "");
-			
-			buttonsLayout = new HorizontalLayout();
-			form.addComponent(buttonsLayout);
 			
 			// Si se desean botones aceptar y cancelar
 			if (withOKAndCancelButtons) {
@@ -233,7 +189,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 							save(event);
 						}
 					});
-					buttonsLayout.addComponent(saveButton);
+					form.addComponent(saveButton);
 				}
 				
 				cancelButton = new Button("Cancelar");
@@ -241,17 +197,10 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 				cancelButton.addClickListener(new ClickListener(){
 					@Override
 					public void buttonClick(ClickEvent event) {
-						try {
-							showListForm();
-						} catch (BeanDAOException e) {
-							Notification.show("Error",
-									"No se puede mostrar el listado.\n" + e.getMessage(),
-									Type.ERROR_MESSAGE);
-							e.printStackTrace();
-						}
+						showListForm();
 					}
 				});
-				buttonsLayout.addComponent(cancelButton);
+				form.addComponent(cancelButton);
 			}
 		} catch (Exception e) {
 			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
@@ -259,44 +208,10 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		}
 	}
 	
-	@Override
-	protected Component initContent() {
-		try {
-			// Si existe escuchador showDetailListener, llamamos al método afterCreateForm() 
-			if (showDetailListener != null) {
-				if (insertMode) {
-					showDetailListener.afterCreateForm(null);
-				}
-				else {
-					showDetailListener.afterCreateForm(bean);
-				}
-			}
-		} catch (BeanDAOException e) {
-			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
-			e.printStackTrace();
-		}
-		return mainPanel;
-	}
-
-	@Override
-	public Class<? extends BEAN> getType() {
-		return beanUI.getBeanClass();
-	}
-	
 	/**
-	 * Adds a show listener
-	 * TODO Note: In this moment only one listener is allowed!
-	 * @param showListListener
+	 * Adds the SaveListener
 	 */
-    public void addShowListener(ShowDetailListener<BEAN> showDetailListener) {
-		this.showDetailListener = showDetailListener;
-	}
-	
-	/**
-	 * Adds a save listener
-	 * TODO Note: In this moment only one listener is allowed!
-	 */
-	public void addSaveListener(SaveListener<BEAN> saveListener) {
+	public void addSaveListener(SaveListener saveListener) {
 		this.saveListener = saveListener;
 	}
 	
@@ -347,15 +262,13 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	 * @throws InvocationTargetException
 	 * @throws ClassNotFoundException
 	 * @throws InstantiationException
-	 * @throws BeanDAOException 
-	 * @throws IllegalArgumentException 
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected Component[] getFormFields(Bean currentBean,
 			BeanFieldGroup<?> currentBinder, String prefixParentBean)
 			throws NoSuchMethodException, IllegalAccessException,
 			InvocationTargetException, ClassNotFoundException,
-			InstantiationException, IllegalArgumentException, BeanDAOException {
+			InstantiationException {
 		
 		// Obtenemos la anotación StandardForm del elementoActual
 		StandardForm standardForm = currentBean.getClass().getAnnotation(StandardForm.class);
@@ -372,7 +285,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			// Obtenemos la anotación StandardFormField
 			StandardFormField standardFormField = currentBeanFields[i].getAnnotation(StandardFormField.class);
 			// Obtenemos el tipo de campo en función de los metadatos
-			StandardFormField.Type tipo = getFormFieldType(standardForm, currentBeanFields[i], standardFormField);
+			StandardFormField.Type tipo = getTypeFormField(standardForm, currentBeanFields[i], standardFormField);
 			// Si se ha encontrado un tipo
 			if (tipo != null) {
 				// Obtenemos el caption
@@ -387,7 +300,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					// con todas las opciones y seleccionar el elemento actual
 					currentFields[i] = getSelectField(currentBean, prefixParentBean, currentBeanFields[i],
 							tipo, caption);
-					currentBinder.bind((Field) currentFields[i], currentBeanFields[i].getName());
+					// No añadimos el campo al binder porque no funciona correctamente en este caso
 					break;
 				// Si es un área de texto
 				case TEXT_AREA:
@@ -413,8 +326,6 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					break;
 				// Si es un campo de fecha
 				case DATE:
-				case DATETIME:
-				case TIME:
 					// Creamos el campo a mano y lo añadimos al binder
 					currentFields[i] = new PopupDateField(caption);
 					// Deshabilitamos el campo de texto
@@ -431,32 +342,20 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					String id = prefixParentBean + currentBeanFields[i].getName();
 					currentFields[i] = new FileComponent(caption, standardFormFile, id, insertMode);
 					break;
-				// Si es un campo de búsqueda o embedded
-				case SEARCH: case EMBEDDED:
+				// Si es un campo embedded
+				case EMBEDDED:
 					// Obtenemos la clase del Bean anidado
 					Class<? extends Bean> embeddedBeanClass =
 					(Class<? extends Bean>)currentBeanFields[i].getType();
 					// Obtenemos el bean anidado
 					Bean embeddedBean = (Bean) Utils.getFieldValue(currentBean, currentBeanFields[i]);
-					// Campo de tipo búsqueda
-					if (tipo == StandardFormField.Type.SEARCH) {
-						if (insertMode) {
-							embeddedBean = null;
-						}
-						BeanDAO searchDAO = 
-    							Utils.getBeanDAO(embeddedBeanClass, beanUI.getBeanDAO());
-						BeanUI searchBeanUI = new BeanUI(embeddedBeanClass, searchDAO);
-						currentFields[i] = new SearchField(caption, searchBeanUI, embeddedBean);
-						break;
-					}
-					// Campo de tipo embedded
 					// Si el campo del embeddedBean del elementoActual es null
 					if (embeddedBean == null) {
 						// Creamos un nuevo objeto embeddedBean vacío
 						embeddedBean = embeddedBeanClass.newInstance();
 						// Asignamos el embeddedBean al elementoActual
 						Utils.setFieldValue(currentBean, currentBeanFields[i], embeddedBean);
-					}
+					}					
 					// Creamos un formulario anidado para albergar todos los campos del bean anidado
 					FormLayout embeddedForm = new FormLayout();
 					// Creamos un binder para el elemento anidado
@@ -482,7 +381,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					// Añadimos el panel al formulario principal
 					currentFields[i] = panel;
 					break;
-				case MULTIPLE_SEARCH: case TABLE:
+				case TABLE:
 					// Obtenemos la clase parametrizada del arrayList
 					java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(currentBeanFields[i]);
 					// Obtenemos la colección de elementos
@@ -502,21 +401,12 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 						// Asignamos el embeddedBean al elementoActual
 						Utils.setFieldValue(currentBean, currentBeanFields[i], collection);
 					}
-					// Creamos el BeanUI
-					BeanDAO embeddedDAO = 
-							Utils.getBeanDAO((Class)parametrizedType, beanUI.getBeanDAO());
-					BeanUI embeddedBeanUI = new BeanUI((Class)parametrizedType, embeddedDAO);
-					// Campo de tipo MULTIPLE_SEARCH
-					if (tipo == StandardFormField.Type.MULTIPLE_SEARCH) {
-						currentFields[i] = new MultipleSearchField(
-								caption, (Class)parametrizedType, embeddedBeanUI, collection);
-						break;
-					}
-					// Campo de tipo TABLE
-					// Creamos el container
-					BeanItemContainer container = new BeanItemContainer((Class)parametrizedType, collection);
 					// Creamos la tabla
-					currentFields[i] = new StandardTable(caption, container, embeddedBeanUI);
+					currentFields[i] = new Table(caption);
+					((Table) currentFields[i]).setPageLength(3);
+					// Creamos el container y se lo asignamos
+					BeanItemContainer container = new BeanItemContainer((Class)parametrizedType, collection);
+					((Table) currentFields[i]).setContainerDataSource(container);
 					break;
 				case MONGO_ID:
 					// Si estamos en modo modificación
@@ -544,8 +434,9 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 						((AbstractField)currentFields[i]).setImmediate(true);
 					}
 					
-					// Si no es un embedded field
-					if (tipo != StandardFormField.Type.EMBEDDED) {
+					// Si no es un embedded field ni una tabla
+					if (tipo != StandardFormField.Type.EMBEDDED &&
+							tipo != StandardFormField.Type.TABLE) {
 						// Se le añade al campo el estilo standardform-field
 						currentFields[i].addStyleName("standardform-field");
 					}
@@ -588,9 +479,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					// Si es un campo oculto
 					if (standardFormField instanceof StandardFormField &&
 							standardFormField.hidden()) {
-						if (currentFields[i] instanceof AbstractField) {
-							((AbstractField)currentFields[i]).removeAllValidators();
-						}
+						((AbstractField)currentFields[i]).removeAllValidators();
 						// Se hace invisible y se deshabilita
 						currentFields[i].setVisible(false);
 						currentFields[i].setEnabled(false);
@@ -669,19 +558,12 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	/**
 	 * Gets the StandardFormField type
 	 * @param standardForm StandardForm annotation of the bean
-	 * @param beanField bean field
+	 * @param beanField Campo del bean
 	 * @param standardFormField StandardFormField annotation of the bean field
-	 * @return Field Type obtained
+	 * @return Tipo de campo obtenido
 	 */
-	protected StandardFormField.Type getFormFieldType(
-			StandardForm standardForm, java.lang.reflect.Field beanField,
-			StandardFormField standardFormField) {
-		// Si hay anotación DetailField para este campo y no se debe crear el campo
-		if ((standardFormField instanceof StandardFormField) &&
-				!standardFormField.createField()) {
-			// No se crea el campo
-			return null;
-		}
+	protected StandardFormField.Type getTypeFormField(
+			StandardForm standardForm, java.lang.reflect.Field beanField, StandardFormField standardFormField) {
 		// Si hay anotación DetailField para este campo y el type no es DEFAULT
 		if ((standardFormField instanceof StandardFormField) &&
 				standardFormField.type() != StandardFormField.Type.DEFAULT) {
@@ -719,15 +601,15 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 				// Retorna el tipo DATE
 				return StandardFormField.Type.DATE;
 			}
-			// Si el tipo de DAO es JPA, obtenemos la anotación Temporal
-			Temporal temporal = beanField.getAnnotation(Temporal.class);
-			// Retornamos el tipo en función de la anotación temporal
-			if (temporal != null && temporal.value() == TemporalType.TIMESTAMP)
-				return StandardFormField.Type.DATETIME;
-			else if (temporal != null && temporal.value() == TemporalType.TIME)
-				return StandardFormField.Type.TIME;
-			// Si no hay anotación temporal o es Date
-			return StandardFormField.Type.DATE;
+			// Si el tipo de DAO es JPA:
+			// Si tiene anotación Temporal con el valor TemporalType.DATE
+			if (beanField.getAnnotation(Temporal.class) != null &&
+				beanField.getAnnotation(Temporal.class).value() == TemporalType.DATE)
+				// Retorna el tipo DATE
+				return StandardFormField.Type.DATE;
+			// TODO No se soporta de momento TemporalType.TIME ni TemporalType.TIMESTAMP
+			else
+				return null;
 		}
 		// Si el tipo de campos es un enumerado
 		else if (tipoBean.isEnum()) {
@@ -741,7 +623,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			java.lang.reflect.Type parametrizedType = Utils.getParametrizedType(beanField);
 			// Si el tipo parametrizado es un Bean
 			if (Utils.isSubClass((Class<?>) parametrizedType, Bean.class))
-				return StandardFormField.Type.MULTIPLE_SEARCH;
+				return StandardFormField.Type.TABLE;
 			else
 				return StandardFormField.Type.MULTIPLE_SELECTION;
 		}
@@ -754,7 +636,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			}
 			else {
 				// Retorna el tipo COMBO_BOX
-				return StandardFormField.Type.SEARCH;
+				return StandardFormField.Type.COMBO_BOX;
 			}
 		}
 		// Si el tipo es standardForm.model.File
@@ -775,9 +657,8 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 
 	/**
 	 * Shows the ListForm inside the same component as this detailForm
-	 * @throws BeanDAOException 
 	 */
-	public void showListForm() throws BeanDAOException {
+	public void showListForm() {
 		Component vistaListado = beanUI.buidListForm();
 		ComponentContainer contentPanel = (ComponentContainer)getParent();
 		contentPanel.replaceComponent(this, vistaListado);
@@ -793,12 +674,6 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	protected void save(ClickEvent event) {
 		try {
 		    try{
-		    	BEAN oldBean = null;
-		    	// Si hay escuchador SaveListener y no está en modo inserción
-    			if (saveListener != null && !insertMode) {
-    				// Hacemos copia del bean antes de hacer los cambios
-    				oldBean = SerializationUtils.clone(bean);
-    			}
     			// Dado que los campos de selección no están incluídos en el binder, tenemos que hacer commit a mano
     			commitSelectFields(bean, formFields);
     			// Hacemos commit de los campos de tipo archivo
@@ -816,7 +691,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
     				// Si el id no es null
     				if (id != null) {
     					// Comprobamos si existe ya un bean con la misma clave
-        				Bean beanExistente = beanUI.getBeanDAO().get((KEY) id);
+        				Bean beanExistente = beanUI.getBeanDAO().get((K) id);
         				if (beanExistente != null) {
         					Notification.show("Error", 
         						"Ya existe un registro con la misma clave.\n"
@@ -827,10 +702,10 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
     				}
     			}
     			
-    			// Si hay escuchador SaveListner
+    			// Si hay escuchador
     			if (saveListener != null) {
     				// Llamamos al método beforeSave(), antes de que se guarde el bean
-    				saveListener.beforeSave(oldBean, bean);
+    				saveListener.beforeSave(bean, insertMode);
     			}
     			
     			// Buscamos si hay un campo de tipo EMBEDDED pero que es una referencia a otro bean
@@ -842,7 +717,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
     				// Obtenemos la anotación StandardFormField
     				StandardFormField standardFormField = beanFields[i].getAnnotation(StandardFormField.class);
     				// Obtenemos el tipo de campo en función de los metadatos
-    				StandardFormField.Type tipo = getFormFieldType(standardForm, beanFields[i], standardFormField);
+    				StandardFormField.Type tipo = getTypeFormField(standardForm, beanFields[i], standardFormField);
     				// Si el tipo de campo es EMBEDDED y NO es un EMBEDDED de Morphia
     				if (tipo == StandardFormField.Type.EMBEDDED &&
     						beanFields[i].getAnnotation(Embedded.class) == null) {
@@ -886,10 +761,10 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
     				beanUI.getBeanDAO().update(bean);
     			}
     			
-    			// Si hay escuchador SaveListener
+    			// Si hay escuchador
     			if (saveListener != null) {
     				// Llamamos al método aferSave(), después de guardar el bean
-    				saveListener.afterSave(oldBean, bean);
+    				saveListener.afterSave(bean, insertMode);
     			}
     			
     			// Si todo ha ido bien, mostramos mensaje informativo
@@ -939,15 +814,8 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					 + "Este elemento ha sido modificado mientras lo estaba editando. Inténtelo de nuevo",
 					Type.ERROR_MESSAGE);
 			// Mostramos el listado
-			try {
-				showListForm();
-			} catch (BeanDAOException e1) {
-				Notification.show("Error",
-						"No se puede mostrar el listado.\n" + e.getMessage(),
-						Type.ERROR_MESSAGE);
-				e1.printStackTrace();
-			}
-		} catch (BeanDAOException e) {
+			showListForm();
+		} catch (SaveException e) {
 			Notification.show("Error",
 					"No se puede grabar el registro.\n" + e.getMessage(),
 					Type.ERROR_MESSAGE);
@@ -962,7 +830,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 				message,
 				Type.ERROR_MESSAGE);
 			e.printStackTrace();
-		} catch (Exception e) {
+		}catch (Exception e) {
 			Notification.show("Error",
 					"No se ha podido realizar la operación.\n" + e.getMessage(),
 					Type.ERROR_MESSAGE);
@@ -1038,7 +906,6 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	 * @throws ClassNotFoundException
 	 * @throws IllegalArgumentException
 	 * @throws InstantiationException
-	 * @throws BeanDAOException 
 	 */
 	@SuppressWarnings({"rawtypes", "unchecked" })
 	protected AbstractSelect getSelectField(
@@ -1049,7 +916,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 				String caption)
 			throws NoSuchMethodException, IllegalAccessException,
 				InvocationTargetException, ClassNotFoundException,
-				IllegalArgumentException, InstantiationException, BeanDAOException {
+				IllegalArgumentException, InstantiationException {
 		// El tipo de campo debe ser COMBO_BOX, OPTION_GROUP ó MULTIPLE_SELECTION
 		if (type != StandardFormField.Type.COMBO_BOX &&
 			type != StandardFormField.Type.OPTION_GROUP &&
@@ -1082,9 +949,9 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 						!standardFormField.disabled() &&
 						!standardFormField.hidden())) {
 				// Obtenemos una instancia del BeanDAO anidado
-				BeanDAO<? extends Bean, KEY> beanDAO = Utils.getBeanDAO(tipoElementos, beanUI.getBeanDAO());
+				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(tipoElementos, beanUI.getBeanDAO());
 				// Obtenemos todos los elementos del bean anidado
-				listaElementos = beanDAO.getElements(null, 0, 0);
+				listaElementos = beanDAO.getAllElements();
 			}
 			// En caso contrario, si es un Set
 			else if (Utils.isOrImplementsInterface(tipoElementos, Set.class)){
@@ -1200,7 +1067,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			// En ese caso, tenemos que obtener los elementos del bean esclavo 
 			// que tengan el valor seleccionado en el campo maestro
 			@Override
-			public void valueChange(com.vaadin.data.Property.ValueChangeEvent event) {
+			public void valueChange(ValueChangeEvent event) {
 				Object value = event.getProperty().getValue();
 				// Si no es un BeanMongo
 				if (!Utils.isSubClass(currentBean.getClass(), BeanMongo.class)) {
@@ -1212,7 +1079,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					// Si se ha seleccionado un elemento en el campo maestro
 					if (value != null) {
 						// Creamos un BeanMongoDAO para obtener el datastore
-						BeanMongoDAO<? extends Bean, KEY> beanMongoDAO = (BeanMongoDAO<? extends Bean, KEY>)
+						BeanMongoDAO<? extends Bean, K> beanMongoDAO = (BeanMongoDAO<? extends Bean, K>)
 							Utils.getBeanDAO(slaveBeanClass, beanUI.getBeanDAO());
 						Datastore datastore = beanMongoDAO.getDatastore();
 						// Creamos una query para obtener los elementos del bean esclavo 
@@ -1338,34 +1205,6 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					Utils.setFieldValue(currentBean, beanFields[i], elementosSeleccionados);
 				}
 			}
-			// Si es un campo de tipo SEARCH
-			else if (currentFormFields[i] instanceof SearchField) {
-				SearchField searchField = (SearchField) currentFormFields[i];
-				// Obtenemos el elemento seleccionado en el campo de selección
-				Object elementoSeleccionado = searchField.getValue();
-				// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
-				if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull
-						&& elementoSeleccionado == null) {
-					searchField.setRequiredError("Obligatorio");
-					throw new CommitException("El campo es obligatorio");
-				}
-				// Asignamos al elemento actual el elemento seleccionado en el combo box
-				Utils.setFieldValue(currentBean, beanFields[i], elementoSeleccionado);
-			}
-			// Si es un campo de tipo MULTIPLE_SEARCH
-			else if (currentFormFields[i] instanceof MultipleSearchField) {
-				MultipleSearchField searchField = (MultipleSearchField) currentFormFields[i];
-				// Obtenemos el elemento seleccionado en el campo de selección
-				Collection collection = (Collection) searchField.getValue();
-				// Comprobamos si el campo es obligatorio y no hay ningún elemento seleccionado
-				if (beanFields[i].getAnnotation(NotNull.class) instanceof NotNull
-						&& collection.size() == 0) {
-					searchField.setRequiredError("Obligatorio");
-					throw new CommitException("Debe seleccionar al menos un elemento");
-				}
-				// Asignamos al elemento actual el elemento seleccionado en el combo box
-				Utils.setFieldValue(currentBean, beanFields[i], collection);
-			}
 			// Si es un campo EMBEDDED, hay que hacer commit recursivamente
 			// TODO Sería más correcto usar el tipo de campo EMBEDDED, en vez del tipo de componente de Vaadin
 			else if (currentFormFields[i] instanceof Panel) {
@@ -1413,8 +1252,6 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	public void disableForm() {
 		// Deshabilitamos todos los componentes
 		Utils.iterateSubComponents(form, true, false);
-		// Habilitamos el layout de botones
-		buttonsLayout.setEnabled(true);
 		// Ocultamos el botón guardar
 		if (saveButton != null) {
 			saveButton.setVisible(false);
@@ -1471,41 +1308,26 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		cancelButton.setVisible(false);
 	}
 	
-	/**
-	 * Gets the form
-	 * @return
-	 */
 	public FormLayout getForm() {
 		return form;
 	}
 
 	/**
-	 * Gets the main binder of the speciefied key
+	 * Gets the main bean binder.
 	 * Note: If there are embedded fields, every embedded bean has its own binder.
+	 * @return
+	 */
+	/**
+	 * Gets the main binder of the speciefied key
 	 * @param key "" for the main bean binder, field name for nested beans
 	 * @return The binder for the key or null is there isn't binder for the key
 	 */
 	@SuppressWarnings("unchecked")
-	public BeanFieldGroup<BEAN> getBinder(String key) {
-		return (BeanFieldGroup<BEAN>) binderMap.get(key);
+	public BeanFieldGroup<T> getBinder(String key) {
+		return (BeanFieldGroup<T>) binderMap.get(key);
 	}
 
-	/**
-	 * Gets the current bean
-	 * @return
-	 */
-	public BEAN getBean() {
+	public T getBean() {
 		return bean;
-	}
-	
-	/**
-	 * Adds the specified button to the buttons layout
-	 * @param button
-	 */
-	public void addButon(Button button) {
-		// Habilitamos el ButtonsLayout por si está deshabilitado
-		buttonsLayout.setEnabled(true);
-		// Añadimos el botón
-		buttonsLayout.addComponent(button);
 	}
 }

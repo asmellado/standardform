@@ -6,14 +6,10 @@ import java.lang.reflect.InvocationTargetException;
 import com.vaadin.ui.Component;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
-import es.vegamultimedia.standardform.DAO.BeanDAOException;
-import es.vegamultimedia.standardform.DAO.SearchCriterion;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
 public class BeanUI<T extends Bean, K> implements Serializable {
-	
-	public static int DEFAULT_ELEMENTS_PER_PAGE = 15;
 	
 	/**
 	 * Bean class
@@ -25,28 +21,12 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 */
 	protected BeanDAO<T, K> beanDAO;
 	
-	/**
-	 * Current search in the list form
-	 */
-	protected SearchCriterion[] currentSearch;
-	
-	/**
-	 * Current first element in the list form
-	 */
-	protected int firstElement;
-	
-	/**
-	 * Current number of elements per page in the list form
-	 */
-	protected int elementsPerPage;
-	
 	public BeanUI(Class<T> beanClass, BeanDAO<T, K> beanDAO)
 			throws ClassNotFoundException, SecurityException, NoSuchMethodException,
 			IllegalArgumentException, InstantiationException, 
 			IllegalAccessException, InvocationTargetException {
 		this.beanClass = beanClass;
 		this.beanDAO = beanDAO;
-		elementsPerPage = DEFAULT_ELEMENTS_PER_PAGE;
 	}
 	
 	/**
@@ -64,10 +44,9 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	/**
 	 * Returns the standard list form for this bean class
 	 * @return
-	 * @throws BeanDAOException 
 	 */
-	public Component buidListForm() throws BeanDAOException {
-		return new ListForm<T, K>(this);
+	public Component buidListForm() {
+		return new ListForm<T, K>(this, null);
 	}
 	
 	/**
@@ -84,29 +63,5 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 */
 	public BeanDAO<T, K> getBeanDAO() {
 		return beanDAO;
-	}
-
-	public SearchCriterion[] getCurrentSearch() {
-		return currentSearch;
-	}
-
-	public void setCurrentSearch(SearchCriterion[] currentSearch) {
-		this.currentSearch = currentSearch;
-	}
-
-	public int getFirstElement() {
-		return firstElement;
-	}
-
-	public void setFirstElement(int firstElement) {
-		this.firstElement = firstElement;
-	}
-
-	public int getElementsPerPage() {
-		return elementsPerPage;
-	}
-
-	public void setElementsPerPage(int elementsPerPage) {
-		this.elementsPerPage = elementsPerPage;
 	}
 }

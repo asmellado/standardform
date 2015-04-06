@@ -2,61 +2,48 @@ package es.vegamultimedia.standardform.DAO;
 
 import java.util.List;
 
+import es.vegamultimedia.standardform.SaveException;
 import es.vegamultimedia.standardform.model.Bean;
 
-public interface BeanDAO<BEAN extends Bean, KEY> {
+public interface BeanDAO<T extends Bean, K> {
 	
 	/**
 	 * Inserts the element T in the database
 	 * @param element
-	 * @throws BeanDAOException 
+	 * @throws SaveException 
 	 */
-	public abstract void insert(BEAN bean) throws BeanDAOException;
+	public abstract void insert(T bean) throws SaveException;
 	
 	/**
 	 * Updates the element T in the database
 	 * @param element
 	 */
-	public abstract void update(BEAN bean) throws BeanDAOException;
+	public abstract void update(T bean);
 	
 	/**
-	 * Gets an element using its identifier from the database 
+	 * Get an element using its identifier from the database 
 	 * @param id Unique bean id
 	 * @return
 	 */
-	public abstract BEAN get(KEY id) throws BeanDAOException;
+	public abstract T get(K id);
 	
 	/**
-	 * Gets the first found element from the database whose specified nameField is equal 
-	 * to the specified valueField
-	 * @param nameField
-	 * @param valueField
-	 * @return The found element or null if not found
-	 */
-	public abstract BEAN get(String nameField, Object valueField) throws BeanDAOException;
-	
-	/**
-	 * Returns the number of elements that matches the searchCriteria from the database
-	 * @param searchCriteria
+	 * Get all the elements from the database
 	 * @return
-	 * @throws BeanDAOException
 	 */
-	public abstract long getcountElements(SearchCriterion[] searchCriteria) throws BeanDAOException;
+	public abstract List<T> getAllElements();
 	
 	/**
 	 * Gets the elements that match a search criteria from the database
-	 * @param searchCriteria Array with the search criteria or null if there are no criteria
-	 * @param firstResult position of the first result to retrieve
-	 * @param limitResult maximun number of results to retrieve
-	 * @return Elements that match the search criteria with the specified firstResult and limitResult
+	 * @param searchCriteria Array with the search criteria
+	 * @return Elements that match the search criteria
 	 */
-	public abstract List<BEAN> getElements(SearchCriterion[] searchCriteria,
-			int firstResult, int limitResult) throws BeanDAOException;
+	public abstract List<T> getElements(SearchCriterion[] searchCriteria);
 	
 	/**
 	 * Remove the element from the database
 	 * @param element
 	 */
-	public abstract void remove(BEAN bean) throws BeanDAOException;
+	public abstract void remove(T bean);
 
 }

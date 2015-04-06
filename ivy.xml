@@ -51,7 +51,7 @@
 		<dependency org="mysql" name="mysql-connector-java" rev="5.1.33"/>
 		
 		<!-- EclipseLink -->
-		<dependency org="org.eclipse.persistence" name="eclipselink" rev="2.5.2"/>
+		<dependency org="org.eclipse.persistence" name="eclipselink" rev="2.5.2-M1"/>
 		
 		<!-- Morphia --> 
 		<dependency org="org.mongodb.morphia" name="morphia" rev="0.109"/>

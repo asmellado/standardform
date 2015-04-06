@@ -35,7 +35,7 @@ import es.vegamultimedia.standardform.model.BeanWithId;
 abstract public class Utils {
 	
 	/**
-	 * Gets every fields of a bean class, adding every fields of every superclass
+	 * Gets every fields of the current bean, adding every fields of every superclass
 	 * @param currentBean
 	 * @return
 	 */
@@ -55,30 +55,6 @@ abstract public class Utils {
 			superclass = superclass.getSuperclass();
 		}
 		return currentBeanFields;
-	}
-	
-	/**
-	 * Try to get the field of a bean class, searching in its superclasses
-	 * @param beanClass
-	 * @param nameField
-	 * @return The field if found, or null otherwise
-	 */
-	public static java.lang.reflect.Field getBeanField(Class<? extends Bean> beanClass, String nameField) {
-		// Añadimos los campos de las superclases hasta llegar a Object
-		Class<?> currentClass = beanClass;
-		do {
-			// Obtenemos los campos del bean elementoActual
-			for (java.lang.reflect.Field field : currentClass.getDeclaredFields()) {
-				if (field.getName().equals(nameField)) {
-					return field;
-				}
-			}
-			// Si no lo encuentra en la clase actual buscamos en su superclase hasta Object
-			currentClass = currentClass.getSuperclass();
-		}
-		while (currentClass != null);
-		// Si no lo encuentra, retorna null
-		return null;
 	}
 	
 	
@@ -451,7 +427,7 @@ abstract public class Utils {
 		for (Object elementoEnum: enumElements) {
 			// Se obtiene anotación StandardFormEnum del elemento
 			try {
-				java.lang.reflect.Field elementoField = enumClass.getField(((Enum<?>)elementoEnum).name());
+				java.lang.reflect.Field elementoField = enumClass.getField(elementoEnum.toString());
 				StandardFormEnum anotación = elementoField.getAnnotation(StandardFormEnum.class);
 				// Si tiene anotación StandardFormEnum informada
 				if (anotación != null && anotación.value().length() != 0)

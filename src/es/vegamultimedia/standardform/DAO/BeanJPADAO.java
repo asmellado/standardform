@@ -5,23 +5,21 @@ import java.util.List;
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
-import javax.persistence.NoResultException;
-import javax.persistence.NonUniqueResultException;
+import javax.persistence.LockTimeoutException;
 import javax.persistence.PersistenceException;
+import javax.persistence.PessimisticLockException;
+import javax.persistence.Query;
+import javax.persistence.QueryTimeoutException;
 import javax.persistence.RollbackException;
 import javax.persistence.TransactionRequiredException;
-import javax.persistence.TypedQuery;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
 
+import es.vegamultimedia.standardform.SaveException;
 import es.vegamultimedia.standardform.model.BeanJPA;
 
-public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>{
+public class BeanJPADAO<T extends BeanJPA, K> implements BeanDAO<T, K>{
 	
 	// Bean class
-	protected Class<BEAN> beanClass;
+	protected Class<T> beanClass;
 	
 	// EntityManager
 	protected EntityManager entityManager;
@@ -31,7 +29,7 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 	 * @param beanClass
 	 * @param entityManager
 	 */
-	public BeanJPADAO(Class<BEAN> beanClass, EntityManager entityManager) {
+	public BeanJPADAO(Class<T> beanClass, EntityManager entityManager) {
 		this.beanClass = beanClass;
 		this.entityManager = entityManager;
 	}
@@ -45,14 +43,14 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 	}
 	
 	@Override
-	public void insert(BEAN bean) throws BeanDAOException {
+	public void insert(T bean) throws SaveException {
 		update(bean);
 	}
 	
 	@Override
-	public void update(BEAN bean)
+	public void update(T bean)
 		throws IllegalStateException, EntityExistsException,
-			IllegalArgumentException, RollbackException, PersistenceException, BeanDAOException {
+			IllegalArgumentException, RollbackException, PersistenceException {
 		EntityTransaction transaction = null;
 		try {
 			transaction = entityManager.getTransaction();
@@ -60,9 +58,6 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 			entityManager.persist(bean);
 			transaction.commit();
 			transaction = null;
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new BeanDAOException(e.getMessage(), e.getCause());
 		}
 		finally {
 			if (transaction!=null) {
@@ -75,99 +70,34 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 	}
 	
 	@Override
-	public BEAN get(KEY id) {
+	public T get(Object id) {
 		return entityManager.find(beanClass, id);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
-	public BEAN get(String nameField, Object valueField) {
-		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
-		CriteriaQuery<BEAN> criteriaQuery = criteriaBuilder.createQuery(beanClass);
-		Root<BEAN> root = criteriaQuery.from(beanClass);
-		Predicate predicate = criteriaBuilder.equal(root.get(nameField), valueField);
-		TypedQuery<BEAN> typedQuery = entityManager.createQuery(criteriaQuery.where(predicate));
-		try {
-			return typedQuery.getSingleResult();
-		}
-		catch(NoResultException e) {
-			return null;
-		}
-		catch(NonUniqueResultException e) {
-			return typedQuery.getResultList().get(0);
-		}
+	public List<T> getAllElements()
+		throws IllegalArgumentException, IllegalStateException, QueryTimeoutException,
+			TransactionRequiredException, PessimisticLockException, LockTimeoutException,
+			PersistenceException {
+		String consulta = "SELECT e FROM " + beanClass.getSimpleName() + " e";
+		Query query = entityManager.createQuery(consulta);
+		return query.getResultList();
 	}
-	
+
 	@Override
-	public void remove(BEAN bean)
+	public void remove(T bean)
 			throws IllegalStateException, IllegalArgumentException,
-				TransactionRequiredException, RollbackException, BeanDAOException {
+				TransactionRequiredException, RollbackException {
 		EntityTransaction transaction = entityManager.getTransaction();
 		transaction.begin();
     	entityManager.remove(bean);
     	transaction.commit();
 	}
-	
-	@Override
-	public long getcountElements(SearchCriterion[] searchCriteria)
-			throws BeanDAOException {
-		// Creamos la query usando Criteria API
-		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
-		CriteriaQuery<Long> criteriaQuery = criteriaBuilder.createQuery(Long.class);
-		Root<BEAN> root = criteriaQuery.from(beanClass);
-		criteriaQuery = criteriaQuery.select(criteriaBuilder.count(root));
-		Predicate[] predicates =
-				getJPAPredicates(searchCriteria, criteriaBuilder, root);
-		criteriaQuery.where(criteriaBuilder.and(predicates));
-		TypedQuery<Long> typedQuery = entityManager.createQuery(criteriaQuery);
-		return typedQuery.getSingleResult();
-	}
 
 	@Override
-	public List<BEAN> getElements(SearchCriterion[] searchCriteria, int firstResult, int limitResult) {
-		// Creamos la query usando Criteria API
-		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
-		CriteriaQuery<BEAN> criteriaQuery = criteriaBuilder.createQuery(beanClass);
-		Root<BEAN> root = criteriaQuery.from(beanClass);
-		Predicate[] predicates =
-				getJPAPredicates(searchCriteria, criteriaBuilder, root);
-		criteriaQuery.where(criteriaBuilder.and(predicates));
-		TypedQuery<BEAN> typedQuery = entityManager.createQuery(criteriaQuery);
-		// Añadimos el primer y número límite de resultados
-		typedQuery.setFirstResult(firstResult);
-		typedQuery.setMaxResults(limitResult);
-		// Obtenemos los elementos que cumplen la query
-		return typedQuery.getResultList();
-	}
-	
-	/**
-	 * Gets the JPA predicates from the searchCriteria
-	 * You can override this method if you need to modify or add some criteria to the query
-	 * @param searchCriteria
-	 * @param criteriaBuilder
-	 * @param root
-	 * @return predicates if there is some searchCriteria, otherwise an empty array
-	 */
-	protected Predicate[] getJPAPredicates(SearchCriterion[] searchCriteria,
-			CriteriaBuilder criteriaBuilder, Root<BEAN> root) {
-		if (searchCriteria != null) {
-			// Inicializamos un array de Predicates
-			Predicate[] predicates = new Predicate[searchCriteria.length];
-			// Recorremos los criterios de búsqueda
-			for (int i=0; i<searchCriteria.length; i++) {
-				String nameField = searchCriteria[i].getNameField();
-				Object valueField = searchCriteria[i].getValueField();
-				switch (searchCriteria[i].getTypeCriteria()) {
-				case TEXT:
-					predicates[i] =
-						criteriaBuilder.like(root.<String>get(nameField), "%" + valueField + "%");
-					break;
-				case ENUM: case BEAN:
-					predicates[i] = criteriaBuilder.equal(root.get(nameField), valueField);
-					break;
-				}
-			}
-			return predicates;
-		}
-		return new Predicate[0];
+	public List<T> getElements(SearchCriterion[] searchCriteria) {
+		// TODO Pendiente de implementar para JPA
+		return getAllElements();
 	}
 }

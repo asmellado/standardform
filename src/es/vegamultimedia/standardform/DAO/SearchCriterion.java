@@ -12,17 +12,13 @@ public class SearchCriterion {
 	}
 	
 	private String nameField;
-	
-	private String captionField;
 
 	private Object valueField;
 	
 	private SearchType typeCriteria;
 		
-	public SearchCriterion(String nameField, String captionField,
-			Object valueField, SearchType typeCriteria) {
+	public SearchCriterion(String nameField, Object valueField, SearchType typeCriteria) {
 		this.nameField = nameField;
-		this.captionField = captionField;
 		this.valueField = valueField;
 		this.typeCriteria = typeCriteria;
 	}
@@ -33,10 +29,6 @@ public class SearchCriterion {
 
 	public Object getValueField() {
 		return valueField;
-	}
-
-	public String getCaptionField() {
-		return captionField;
 	}
 
 	public SearchType getTypeCriteria() {

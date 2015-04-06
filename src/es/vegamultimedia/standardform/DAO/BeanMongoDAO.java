@@ -8,16 +8,17 @@ import org.mongodb.morphia.dao.BasicDAO;
 import org.mongodb.morphia.query.Criteria;
 import org.mongodb.morphia.query.Query;
 
+import es.vegamultimedia.standardform.SaveException;
 import es.vegamultimedia.standardform.Utils;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
 
 @SuppressWarnings("serial")
-public class BeanMongoDAO<BEAN extends BeanMongo, KEY> extends BasicDAO<BEAN, KEY>
-	implements BeanDAO<BEAN, KEY>, Serializable {
+public class BeanMongoDAO<T extends BeanMongo, K> extends BasicDAO<T, K>
+	implements BeanDAO<T, K>, Serializable {
 	
 	// Bean class
-	protected Class<BEAN> beanClass;
+	protected Class<T> beanClass;
 	
 	// Datastore
 	protected Datastore datastore;
@@ -27,7 +28,7 @@ public class BeanMongoDAO<BEAN extends BeanMongo, KEY> extends BasicDAO<BEAN, KE
 	 * @param beanClass
 	 * @param datastore
 	 */
-	public BeanMongoDAO(Class<BEAN> beanClass, Datastore datastore) {
+	public BeanMongoDAO(Class<T> beanClass, Datastore datastore) {
 		super(beanClass, datastore);
 		this.beanClass = beanClass;
 		this.datastore = datastore;
@@ -42,71 +43,49 @@ public class BeanMongoDAO<BEAN extends BeanMongo, KEY> extends BasicDAO<BEAN, KE
 	}
 	
 	@Override
-	public void insert(BEAN bean) throws BeanDAOException {
+	public void insert(T bean) throws SaveException {
 		// Comprobamos que NO existe un documento con el mismo id
 		Object id;
-		BEAN existingBean = null;
+		T existingBean = null;
 		try {
 			id = Utils.getId(bean);
-			Query<BEAN> query = createQuery().field("_id").equal(id);
+			Query<T> query = createQuery().field("_id").equal(id);
 			existingBean = query.get();
 		} catch (Exception e) {
 			// No debería ocurrir nunca
 			e.printStackTrace();
 		}
 		if (existingBean != null) {
-			throw new BeanDAOException("Ya existe un elemento con la misma clave");
+			throw new SaveException("Ya existe un elemento con la misma clave");
 		}
 		datastore.save(bean);
 	}
 	
 	@Override
-	public void update(BEAN bean) {
+	public void update(T bean) {
 		datastore.save(bean);
 	}
 	
 	@Override
-	public BEAN get(KEY id) {
+	public T get(Object id) {
 		return datastore.get(beanClass, id);
-	}
-
-	@Override
-	public BEAN get(String nameField, Object valueField) {
-		Query<BEAN> query = createQuery();
-		query.field(nameField).equal(valueField);
-		return query.get();
 	}
 	
 	@Override
-	public void remove(BEAN bean) {
+	public List<T> getAllElements() {
+		Query<T> query = datastore.find(beanClass);
+		return query.asList();
+	}
+	
+	@Override
+	public void remove(T bean) {
 		datastore.delete(bean);
 	}
 
 	@Override
-	public long getcountElements(SearchCriterion[] searchCriteria)
-			throws BeanDAOException {
-		Query<BEAN> query = getQuery(searchCriteria);
-		return query.countAll();
-	}
-	
-	@Override
-	public List<BEAN> getElements(SearchCriterion[] searchCriteria, int firstResult, int limitResult) {
-		Query<BEAN> query = getQuery(searchCriteria);
-		// Añadimos el primer y número límite de resultados
-		query.offset(firstResult);
-		query.limit(limitResult);
-		// Obtenemos los elementos que cumplen la query
-		return query.asList();
-	}
-
-	/**
-	 * Returns a Morphia query with the searchCriteria
-	 * @param searchCriteria
-	 * @return
-	 */
-	private Query<BEAN> getQuery(SearchCriterion[] searchCriteria) {
+	public List<T> getElements(SearchCriterion[] searchCriteria) {
 		// Creamos una query
-		Query<BEAN> query = createQuery();
+		Query<T> query = createQuery();
 		// Inicializamos un array de criterios de Morphia
 		Criteria[] morphiaCriteria = new Criteria[searchCriteria.length];
 		// Recorremos los criterios de búsqueda
@@ -139,6 +118,7 @@ public class BeanMongoDAO<BEAN extends BeanMongo, KEY> extends BasicDAO<BEAN, KE
 		}
 		// Añadimos a la query con el operador AND todos los criterios
 		query.and(morphiaCriteria);
-		return query;
+		// Obtenemos los elementos que cumplen la query
+		return query.asList();
 	}
 }

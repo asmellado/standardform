@@ -2,17 +2,19 @@ package es.vegamultimedia.standardform;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
 import org.vaadin.dialogs.ConfirmDialog;
 
+import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.shared.ui.label.ContentMode;
-import com.vaadin.ui.AbstractField;
 import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.AbstractTextField;
 import com.vaadin.ui.Button;
@@ -28,88 +30,73 @@ import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Panel;
+import com.vaadin.ui.Table;
 import com.vaadin.ui.Table.ColumnGenerator;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.BaseTheme;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
-import es.vegamultimedia.standardform.DAO.BeanDAOException;
 import es.vegamultimedia.standardform.DAO.SearchCriterion;
 import es.vegamultimedia.standardform.DAO.SearchCriterion.SearchType;
 import es.vegamultimedia.standardform.annotations.StandardForm;
+import es.vegamultimedia.standardform.annotations.StandardFormEnum;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
-import es.vegamultimedia.standardform.components.PaginationBar;
-import es.vegamultimedia.standardform.components.PaginationBar.PaginationListener;
-import es.vegamultimedia.standardform.components.StandardTable;
-import es.vegamultimedia.standardform.components.StandardTable.GeneratedColumn;
 import es.vegamultimedia.standardform.model.Bean;
 
-public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
-	
-	private static final long serialVersionUID = -8471432681552606031L;
-
-	/**
-	 * Interface for listening for a show event in a ListForm
-	 */
-	public interface ShowListListener<BEAN> {
-		
-		/**
-		 * Called before creating the list
-		 * @param listElements Showed elements in the list
-		 * @param currentSearch Current used search for showing the list
-		 */
-		public abstract void beforeCreateList(List<BEAN> listElements, SearchCriterion[] currentSearch)
-				throws BeanDAOException;
-		
-		/**
-		 * Called after creating the list
-		 * @param listElements Showed elements in the list
-		 * @param currentSearch Current used search for showing the list
-		 * @throws BeanDAOException 
-		 */
-		public abstract void afterCreateList(List<BEAN> listElements, SearchCriterion[] currentSearch)
-				throws BeanDAOException;
-	}
+@SuppressWarnings("serial")
+public class ListForm<T extends Bean, K> extends Panel {
 	
 	/**
-	 * Interface for listening for a delete event in a ListForm
+	 * Interface for loading the table elements
 	 */
-	public interface DeleteListener<BEAN> {
+	public interface QueryListener<T extends Bean> {
 		/**
-		 * Called before deleting a bean
-		 * @param bean Bean before deleting
-		 * @throws BeanDAOException
+		 * Called to obtain the table elements
 		 */
-		public abstract void beforeDelete(BEAN bean) throws BeanDAOException;
-		
-		/**
-		 * Called after deleting a bean
-		 * @param bean Deleted bean
-		 * @throws BeanDAOException
-		 */
-		public abstract void afterDelete(BEAN bean) throws BeanDAOException;
+		public abstract List<T> getElements();
 	}
+	
+    /**
+     * Event BeforeCreateList
+     */
+    public interface BeforeCreateList<T extends Bean> {
+        public abstract void beforeCreateList(List<T> elements);
+    }
 
-	// Show list Listener
-    protected ShowListListener<BEAN> showListListener;
-    
-    // Delete listener
-    protected DeleteListener<BEAN> deleteListener;
-   
+    /**
+	 * Generated column of the list table
+	 */
+	public class GeneratedColumn {
+		private Object id;
+		private ColumnGenerator columnGenerator;
+		public GeneratedColumn(Object id, ColumnGenerator generatedColumn) {
+			this.id = id;
+			this.columnGenerator = generatedColumn;
+		}
+		public Object getId() {
+			return id;
+		}
+		public ColumnGenerator getColumnGenerator() {
+			return columnGenerator;
+		}
+	}
+	
+	protected BeforeCreateList<T> beforeCreateList; 
+	
+	protected QueryListener<T> queryListener;
+	
 	// BeanUI that created this standard list form
-	protected BeanUI<BEAN, KEY> beanUI;
+	protected BeanUI<T, K> beanUI;
 	
 	// StandardForm annotation bean
 	protected StandardForm standardFormAnnotation;
 	
-	// Número de elementos a mostrar
-	protected long numElements;
-	
 	// Lista de elementos
-	protected List<BEAN> listElements;
+	protected List<T> listElements;
 	
 	// Container del formulario
-	protected BeanItemContainer<BEAN> container;
+	protected BeanItemContainer<T> container;
 	
 	// Indica si el formulario está deshabilitado
 	protected boolean formEnabled;
@@ -122,9 +109,6 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	
 	// Cabeceras de las columnas personalizadas
 	protected HashMap<String, String> customColumnHeaders;
-	
-	// Panel principal
-	protected Panel mainPanel;
 	
 	// Layout principal
 	protected VerticalLayout mainLayout;
@@ -143,13 +127,15 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	protected Label searchInfo;
 	
 	// Tabla para listado por defecto
-	protected StandardTable<BEAN, KEY> table;
+	protected Table table;
 	
 	// Layout para listado personalizado
 	protected VerticalLayout listLayout;
 	
-	// Layout para los botones
 	protected HorizontalLayout buttonsLayout;
+		
+	// Nombre columna editar
+	protected String nombreColumnaEditarConsultar;
 	
 	// Botón alta
 	protected Button addButton;
@@ -157,8 +143,10 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	// Lista de columnas generadas
 	protected ArrayList<GeneratedColumn> generatedColumns;
 
-	public ListForm(BeanUI<BEAN, KEY> beanUI) throws BeanDAOException {
+	public ListForm(BeanUI<T, K> beanUI, QueryListener<T> queryListener) {
 		this.beanUI = beanUI;
+		this.queryListener = queryListener;
+		this.beforeCreateList = null;
 		
 		// Obtenemos la anotación StandardForm del bean
 		standardFormAnnotation = beanUI.getBeanClass().getAnnotation(StandardForm.class);
@@ -183,16 +171,17 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		customVisibledColumns = null;
 		customColumnHeaders = new HashMap<String, String>();
 		generatedColumns = new ArrayList<GeneratedColumn>();
-		
-		// Panel principal
-		mainPanel = new Panel();
 
 		// Layout principal
 		mainLayout = new VerticalLayout();
-		mainPanel.setContent(mainLayout);
+		setContent(mainLayout);
 			
 		// Creamos el panel de busqueda
 		createSearchPanel();
+		
+		// Creamos el listLayout
+		listLayout = new VerticalLayout();
+		mainLayout.addComponent(listLayout);
 		
 		buttonsLayout = new HorizontalLayout();
 		
@@ -210,117 +199,187 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			buttonsLayout.addComponent(addButton);
 		}
         mainLayout.addComponent(buttonsLayout);
-        
-        // Creamos el listLayout
-     	listLayout = new VerticalLayout();
-     	mainLayout.addComponent(listLayout);
 	}
 	
-	@Override
-	protected Component initContent() {
-		try {
-			// Realizamos la búsqueda
-			search();
-			// Si no hay campos de búsqueda
-			if (standardFormAnnotation.searchFields().length == 0) {
-				// Ocultamos el panel de búsqueda
-				searchPanel.setVisible(false);
-			}
-		} catch (BeanDAOException e) {
-			e.printStackTrace();
-			Notification.show("No se puede mostar el listado",
-					e.getMessage(), Type.ERROR_MESSAGE);
-		}
-		return mainPanel;
-	}
+	/**
+	 * Adds the listener
+	 */
+    public void addQueryListener(QueryListener<T> queryListener) {
+        this.queryListener = queryListener;
+    }
 
-	@Override
-	public Class<? extends BEAN> getType() {
-		return beanUI.getBeanClass();
-	}
-
-    public void addButton(Component button) {
-        buttonsLayout.addComponent(button);
+    public void addButton(Button b) {
+        buttonsLayout.addComponent(b);
+    }
+    
+    public void setBeforeCreateList(BeforeCreateList<T> beforeCreateList) {
+        this.beforeCreateList = beforeCreateList;
     }
 	
-	/**
-	 * Adds a show list listener
-	 * TODO Note: In this moment only one listener is allowed!
-	 * @param showListListener
-	 */
-    public void addShowListListener(ShowListListener<BEAN> showListListener) {
-		this.showListListener = showListListener;
-	}
-
-	/**
-	 * Adds a delete listener
-	 * TODO Note: In this moment only one listener is allowed!
-	 * @param deleteListener
-	 */
-    public void addDeleteListener(DeleteListener<BEAN> deleteListener) {
-		this.deleteListener = deleteListener;
-	}
+	
 
 	/**
 	 * Adds the list to the listLayout:
 	 * A custom component for each element or a table for all the elements by default
-	 * @throws BeanDAOException 
 	 */
-	protected void createList() throws BeanDAOException {
+	protected void createList() {
 		// Eliminamos los componentes del listLayout (por si no es la primera vez)
 		listLayout.removeAllComponents();
-		
-		// Si existe escuchador showListListener, llamamos al método beforeCreateList() 
-		if(showListListener != null) {
-			showListListener.beforeCreateList(listElements, beanUI.getCurrentSearch());
+		if(beforeCreateList!=null) {
+		    beforeCreateList.beforeCreateList(listElements);
 		}
-		
-		// Pagination
-		PaginationBar pagination = new PaginationBar(numElements, beanUI.getFirstElement(),
-				beanUI.getElementsPerPage(), new PaginationListener() {
-			@Override
-			public void paginate(int firstElement) {
-				try {
-					// Actualizamos la página actual y realizamos una nueva búsqueda
-					beanUI.setFirstElement(firstElement);
-					search();
-				} catch (BeanDAOException e) {
-					Notification.show("Error",
-							"No se puede mostrar el listado.\n" + e.getMessage(),
-							Type.ERROR_MESSAGE);
-					e.printStackTrace();
-				}
-			}
-
-			@Override
-			public void setElementsPerPage(int elementsPerPage) {
-				// Establecemos el nuevo número de elementos por página y realizamos una nueva búsqueda
-				try {
-					beanUI.setElementsPerPage(elementsPerPage);
-					search();
-				} catch (BeanDAOException e) {
-					Notification.show("Error",
-							"No se puede mostrar el listado.\n" + e.getMessage(),
-							Type.ERROR_MESSAGE);
-					e.printStackTrace();
-				}
-			}
-		});
-		listLayout.addComponent(pagination);
-		
 		// Si NO tiene customRowListComponent
 		if (standardFormAnnotation.customRowListComponent().isEmpty()) {
-
+			// Columnas de la tabla
+			List<String> visibledColumns;
+			// Creamos una tabla para mostrar los elementos
+			table = new Table(){
+				// Damos formato de sólo fecha a los campos de tipo Date 
+			    @Override
+			    protected String formatPropertyValue(Object rowId, Object colId, Property<?> property) {
+			        if (property.getType() == Date.class) {
+			            SimpleDateFormat df = new SimpleDateFormat("dd-MM-yyyy");
+			            return df.format((Date)property.getValue());
+			        }
+			        else if (property.getType().isEnum()) {
+			        	// Obtenemos los elementos del enumerado
+						Object[] elementosEnum = property.getType().getEnumConstants();
+						// Recorremos todos los elementos del enumerado
+						for (Object elementoEnum: elementosEnum) {
+							// Se obtiene anotación StandardFormEnum del elemento
+							try {
+								java.lang.reflect.Field elementoField = property.getType().getField(elementoEnum.toString());
+								StandardFormEnum anotación = elementoField.getAnnotation(StandardFormEnum.class);
+								// Si tiene anotación StandardFormEnum informada
+								if (anotación != null && anotación.value().length() != 0) {
+									// Si el enumerado coincide con el valor la propiedad
+									if (elementoEnum == property.getValue())
+										// Se retorna el valor de la anotación
+										return anotación.value();
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+			        }
+			        else if (property.getType() == Boolean.class ||
+			        		property.getType() == Boolean.TYPE) {
+			        	if ((property.getValue() != null) && (Boolean)property.getValue() == true) {
+			        		return "Sí";
+			        	}
+			        	else {
+			        		return "No";
+			        	}
+			        }
+			        return super.formatPropertyValue(rowId, colId, property);
+			    }
+			};
+			table.setImmediate(true);
+			// TODO Parametrizar la longitud de la página
+			table.setPageLength(10);
+			
+			container = new BeanItemContainer<T>(beanUI.getBeanClass(), listElements);
+			table.setContainerDataSource(container);
+			
+			// Si se ha especificado columnas visibles personalizadas
+			if (customVisibledColumns != null) {
+				// Obtenemos todos los campos del bean
+				Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
+				// Se muestran las columnas especificadas (comprobando para cada una si existe el campo)
+				visibledColumns = new ArrayList<String>();
+				// Recorremos los campos
+				for (int i=0; i<customVisibledColumns.length; i++) {
+					// Obtenemos el campo que coincide con el nombre de la columna
+					for (Field beanField : beanFields) {
+						if (beanField.getName().equals(customVisibledColumns[i])) {
+							// Añadimos el campo a las columnas visibles
+							visibledColumns.add(customVisibledColumns[i]);
+							// Añadimos la cabecera de la columna
+							addHeaderColumn(beanField);
+							break;
+						}
+					}
+				}
+			}
+			// Si no se especifican las columnas visibles en la standardFormAnnotation
+			else if (standardFormAnnotation.columns()[0].isEmpty()) {
+				// Se muestran todas excepto el id
+				visibledColumns = new ArrayList<String>();
+				// Obtenemos sólo los campos declarados en el bean
+				Field[] beanFields = beanUI.getBeanClass().getDeclaredFields();
+				// Recorremos los campos
+				for (int i=0; i<beanFields.length; i++) {
+					// Si no es el id
+					if (!beanFields[i].getName().equals("id")) {
+						// Añadimos el campo a las columnas visibles
+						visibledColumns.add(beanFields[i].getName());
+						// Añadimos la cabecera de la columna
+						addHeaderColumn(beanFields[i]);
+					}
+				}
+			}
+			// Si se especifican las columnas visibles en la standardFormAnnotation
+			else {
+				// Hacemos visibles las columnas especificadas
+				visibledColumns = new ArrayList<String>(Arrays.asList(standardFormAnnotation.columns()));
+				// Obtenemos todos los campos del bean
+				Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
+				// Para cada columna, añadimos su cabecera
+				for(String nombreColumn : visibledColumns) {
+					// Obtenemos el campo que coincide con el nombre de la columna
+					for (Field beanField : beanFields) {
+						if (beanField.getName().equals(nombreColumn)) {
+							// Lo añadimos a la cabecera
+							addHeaderColumn(beanField);
+							break;
+						}
+					}
+				}
+			}
+			// Si se permite edición
+			if (standardFormAnnotation.allowsEditing()) {
+				nombreColumnaEditarConsultar = "Editar";
+			}
+			else {
+				nombreColumnaEditarConsultar = "Consultar";
+			}
+			// Si se permite consultar
+			if (allowConsulting) {
+				// Añadimos columna para editar o consultar
+				table.addGeneratedColumn(nombreColumnaEditarConsultar,
+						new EditColumnGenerator(nombreColumnaEditarConsultar));
+				visibledColumns.add(nombreColumnaEditarConsultar);
+			}
+			// Si se permite eliminar
+			if (standardFormAnnotation.allowsDeleting()) {
+				// Añadimos columna para eliminar
+				table.addGeneratedColumn("Eliminar", new DeleteColumnGenerator());
+				visibledColumns.add("Eliminar");
+			}
+			table.setVisibleColumns(visibledColumns.toArray());
+			
+			// Añadimos las columnas generadas personalizadas
+			for (GeneratedColumn column : generatedColumns) {
+				Object id = column.getId();
+				ColumnGenerator columnGenerator = column.getColumnGenerator();
+				table.addGeneratedColumn(id, columnGenerator);
+			}
+			// Si el formulario está deshabilitado
 			if (!formEnabled) {
+				// Quitamos columnas editar, consultar y eliminar
+				table.removeGeneratedColumn("Editar");
+				table.removeGeneratedColumn("Consultar");
+				table.removeGeneratedColumn("Eliminar");
+				// Si se permite consultar
+				if (allowConsulting) {
+					// Añadimos la columna consultar
+					table.addGeneratedColumn("Consultar", new EditColumnGenerator("Consultar"));
+				}
 				// Ocultamos el botón añadir
 				if (addButton != null) {
 					addButton.setVisible(false);
 				}
 			}
-			container = new BeanItemContainer<BEAN>(beanUI.getBeanClass(), listElements);
-			// Creamos una nueva tabla (pues Vaadin da problemas si reusamos la misma)
-			table = new StandardTable<BEAN, KEY>(container, beanUI, formEnabled, allowConsulting, 
-					customVisibledColumns, customColumnHeaders, generatedColumns, this);
 			listLayout.addComponent(table);
 		}
 		// Si tiene customRowListComponent
@@ -334,9 +393,9 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 				// Obtenemos el constructor con el parámetro del tipo del bean
 				Constructor<?> constructor = customComponentClass.getConstructor(beanUI.getBeanClass());
 				if (listElements != null) {
-					for (BEAN element : listElements) {
+					for (T element : listElements) {
 						@SuppressWarnings("unchecked")
-						CustomField<BEAN> rowComponent = (CustomField<BEAN>) constructor.newInstance(element);
+						CustomField<T> rowComponent = (CustomField<T>) constructor.newInstance(element);
 						listLayout.addComponent(rowComponent);
 					}
 				}
@@ -360,10 +419,6 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 				e.printStackTrace();
 			}
 		}
-		// Si existe escuchador showListListener, llamamos al método afterCreateList() 
-		if (showListListener != null) {
-			showListListener.afterCreateList(listElements, beanUI.getCurrentSearch());
-		}
 	}
 
 	/**
@@ -372,18 +427,11 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	protected void createSearchPanel() {
 		// Creamos el panel de búsqueda
 		searchPanel = new Panel("Buscar");
-		searchPanel.addStyleName("standardform-searchpanel");
 		// Añadimos el panel de búsqueda
 		mainLayout.addComponent(searchPanel);
-		// Creamos el layout de búsqueda
-		HorizontalLayout searchLayout = new HorizontalLayout();
+		// Creamos el layour de búsqueda
+		FormLayout searchLayout = new FormLayout();
 		searchPanel.setContent(searchLayout);
-		// Creamos el layout para los campos
-		FormLayout searchFieldsLayout = new FormLayout();
-		searchLayout.addComponent(searchFieldsLayout);
-		// Layout para botón buscar y leyenda
-		VerticalLayout buttonLayout = new VerticalLayout();
-		searchLayout.addComponent(buttonLayout);
 		// Inicializamos los arrays searchFields y searchFieldTypes
 		searchFields = new Component[standardFormAnnotation.searchFields().length];
 		searchFieldTypes = new Class[standardFormAnnotation.searchFields().length];
@@ -400,7 +448,7 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					// Comprobamos por seguridad que el campo no es null
 					if (searchFields[i] != null) {
 						// Lo añadimos al layout de búsqueda
-						searchFieldsLayout.addComponent(searchFields[i]);
+						searchLayout.addComponent(searchFields[i]);
 					}
 					break;
 				}
@@ -410,33 +458,20 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		Button searchButton = new Button("Buscar");
 		searchButton.setClickShortcut(KeyCode.ENTER);
 		searchButton.addClickListener(new ClickListener() {
-			private static final long serialVersionUID = 6657565320103922397L;
-
 			@Override
 			public void buttonClick(ClickEvent event) {
-				try {
-					// Se muestra la primera página con la búsqueda actual
-					beanUI.setFirstElement(0);
-					updateSearchCriteria();
-					search();
-				} catch (BeanDAOException e) {
-					e.printStackTrace();
-					// TODO
-				}
+				search();
 			}
 		});
-		buttonLayout.addComponent(searchButton);
+		searchLayout.addComponent(searchButton);
 		// Añadimos etiqueta de información
-		searchInfo = new Label("", ContentMode.HTML);
-		buttonLayout.addComponent(searchInfo);
-		// Actualizamos el texto de información de búsqueda
-		updateSearchInfo();
+		searchInfo = new Label("No se ha realizado ninguna búsqueda", ContentMode.HTML);
+		searchLayout.addComponent(searchInfo);
 	}
 
 	/**
-	 * Gets a search field for the specified bean field and the value of its current searchCriterion
+	 * Gets a search field for the specified bean field
 	 * @param beanField
-	 * @param searchCriterion 
 	 * @return
 	 */
 	protected Component getSearchField(Field beanField) {
@@ -470,9 +505,9 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			try {
 				// Obtenemos una instancia del BeanDAO anidado
 				@SuppressWarnings("unchecked")
-				BeanDAO<? extends Bean, KEY> beanDAO = Utils.getBeanDAO(tipoCampo, beanUI.getBeanDAO());
+				BeanDAO<? extends Bean, K> beanDAO = Utils.getBeanDAO(tipoCampo, beanUI.getBeanDAO());
 				// Obtenemos todos los elementos del bean anidado
-				List<?> elementosBean = beanDAO.getElements(null, 0, 0);
+				List<?> elementosBean = beanDAO.getAllElements();
 				// Creamos un combo box con los elementos
 				searchField = new ComboBox(caption, elementosBean);
 			} catch (Exception ignorada) {
@@ -485,33 +520,18 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			// Asignamos el nombre del campo como id
 			searchField.setId(beanField.getName());
 			searchField.addStyleName("standardform-field");
-			// Si hay criterios de búsqueda, los recorremos
-			if (beanUI.getCurrentSearch() != null) {
-				for (SearchCriterion search : beanUI.getCurrentSearch()) {
-					// Si hay criterio para el campo actual
-					if (search != null && search.getNameField().equals(beanField.getName())) {
-						// Asignamos al campo el valor del criterio actual
-						if (searchField instanceof AbstractSelect) {
-							((AbstractSelect) searchField).setValue(search.getValueField());						
-						}
-						else if (searchField instanceof AbstractField) {
-							((AbstractTextField) searchField).setValue((String) search.getValueField());
-						}
-						break;
-					}
-				}
-			}
 		}
 		return searchField;
 	}
 	
 	/**
-	 * Updates the search criteria and the search label from the search fields values.
-	 * This method is called when the user clicks on the search button
+	 * Makes the search. This method is called when the user clicks on the search button
 	 */
-	protected void updateSearchCriteria() {
+	protected void search() {
 		int numCriteria = 0;
 		SearchCriterion[] temporalCriteria = new SearchCriterion[searchFields.length];
+		String[] campoCriteria = new String[searchFields.length];
+		String[] valorCriteria = new String[searchFields.length];
 		// Recorremos los campos de búsqueda
 		for (int i=0; i<searchFields.length; i++) {
 			// Comprobamos por seguridad que el campo no es null
@@ -527,8 +547,9 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 				if (!valorCampo.isEmpty()) {
 					// Añadimos criterio de búsqueda de tipo TEXT
 					temporalCriteria[numCriteria] =
-						new SearchCriterion(nombreCampo, searchFields[i].getCaption(),
-								valorCampo, SearchType.TEXT);
+						new SearchCriterion(nombreCampo, valorCampo, SearchType.TEXT);
+					campoCriteria[numCriteria] = searchFields[i].getCaption();
+					valorCriteria[numCriteria] = valorCampo;
 					numCriteria++;
 				}
 			}
@@ -542,16 +563,17 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					if (searchFieldTypes[i].isEnum()) {
 						// Añadimos criterio de búsqueda de tipo ENUM
 						temporalCriteria[numCriteria] = 
-							new SearchCriterion(nombreCampo, searchFields[i].getCaption(),
-									elementoSeleccionado, SearchType.ENUM);
+							new SearchCriterion(nombreCampo, elementoSeleccionado, SearchType.ENUM);
 					}
 					// Si el campo es de tipo bean
 					else if (Utils.isSubClass(searchFieldTypes[i], Bean.class)) {
 						// Añadimos criterio de búsqueda de tipo BEAN
 						temporalCriteria[numCriteria] = 
-							new SearchCriterion(nombreCampo, searchFields[i].getCaption(),
-									elementoSeleccionado, SearchType.BEAN);
+							new SearchCriterion(nombreCampo, elementoSeleccionado, SearchType.BEAN);
 					}
+					campoCriteria[numCriteria] = searchFields[i].getCaption();
+					valorCriteria[numCriteria] =
+						((ComboBox)searchFields[i]).getItemCaption(elementoSeleccionado);
 					numCriteria++;
 				}
 			}
@@ -563,74 +585,94 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 				searchCriteria[j++] = temporalCriteria[i];
 			}
 		}
-		// Guardamos los criterios de búsqueda en el BeanUI
-		beanUI.setCurrentSearch(searchCriteria);
-		// Actualizamos la información de búsqueda
-		updateSearchInfo();
-	}
-	
-	/**
-	 * Updates the search info text from the search criteria
-	 */
-	protected void updateSearchInfo() {
+		// Hacemos la búsqueda
+		listElements = beanUI.getBeanDAO().getElements(searchCriteria);
+		// Creamos un nuevo listado
+		createList();
+		
 		// Mostramos información de búsqueda
-		SearchCriterion[] searchCriteria = beanUI.getCurrentSearch();
 		String info;
-		if (searchCriteria == null || searchCriteria.length == 0) {
+		if (numCriteria == 0) {
 			info = "Se muestran los elementos sin aplicar ningún filtro.";
 		}
 		else {
 			info = "Se muestran los elementos que cumplen los siguientes filtros:";
-			for (SearchCriterion searchCriterion : searchCriteria) {
+			for (int i=0; i<temporalCriteria.length; i++) {
 				// Si el criterio es null
-				if (searchCriterion == null) {
+				if (temporalCriteria[i] == null) {
 					// Pasamos al siguiente
 					continue;
 				}
-				info +=  "<br/><b>" + searchCriterion.getCaptionField() + "</b>";
-				switch (searchCriterion.getTypeCriteria()) {
+				info +=  "<br/><b>" + campoCriteria[i] + "</b>";
+				switch (temporalCriteria[i].getTypeCriteria()) {
 				case TEXT:
 					info += " contiene el texto ";
 					break;
 				case ENUM: case BEAN:
 					info += " es igual a ";
 				}
-				info += "<b>\"" + searchCriterion.getValueField() + "\"</b>.";
+				info += "<b>\"" + valorCriteria[i] + "\"</b>.";
 			}
 		}
 		searchInfo.setValue(info);
 	}
+
+	/**
+	 * Adds a header column for a bean field
+	 * @param beanField
+	 */
+	protected void addHeaderColumn(Field beanField) {
+		// Obtenemos la cabecera pesonalizada
+		String cabeceraPersonalizada = customColumnHeaders.get(beanField.getName());
+		// Si existe cabecera personalizada
+		if (cabeceraPersonalizada != null) {
+			// La ponemos como cabecera
+			table.setColumnHeader(beanField.getName(), cabeceraPersonalizada);
+			return;
+		}
+		// Obtenemos la anotación StandarFormField del campo
+		StandardFormField standardFormField = beanField.getAnnotation(StandardFormField.class);
+		// Si la columna tiene caption
+		if (standardFormField != null && standardFormField.caption().length() != 0)
+			// Ponemos el caption como cabecera
+			table.setColumnHeader(beanField.getName(), standardFormField.caption());
+		else
+			// Si no, ponemos el nombre del campo con la primera letra en mayúscula
+			table.setColumnHeader(beanField.getName(), Utils.capitalizeFirstLetter(beanField.getName()));
+	}
 	
 	/**
-	 * Makes a search with the current search criteria and the current page.
-	 * Updates the list with the found elements
-	 * @throws BeanDAOException 
+	 * Gets every elements of this bean type using thee BeanDAO
 	 */
-	protected void search() throws BeanDAOException {
-		// Obtenemos el número de elementos con el BeanDAO
-		numElements = beanUI.getBeanDAO().getcountElements(beanUI.getCurrentSearch());
-		// Obtenemos los elementos haciendo la búsqueda en el BeanDAO
-		listElements = beanUI.getBeanDAO().getElements(
-				beanUI.getCurrentSearch(), 
-				beanUI.getFirstElement(),
-				beanUI.getElementsPerPage());
-		// Creamos un nuevo listado
-		createList();
+	protected List<T> loadData() {
+		// TODO No obtener todos los elementos, sino trabajar con un cursor y paginar
+		List<T> listaElementos;
+		// Si hay escuchador queryListener
+		if (queryListener != null) {
+			// Llamamos a su método para obtener los elementos
+			listaElementos = queryListener.getElements();
+		}
+		// En caso contrario
+		else {
+			// Obtenemos todos los elementos
+			listaElementos = beanUI.getBeanDAO().getAllElements();
+		}
+		return listaElementos;
 	}
-
+	
 	/**
 	 * Shows the DetailForm for a bean inside the same component as this ListForm
 	 * Before, it gets again the bean using the BeanDAO (just in case it has changed)
 	 * @param element
 	 */
 	@SuppressWarnings("unchecked")
-	public void showDetailForm(BEAN element) {
+	protected void showDetailForm(T element) {
 		Component vistaDetalle;
 		try {
 			// Si hay elemento
 			if (element != null) {
 				// Obtenemos el elemento de base de datos
-				element = beanUI.beanDAO.get((KEY) Utils.getId(element));
+				element = beanUI.beanDAO.get((K) Utils.getId(element));
 			}
 			vistaDetalle = beanUI.buildDetailForm(element);
 			ComponentContainer contentPanel = (ComponentContainer)getParent();
@@ -642,43 +684,82 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		}
 	}
 	
-	/**
-	 * Deletes a bean when the user orders it
-	 * @param bean
+	/*
+	 * Class for the edit column 
 	 */
-	public void deleteBean(final BEAN bean) {
-		ConfirmDialog.show(getUI(), "Confirmación", 
-				"¿Está seguro de que desea eliminar el elemento?",
-		        "Sí", "No", new ConfirmDialog.Listener() {
-			private static final long serialVersionUID = 1L;
+	public class EditColumnGenerator implements Table.ColumnGenerator {
+		
+		private String nameColumn;
+		
+		public EditColumnGenerator(String nameColumn) {
+			this.nameColumn = nameColumn;
+		}
 
-			public void onClose(ConfirmDialog dialog) {
-                if (dialog.isConfirmed()) {
-                	try {
-                		// Si hay deleteListener llamamos a beforeDelete()
-                		if (deleteListener != null) {
-                			deleteListener.beforeDelete(bean);
-                		}
-                		// Eliminamos el bean en la base de datos
-                		beanUI.getBeanDAO().remove(bean);
-                		// Si hay deleteListener llamamos a afterDelete()
-                		if (deleteListener != null) {
-                			deleteListener.afterDelete(bean);
-                		}
-	                	Notification.show("Información",
-	                			"El elemento se ha eliminado correctamente",
-	                			Type.TRAY_NOTIFICATION);
-	                	// Eliminamos el bean de la tabla
-	                	container.removeItem(bean);
-                	} catch (Exception e) {
-    					Notification.show("No se ha podido eliminar el elemento",
-    							e.getMessage(), Type.ERROR_MESSAGE);
-    				}			                	
-                }
-            }
-        });
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public Object generateCell(Table source, final Object itemId, Object columnId) {
+			Button button = new Button(nameColumn);
+			button.setStyleName(BaseTheme.BUTTON_LINK);
+			button.addClickListener(new ClickListener() {
+
+				private static final long serialVersionUID = 1L;
+
+				@Override
+				public void buttonClick(ClickEvent event) {
+					T elementoSeleccionado = container.getItem(itemId).getBean();
+					showDetailForm(elementoSeleccionado);
+				}
+			});
+			return button;
+		}
 	}
 	
+	/*
+	 * Class for the delete column
+	 */
+	public class DeleteColumnGenerator implements Table.ColumnGenerator {
+
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public Object generateCell(Table source, final Object itemId, Object columnId) {
+			Button button = new Button("Eliminar");
+			button.setStyleName(BaseTheme.BUTTON_LINK);
+			button.addClickListener(new ClickListener() {
+				
+				private static final long serialVersionUID = 1L;
+				
+				@Override
+				public void buttonClick(ClickEvent event) {
+					ConfirmDialog.show(getUI(), "Confirmación", 
+							"¿Está seguro de que desea eliminar el elemento?",
+					        "Sí", "No", new ConfirmDialog.Listener() {
+						private static final long serialVersionUID = 1L;
+
+						public void onClose(ConfirmDialog dialog) {
+			                if (dialog.isConfirmed()) {
+			                	T elementoSeleccionado = container.getItem(itemId).getBean();
+			                	try {
+			                		beanUI.getBeanDAO().remove(elementoSeleccionado);
+				                	Notification.show("Información",
+				                			"El elemento se ha eliminado correctamente",
+				                			Type.TRAY_NOTIFICATION);
+				                	// Eliminamos el item de la tabla
+				                	container.removeItem(itemId);
+			                	} catch (Exception e) {
+			    					Notification.show("No se ha podido eliminar el elemento",
+			    							e.getMessage(), Type.ERROR_MESSAGE);
+			    				}			                	
+			                }
+			            }
+			        });
+				}
+			});
+			return button;
+		}
+	}
+
 	/**
 	 * Disables this Listform:
 	 * Removes Edit and Delete columns, adds Consult column and hides the Add button.
@@ -698,13 +779,49 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		allowConsulting = false;
 	}
 	
+//	/**
+//	 * Hides the column with de id specified
+//	 * @param columnId It must be the fieldname of the bean
+//	 */
+//	public void hideVisibledColumn(String columnId) {
+//		ArrayList<Object> listVisibleColumns = new ArrayList<Object>();
+//		Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
+//		for (Object column : table.getVisibleColumns()) {
+//			// Si la columna visible no coincide con la que se quiere ocultar
+//			if (!columnId.equals(column)) {
+//				// Se añade a la nueva lista de columnas visibles
+//				listVisibleColumns.add(column);
+//				// Obtenemos el campo que coincide con el nombre de la columna
+//				for (Field beanField : beanFields) {
+//					if (beanField.getName().equals(column)) {
+//						// Lo añadimos a la cabecera
+//						addHeaderColumn(beanField);
+//						break;
+//					}
+//				}
+//			}
+//		}
+//		table.setVisibleColumns(listVisibleColumns.toArray());
+//	}
+	
 	/**
 	 * Hides the search panel.
 	 */
 	public void hideSearchPanel() {
+		try {
+			// Si se oculta el panel, debemos obtener los elementos automáticamente
+			listElements = loadData();
+		} catch (Exception e) {
+			Notification.show("No se pueden obtener los elementos",
+					e.getMessage(), Type.ERROR_MESSAGE);
+			e.printStackTrace();
+		}
+		// Creamos la lista
+        createList();
+        // Ocultamos el panel de búsqueda
 		searchPanel.setVisible(false);
 	}
-
+	
 	/**
 	 * Adds a generated column to the table.
 	 * @param id
@@ -730,12 +847,10 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
     }
     
     /**
-     * Refreshes the list creating a new one.
-     * You must call this method only if you have made a change in the list
-     * @throws BeanDAOException 
+     * Refreshes the list. You must call this method if there has been a change in the list
      */
-    public void refreshList() throws BeanDAOException {
-    	// Realizamos una nueva búsqueda y se genera de nuevo el listado
-    	search();
+    public void refreshList() {
+		// Creamos un nuevo listado
+		createList();
     }
 }
