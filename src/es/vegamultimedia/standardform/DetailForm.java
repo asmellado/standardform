@@ -28,8 +28,6 @@ import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.Reference;
 import org.mongodb.morphia.query.Query;
 
-import com.vaadin.data.Property.ValueChangeEvent;
-import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanItem;
@@ -47,6 +45,7 @@ import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
+import com.vaadin.ui.CustomField;
 import com.vaadin.ui.Field;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.HasComponents;
@@ -61,8 +60,8 @@ import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
-import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
 import es.vegamultimedia.standardform.DAO.BeanDAOException;
+import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardForm.DAOType;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
@@ -77,7 +76,19 @@ import es.vegamultimedia.standardform.model.File;
 import es.vegamultimedia.standardform.model.Image;
 
 @SuppressWarnings("serial")
-public class DetailForm<BEAN extends Bean, KEY> extends Panel {
+public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
+	
+	/**
+	 * Interface for listening for a show event, before showing a DetailForm
+	 */
+	public interface ShowDetailListener<BEAN> {
+		/**
+		 * Called after creating the form
+		 * @param bean Showed bean, null in insert mode
+		 * @throws BeanDAOException
+		 */
+		public abstract void afterCreateForm(BEAN bean) throws BeanDAOException;
+	}
 	
 	/**
 	 * Interface for listening for a event in a DetailForm
@@ -102,6 +113,10 @@ public class DetailForm<BEAN extends Bean, KEY> extends Panel {
 				throws BeanDAOException;
 	}
 	
+	// Show Listener
+    protected ShowDetailListener<BEAN> showDetailListener;
+	
+    // Save listener
 	protected SaveListener<BEAN> saveListener;
 	
 	// BeanUI that created this standard detail form
@@ -114,6 +129,9 @@ public class DetailForm<BEAN extends Bean, KEY> extends Panel {
 	
 	// Bean actual
 	protected BEAN bean;
+	
+	// Panel principal
+	protected Panel mainPanel;
 	
 	// Formulario
 	protected FormLayout form;
@@ -133,6 +151,9 @@ public class DetailForm<BEAN extends Bean, KEY> extends Panel {
 	// Botón cancelar
 	protected Button cancelButton;
 	
+	// Indica si muestra botones Aceptar y Cancelar
+	protected boolean withOKAndCancelButtons;
+	
 	/**
 	 * Create a complete DetailForm for updating an existing bean or for inserting a new bean
 	 * with OK and Cancel buttons
@@ -150,7 +171,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends Panel {
 	 * Create a DetailForm for updating an existing bean or for inserting a new bean
 	 * @param currentBeanUI
 	 * @param currentBean Existing bean o null for a new bean
-	 * @param withOKAndCancelButtons if false, the form doesn't have OK neither cancel button
+	 * @param withOKAndCancelButtons if false, the form doesn't have OK neither cancel button.
 	 * It may be used for building custom forms
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
@@ -176,18 +197,21 @@ public class DetailForm<BEAN extends Bean, KEY> extends Panel {
 			// Añadimos el binder principal al mapa de binders
 			binderMap.put("", binder);
 			
+			// Panel principal
+			mainPanel = new Panel();
+			
 			// Creamos el formulario para albergar todos los campos del bean
 			form = new FormLayout();
-			setContent(form);
+			mainPanel.setContent(form);
 			
 			// Obtenemos la anotación StandardForm del elementoActual
 			StandardForm standardForm = bean.getClass().getAnnotation(StandardForm.class);
 			
 			// Asignamos el título al panel
-			setCaption(standardForm.detailViewName());
+			mainPanel.setCaption(standardForm.detailViewName());
 			
 			// Añadimos estilo personalizado
-			addStyleName("standardform");
+			mainPanel.addStyleName("standardform");
 			
 			// Obtenemos los campos del formulario
 			formFields = getFormFields(bean, binder, "");
@@ -233,6 +257,39 @@ public class DetailForm<BEAN extends Bean, KEY> extends Panel {
 			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
+	}
+	
+	@Override
+	protected Component initContent() {
+		try {
+			// Si existe escuchador showDetailListener, llamamos al método afterCreateForm() 
+			if (showDetailListener != null) {
+				if (insertMode) {
+					showDetailListener.afterCreateForm(null);
+				}
+				else {
+					showDetailListener.afterCreateForm(bean);
+				}
+			}
+		} catch (BeanDAOException e) {
+			Notification.show("Se ha producido un error", e.getMessage(), Type.ERROR_MESSAGE);
+			e.printStackTrace();
+		}
+		return mainPanel;
+	}
+
+	@Override
+	public Class<? extends BEAN> getType() {
+		return beanUI.getBeanClass();
+	}
+	
+	/**
+	 * Adds a show listener
+	 * TODO Note: In this moment only one listener is allowed!
+	 * @param showListListener
+	 */
+    public void addShowListener(ShowDetailListener<BEAN> showDetailListener) {
+		this.showDetailListener = showDetailListener;
 	}
 	
 	/**
@@ -1143,7 +1200,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends Panel {
 			// En ese caso, tenemos que obtener los elementos del bean esclavo 
 			// que tengan el valor seleccionado en el campo maestro
 			@Override
-			public void valueChange(ValueChangeEvent event) {
+			public void valueChange(com.vaadin.data.Property.ValueChangeEvent event) {
 				Object value = event.getProperty().getValue();
 				// Si no es un BeanMongo
 				if (!Utils.isSubClass(currentBean.getClass(), BeanMongo.class)) {

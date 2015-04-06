@@ -44,7 +44,7 @@ import es.vegamultimedia.standardform.components.StandardTable;
 import es.vegamultimedia.standardform.components.StandardTable.GeneratedColumn;
 import es.vegamultimedia.standardform.model.Bean;
 
-public class ListForm<BEAN extends Bean, KEY> extends Panel {
+public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	
 	private static final long serialVersionUID = -8471432681552606031L;
 
@@ -91,10 +91,10 @@ public class ListForm<BEAN extends Bean, KEY> extends Panel {
 	}
 
 	// Show list Listener
-    protected ShowListListener<BEAN> showListListener; 
+    protected ShowListListener<BEAN> showListListener;
     
     // Delete listener
-    protected DeleteListener<BEAN> deleteListener; 
+    protected DeleteListener<BEAN> deleteListener;
    
 	// BeanUI that created this standard list form
 	protected BeanUI<BEAN, KEY> beanUI;
@@ -122,6 +122,9 @@ public class ListForm<BEAN extends Bean, KEY> extends Panel {
 	
 	// Cabeceras de las columnas personalizadas
 	protected HashMap<String, String> customColumnHeaders;
+	
+	// Panel principal
+	protected Panel mainPanel;
 	
 	// Layout principal
 	protected VerticalLayout mainLayout;
@@ -180,10 +183,13 @@ public class ListForm<BEAN extends Bean, KEY> extends Panel {
 		customVisibledColumns = null;
 		customColumnHeaders = new HashMap<String, String>();
 		generatedColumns = new ArrayList<GeneratedColumn>();
+		
+		// Panel principal
+		mainPanel = new Panel();
 
 		// Layout principal
 		mainLayout = new VerticalLayout();
-		setContent(mainLayout);
+		mainPanel.setContent(mainLayout);
 			
 		// Creamos el panel de busqueda
 		createSearchPanel();
@@ -208,14 +214,29 @@ public class ListForm<BEAN extends Bean, KEY> extends Panel {
         // Creamos el listLayout
      	listLayout = new VerticalLayout();
      	mainLayout.addComponent(listLayout);
-        
-		// Realizamos la búsqueda
-		search();
-		// Si no hay campos de búsqueda
-		if (standardFormAnnotation.searchFields().length == 0) {
-			// Ocultamos el panel de búsqueda
-			searchPanel.setVisible(false);
+	}
+	
+	@Override
+	protected Component initContent() {
+		try {
+			// Realizamos la búsqueda
+			search();
+			// Si no hay campos de búsqueda
+			if (standardFormAnnotation.searchFields().length == 0) {
+				// Ocultamos el panel de búsqueda
+				searchPanel.setVisible(false);
+			}
+		} catch (BeanDAOException e) {
+			e.printStackTrace();
+			Notification.show("No se puede mostar el listado",
+					e.getMessage(), Type.ERROR_MESSAGE);
 		}
+		return mainPanel;
+	}
+
+	@Override
+	public Class<? extends BEAN> getType() {
+		return beanUI.getBeanClass();
 	}
 
     public void addButton(Component button) {
@@ -709,7 +730,8 @@ public class ListForm<BEAN extends Bean, KEY> extends Panel {
     }
     
     /**
-     * Refreshes the list. You must call this method if there has been a change in the list
+     * Refreshes the list creating a new one.
+     * You must call this method only if you have made a change in the list
      * @throws BeanDAOException 
      */
     public void refreshList() throws BeanDAOException {

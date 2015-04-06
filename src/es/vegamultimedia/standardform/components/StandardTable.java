@@ -113,6 +113,7 @@ public class StandardTable<BEAN extends Bean, KEY> extends Table {
 		StandardForm standardFormAnnotation = beanUI.getBeanClass().getAnnotation(StandardForm.class);
 
 		setImmediate(true);
+		setSortEnabled(false);
 
 		setPageLength(container.getItemIds().size());
 		

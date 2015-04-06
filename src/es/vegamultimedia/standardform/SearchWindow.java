@@ -42,7 +42,6 @@ public class SearchWindow<T extends Bean, K> extends Window {
 			listForm = new ListForm<T, K>(beanUI);
 			listForm.disableForm(false);
 			listForm.addGeneratedColumn("Seleccionar", new SeleccionarColumn());
-			listForm.refreshList();
 			setContent(listForm);
 		} catch (BeanDAOException e) {
 			Notification.show("Error",
