@@ -527,7 +527,7 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		for (int i=0; i<searchFields.length; i++) {
 			// Comprobamos por seguridad que el campo no es null
 			if (searchFields[i] == null) {
-				break;
+				continue;
 			}
 			String nombreCampo = searchFields[i].getId();
 			// Si es un campo de texto
