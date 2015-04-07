@@ -231,7 +231,7 @@ public class StandardTable<BEAN extends Bean, KEY> extends Table {
 			SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
 			try {
 				// Obtienemos anotación StandardFormField del campo
-				java.lang.reflect.Field field = Utils.getBeanField((Class<Bean>)rowId.getClass(), (String)colId);
+				java.lang.reflect.Field field = Utils.getBeanField((Class<BEAN>)rowId.getClass(), (String)colId);
 				StandardFormField anotación = field.getAnnotation(StandardFormField.class);
 				// Si la anotación es DATETIME cambiamos el formato
 				if (anotación != null && anotación.type() == StandardFormField.Type.DATETIME) {

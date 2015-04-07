@@ -275,38 +275,8 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			showListListener.beforeCreateList(listElements, beanUI.getCurrentSearch());
 		}
 		
-		// Pagination
-		PaginationBar pagination = new PaginationBar(numElements, beanUI.getFirstElement(),
-				beanUI.getElementsPerPage(), new PaginationListener() {
-			@Override
-			public void paginate(int firstElement) {
-				try {
-					// Actualizamos la página actual y realizamos una nueva búsqueda
-					beanUI.setFirstElement(firstElement);
-					search();
-				} catch (BeanDAOException e) {
-					Notification.show("Error",
-							"No se puede mostrar el listado.\n" + e.getMessage(),
-							Type.ERROR_MESSAGE);
-					e.printStackTrace();
-				}
-			}
-
-			@Override
-			public void setElementsPerPage(int elementsPerPage) {
-				// Establecemos el nuevo número de elementos por página y realizamos una nueva búsqueda
-				try {
-					beanUI.setElementsPerPage(elementsPerPage);
-					search();
-				} catch (BeanDAOException e) {
-					Notification.show("Error",
-							"No se puede mostrar el listado.\n" + e.getMessage(),
-							Type.ERROR_MESSAGE);
-					e.printStackTrace();
-				}
-			}
-		});
-		listLayout.addComponent(pagination);
+		// First pagination bar
+		listLayout.addComponent(createPaginationBar());
 		
 		// Si NO tiene customRowListComponent
 		if (standardFormAnnotation.customRowListComponent().isEmpty()) {
@@ -360,10 +330,51 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 				e.printStackTrace();
 			}
 		}
+		// Second pagination bar
+		listLayout.addComponent(createPaginationBar());
+		
 		// Si existe escuchador showListListener, llamamos al método afterCreateList() 
 		if (showListListener != null) {
 			showListListener.afterCreateList(listElements, beanUI.getCurrentSearch());
 		}
+	}
+
+	/**
+	 * Create a new pagination bar
+	 * @return The pagination bar
+	 */
+	protected PaginationBar createPaginationBar() {
+		PaginationBar pagination = new PaginationBar(numElements, beanUI.getFirstElement(),
+				beanUI.getElementsPerPage(), new PaginationListener() {
+			@Override
+			public void paginate(int firstElement) {
+				try {
+					// Actualizamos la página actual y realizamos una nueva búsqueda
+					beanUI.setFirstElement(firstElement);
+					search();
+				} catch (BeanDAOException e) {
+					Notification.show("Error",
+							"No se puede mostrar el listado.\n" + e.getMessage(),
+							Type.ERROR_MESSAGE);
+					e.printStackTrace();
+				}
+			}
+
+			@Override
+			public void setElementsPerPage(int elementsPerPage) {
+				// Establecemos el nuevo número de elementos por página y realizamos una nueva búsqueda
+				try {
+					beanUI.setElementsPerPage(elementsPerPage);
+					search();
+				} catch (BeanDAOException e) {
+					Notification.show("Error",
+							"No se puede mostrar el listado.\n" + e.getMessage(),
+							Type.ERROR_MESSAGE);
+					e.printStackTrace();
+				}
+			}
+		});
+		return pagination;
 	}
 
 	/**

@@ -70,8 +70,9 @@ public class PaginationBar extends CustomField<Long> {
 		// Number elements combo
 		ArrayList<Integer> possibleNumElements =
 				new ArrayList<Integer>(Arrays.asList(DEFAULT_POSSIBLE_ELEMENTS_PER_PAGE));
-		final ComboBox numElementsCombo = new ComboBox("", possibleNumElements);
+		final ComboBox numElementsCombo = new ComboBox(null, possibleNumElements);
 		numElementsCombo.setNullSelectionAllowed(false);
+		numElementsCombo.setWidth("80px");
 		numElementsCombo.setTextInputAllowed(false);
 		numElementsCombo.setValue(elementsPerPage);
 		numElementsCombo.addValueChangeListener(new ValueChangeListener() {
