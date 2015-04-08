@@ -1,11 +1,11 @@
 package es.vegamultimedia.standardform;
 
 import com.vaadin.ui.Button;
-import com.vaadin.ui.Notification;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
-import com.vaadin.ui.Table;
+import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
+import com.vaadin.ui.Table;
 import com.vaadin.ui.Table.ColumnGenerator;
 import com.vaadin.ui.Window;
 import com.vaadin.ui.themes.BaseTheme;
@@ -37,6 +37,8 @@ public class SearchWindow<T extends Bean, K> extends Window {
 		
 		setModal(true);
 		center();
+		setHeight("90%");
+		setWidth("90%");
 		
 		try {
 			listForm = new ListForm<T, K>(beanUI);
