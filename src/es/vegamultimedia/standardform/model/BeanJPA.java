@@ -34,7 +34,7 @@ public class BeanJPA implements BeanWithId, Serializable {
 	@Override
 	public int hashCode() {
 		if (id == null)
-			return 0;
+			return super.hashCode();
 		return id;
 	}
 	@Override
