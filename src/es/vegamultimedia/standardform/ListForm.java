@@ -392,9 +392,12 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		// Creamos el layout para los campos
 		FormLayout searchFieldsLayout = new FormLayout();
 		searchLayout.addComponent(searchFieldsLayout);
-		// Layout para botón buscar y leyenda
-		VerticalLayout buttonLayout = new VerticalLayout();
-		searchLayout.addComponent(buttonLayout);
+		// Layout para zona derecha
+		VerticalLayout rightZoneLayout = new VerticalLayout();
+		searchLayout.addComponent(rightZoneLayout);
+		// Layout para botón buscar y limpiar
+		HorizontalLayout buttonLayout = new HorizontalLayout();
+		rightZoneLayout.addComponent(buttonLayout);
 		// Inicializamos los arrays searchFields y searchFieldTypes
 		searchFields = new Component[standardFormAnnotation.searchFields().length];
 		searchFieldTypes = new Class[standardFormAnnotation.searchFields().length];
@@ -425,25 +428,39 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				try {
-					// Se muestra la primera página con la búsqueda actual
-					beanUI.setFirstElement(0);
-					updateSearchCriteria();
-					search();
-				} catch (BeanDAOException e) {
-					e.printStackTrace();
-					// TODO
-				}
+				updateSearchCriteriaAndSearch();
 			}
 		});
 		buttonLayout.addComponent(searchButton);
+		// Añadimos botón para borrar
+		Button deleteButton = new Button("Borrar");
+		deleteButton.addClickListener(new ClickListener() {
+			private static final long serialVersionUID = 8669329166420244574L;
+
+			@Override
+			public void buttonClick(ClickEvent event) {
+				// Limpiamos los campos de búsqueda
+				for (Component searchField : searchFields) {
+					if (searchField instanceof AbstractSelect) {
+						((AbstractSelect) searchField).setValue(null);
+					}
+					else if (searchField instanceof TextField) {
+						((TextField) searchField).setValue("");
+					}
+				}
+				updateSearchCriteriaAndSearch();
+			}
+			
+		});
+		buttonLayout.addComponent(deleteButton);
+		
 		// Añadimos etiqueta de información
 		searchInfo = new Label("", ContentMode.HTML);
-		buttonLayout.addComponent(searchInfo);
+		rightZoneLayout.addComponent(searchInfo);
 		// Actualizamos el texto de información de búsqueda
 		updateSearchInfo();
 	}
-
+	
 	/**
 	 * Gets a search field for the specified bean field and the value of its current searchCriterion
 	 * @param beanField
@@ -517,10 +534,11 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	}
 	
 	/**
-	 * Updates the search criteria and the search label from the search fields values.
-	 * This method is called when the user clicks on the search button
+	 * Updates the search criteria and the search label from the search fields values
+	 * and makes the search for the first page.
+	 * This method is called when the user clicks on the search button or the clean button.
 	 */
-	protected void updateSearchCriteria() {
+	protected void updateSearchCriteriaAndSearch() {
 		int numCriteria = 0;
 		SearchCriterion[] temporalCriteria = new SearchCriterion[searchFields.length];
 		// Recorremos los campos de búsqueda
@@ -578,6 +596,16 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		beanUI.setCurrentSearch(searchCriteria);
 		// Actualizamos la información de búsqueda
 		updateSearchInfo();
+		// Realizamos la búsqueda con la primera página
+		beanUI.setFirstElement(0);
+		try {
+			search();
+		} catch (BeanDAOException e) {
+			Notification.show("Error",
+					"Error al realizar la búsqueda\n" + e.getMessage(),
+					Type.ERROR_MESSAGE);
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -749,4 +777,5 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
     	// Realizamos una nueva búsqueda y se genera de nuevo el listado
     	search();
     }
+
 }
