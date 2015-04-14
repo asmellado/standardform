@@ -1,6 +1,5 @@
 package es.vegamultimedia.standardform.DAO;
 
-import java.io.Serializable;
 import java.util.List;
 
 import org.mongodb.morphia.Datastore;
@@ -12,10 +11,11 @@ import es.vegamultimedia.standardform.Utils;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
 
-@SuppressWarnings("serial")
-public class BeanMongoDAO<BEAN extends BeanMongo, KEY> extends BasicDAO<BEAN, KEY>
-	implements BeanDAO<BEAN, KEY>, Serializable {
+public abstract class BeanMongoDAO<BEAN extends BeanMongo, KEY> extends BasicDAO<BEAN, KEY>
+	implements BeanDAO<BEAN, KEY> {
 	
+	private static final long serialVersionUID = 5452933644770639709L;
+
 	// Bean class
 	protected Class<BEAN> beanClass;
 	

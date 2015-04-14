@@ -1,7 +1,11 @@
 package es.vegamultimedia.standardform.DAO;
 
-public class SearchCriterion {
+import java.io.Serializable;
+
+public class SearchCriterion implements Serializable {
 	
+	private static final long serialVersionUID = 4531119044144781812L;
+
 	/**
 	 * Criteria Type
 	 */

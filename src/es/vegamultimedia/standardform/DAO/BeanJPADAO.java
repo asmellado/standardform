@@ -16,32 +16,30 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import es.vegamultimedia.standardform.BeanUI;
 import es.vegamultimedia.standardform.model.BeanJPA;
 
-public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>{
+public abstract class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>{
 	
-	// Bean class
+	private static final long serialVersionUID = 6959298877213843112L;
+
+	/**
+	 * Bean class
+	 */
 	protected Class<BEAN> beanClass;
 	
-	// EntityManager
-	protected EntityManager entityManager;
+	/**
+	 * BeanJPAUI (to get the EntityManager)
+	 */
+	protected BeanUI<BEAN, KEY> beanUI;
 
 	/**
 	 * Create an instance of this Data Object Access (DAO)
 	 * @param beanClass
 	 * @param entityManager
 	 */
-	public BeanJPADAO(Class<BEAN> beanClass, EntityManager entityManager) {
+	public BeanJPADAO(Class<BEAN> beanClass) {
 		this.beanClass = beanClass;
-		this.entityManager = entityManager;
-	}
-	
-	/**
-	 * Get the entity manager
-	 * @return
-	 */
-	public EntityManager getEntityManager() {
-		return entityManager;
 	}
 	
 	@Override
@@ -55,9 +53,9 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 			IllegalArgumentException, RollbackException, PersistenceException, BeanDAOException {
 		EntityTransaction transaction = null;
 		try {
-			transaction = entityManager.getTransaction();
+			transaction = getEntityManager().getTransaction();
 			transaction.begin();
-			entityManager.persist(bean);
+			getEntityManager().persist(bean);
 			transaction.commit();
 			transaction = null;
 		} catch (Exception e) {
@@ -76,16 +74,17 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 	
 	@Override
 	public BEAN get(KEY id) {
-		return entityManager.find(beanClass, id);
+		return getEntityManager().find(beanClass, id);
 	}
 	
 	@Override
 	public BEAN get(String nameField, Object valueField) {
-		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+		CriteriaBuilder criteriaBuilder = getEntityManager().getCriteriaBuilder();
 		CriteriaQuery<BEAN> criteriaQuery = criteriaBuilder.createQuery(beanClass);
 		Root<BEAN> root = criteriaQuery.from(beanClass);
 		Predicate predicate = criteriaBuilder.equal(root.get(nameField), valueField);
-		TypedQuery<BEAN> typedQuery = entityManager.createQuery(criteriaQuery.where(predicate));
+		TypedQuery<BEAN> typedQuery =
+				getEntityManager().createQuery(criteriaQuery.where(predicate));
 		try {
 			return typedQuery.getSingleResult();
 		}
@@ -101,9 +100,9 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 	public void remove(BEAN bean)
 			throws IllegalStateException, IllegalArgumentException,
 				TransactionRequiredException, RollbackException, BeanDAOException {
-		EntityTransaction transaction = entityManager.getTransaction();
+		EntityTransaction transaction = getEntityManager().getTransaction();
 		transaction.begin();
-    	entityManager.remove(bean);
+		getEntityManager().remove(bean);
     	transaction.commit();
 	}
 	
@@ -111,27 +110,27 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 	public long getcountElements(SearchCriterion[] searchCriteria)
 			throws BeanDAOException {
 		// Creamos la query usando Criteria API
-		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+		CriteriaBuilder criteriaBuilder = getEntityManager().getCriteriaBuilder();
 		CriteriaQuery<Long> criteriaQuery = criteriaBuilder.createQuery(Long.class);
 		Root<BEAN> root = criteriaQuery.from(beanClass);
 		criteriaQuery = criteriaQuery.select(criteriaBuilder.count(root));
 		Predicate[] predicates =
 				getJPAPredicates(searchCriteria, criteriaBuilder, root);
 		criteriaQuery.where(criteriaBuilder.and(predicates));
-		TypedQuery<Long> typedQuery = entityManager.createQuery(criteriaQuery);
+		TypedQuery<Long> typedQuery = getEntityManager().createQuery(criteriaQuery);
 		return typedQuery.getSingleResult();
 	}
 
 	@Override
 	public List<BEAN> getElements(SearchCriterion[] searchCriteria, int firstResult, int limitResult) {
 		// Creamos la query usando Criteria API
-		CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+		CriteriaBuilder criteriaBuilder = getEntityManager().getCriteriaBuilder();
 		CriteriaQuery<BEAN> criteriaQuery = criteriaBuilder.createQuery(beanClass);
 		Root<BEAN> root = criteriaQuery.from(beanClass);
 		Predicate[] predicates =
 				getJPAPredicates(searchCriteria, criteriaBuilder, root);
 		criteriaQuery.where(criteriaBuilder.and(predicates));
-		TypedQuery<BEAN> typedQuery = entityManager.createQuery(criteriaQuery);
+		TypedQuery<BEAN> typedQuery = getEntityManager().createQuery(criteriaQuery);
 		// Añadimos el primer y número límite de resultados
 		typedQuery.setFirstResult(firstResult);
 		typedQuery.setMaxResults(limitResult);
@@ -170,4 +169,12 @@ public class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>
 		}
 		return new Predicate[0];
 	}
+	
+	/**
+	 * Returns the EntityManager. You must implement this method because EntityManager isn't
+	 * serializable, so you must supply a way to get it, avoiding a possible NullPointerException
+	 * 
+	 * @return The entity manager
+	 */
+	abstract public EntityManager getEntityManager();
 }

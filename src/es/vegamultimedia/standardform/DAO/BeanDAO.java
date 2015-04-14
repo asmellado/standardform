@@ -1,10 +1,11 @@
 package es.vegamultimedia.standardform.DAO;
 
+import java.io.Serializable;
 import java.util.List;
 
 import es.vegamultimedia.standardform.model.Bean;
 
-public interface BeanDAO<BEAN extends Bean, KEY> {
+public interface BeanDAO<BEAN extends Bean, KEY> extends Serializable {
 	
 	/**
 	 * Inserts the element T in the database

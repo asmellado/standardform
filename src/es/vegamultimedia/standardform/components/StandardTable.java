@@ -1,5 +1,6 @@
 package es.vegamultimedia.standardform.components;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,7 +32,8 @@ public class StandardTable<BEAN extends Bean, KEY> extends Table {
 	/**
 	 * Generated column of this StandardTable
 	 */
-	public static class GeneratedColumn {
+	public static class GeneratedColumn implements Serializable {
+		private static final long serialVersionUID = 2526925917840603470L;
 		private Object id;
 		private ColumnGenerator columnGenerator;
 		public GeneratedColumn(Object id, ColumnGenerator generatedColumn) {
@@ -193,7 +195,7 @@ public class StandardTable<BEAN extends Bean, KEY> extends Table {
 		}
 		// Si se permite eliminar
 		if (standardFormAnnotation.allowsDeleting()) {
-			// Añadimos columna para eliminar7
+			// Añadimos columna para eliminar
 			// (Llamamos al método de la superclase para no registrarlo en generatedColumns)
 			addGeneratedColumn("Eliminar", new DeleteColumnGenerator());
 			visibledColumns.add("Eliminar");
@@ -312,13 +314,12 @@ public class StandardTable<BEAN extends Bean, KEY> extends Table {
 	 */
 	public class EditColumnGenerator implements Table.ColumnGenerator {
 		
+		private static final long serialVersionUID = -4110329048756911351L;
 		private String nameColumn;
 		
 		public EditColumnGenerator(String nameColumn) {
 			this.nameColumn = nameColumn;
 		}
-
-		private static final long serialVersionUID = 1L;
 
 		@Override
 		public Object generateCell(Table source, final Object itemId, Object columnId) {
@@ -345,7 +346,7 @@ public class StandardTable<BEAN extends Bean, KEY> extends Table {
 	 */
 	public class DeleteColumnGenerator implements ColumnGenerator {
 
-		private static final long serialVersionUID = 1L;
+		private static final long serialVersionUID = -6929290377083702602L;
 
 		@Override
 		public Object generateCell(Table source, final Object itemId, Object columnId) {

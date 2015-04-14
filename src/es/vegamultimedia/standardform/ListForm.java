@@ -1,5 +1,6 @@
 package es.vegamultimedia.standardform;
 
+import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -51,7 +52,7 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	/**
 	 * Interface for listening for a show event in a ListForm
 	 */
-	public interface ShowListListener<BEAN> {
+	public interface ShowListListener<BEAN> extends Serializable {
 		
 		/**
 		 * Called before creating the list
@@ -74,7 +75,7 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	/**
 	 * Interface for listening for a delete event in a ListForm
 	 */
-	public interface DeleteListener<BEAN> {
+	public interface DeleteListener<BEAN> extends Serializable {
 		/**
 		 * Called before deleting a bean
 		 * @param bean Bean before deleting
@@ -346,6 +347,8 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	protected PaginationBar createPaginationBar() {
 		PaginationBar pagination = new PaginationBar(numElements, beanUI.getFirstElement(),
 				beanUI.getElementsPerPage(), new PaginationListener() {
+			private static final long serialVersionUID = -869206198635511791L;
+
 			@Override
 			public void paginate(int firstElement) {
 				try {
@@ -498,13 +501,16 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			try {
 				// Obtenemos una instancia del BeanDAO anidado
 				@SuppressWarnings("unchecked")
-				BeanDAO<? extends Bean, KEY> beanDAO = Utils.getBeanDAO(tipoCampo, beanUI.getBeanDAO());
+				BeanDAO<? extends Bean, KEY> beanDAO = Utils.createBeanDAO(tipoCampo);
 				// Obtenemos todos los elementos del bean anidado
 				List<?> elementosBean = beanDAO.getElements(null, 0, 0);
 				// Creamos un combo box con los elementos
 				searchField = new ComboBox(caption, elementosBean);
-			} catch (Exception ignorada) {
-				ignorada.printStackTrace();
+			} catch (Exception e) {
+				Notification.show("Aviso",
+						"No se puede crear el campo de búsqueda " + caption,
+						Type.WARNING_MESSAGE);
+				e.printStackTrace();
 			}
 		}
 		// TODO Falta implementar campos de tipo fecha y booleanos
@@ -689,7 +695,8 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		ConfirmDialog.show(getUI(), "Confirmación", 
 				"¿Está seguro de que desea eliminar el elemento?",
 		        "Sí", "No", new ConfirmDialog.Listener() {
-			private static final long serialVersionUID = 1L;
+
+			private static final long serialVersionUID = 6189420180328497030L;
 
 			public void onClose(ConfirmDialog dialog) {
                 if (dialog.isConfirmed()) {

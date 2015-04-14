@@ -10,21 +10,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import javax.persistence.EntityManager;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Size;
 
-import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.annotations.Id;
 
 import com.vaadin.ui.AbstractSelect;
+import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HasComponents;
-import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 
 import es.vegamultimedia.standardform.DAO.BeanDAO;
-import es.vegamultimedia.standardform.DAO.BeanJPADAO;
-import es.vegamultimedia.standardform.DAO.BeanMongoDAO;
 import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormEnum;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
@@ -189,7 +185,7 @@ abstract public class Utils {
 	
 	/**
 	 * Get an BeanDAO instance from a nestedBean class
-	 * @param nestedBeanClass
+	 * @param beanClass
 	 * @return
 	 * @throws ClassNotFoundException 
 	 * @throws NoSuchMethodException 
@@ -200,68 +196,38 @@ abstract public class Utils {
 	 * @throws IllegalArgumentException 
 	 */
 	@SuppressWarnings("rawtypes")
-	public static BeanDAO getBeanDAO(Class<? extends Bean> nestedBeanClass, BeanDAO beanDAOFather)
+	public static BeanDAO createBeanDAO(Class<? extends Bean> beanClass)
 			throws ClassNotFoundException, SecurityException, NoSuchMethodException,
 			IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		Class<?> classBeanDAO;
 		// Obtenemos la anotación StandardForm del bean
-		StandardForm anotación = nestedBeanClass.getAnnotation(StandardForm.class);
-		// Si el bean tiene anotación nestedBeanClass 
-		if (anotación != null && !anotación.beanDAOClassName().isEmpty()) {
-			// La anotación es el nombre de la clase del beanDAO
-			String nombreClaseBeanDAO = anotación.beanDAOClassName();
-			// Obtenemos la clase del BeanDAO
-			classBeanDAO = Class.forName(nombreClaseBeanDAO);
+		StandardForm anotación = beanClass.getAnnotation(StandardForm.class);
+		// Si el bean no tiene anotación beanDAOClassName 
+		if (anotación == null || anotación.beanDAOClassName().isEmpty()) {
+			throw new ClassNotFoundException("No se ha especificado el BeanDAO");
 		}
-		// Si no hay anotación nestedBeanClass
-		else {
-			// Obtenemos el nombre de la clase del beanDAO en función de la anotación daoType
-			switch (anotación.daoType()) {
-			case JPA:
-				classBeanDAO = BeanJPADAO.class;
-				break;
-			case MONGO:
-				classBeanDAO = BeanMongoDAO.class;
-				break;
-			default:
-				throw new IllegalArgumentException("Tipo de DAO no soportado");
-			}
+		// La anotación es el nombre de la clase del beanDAO
+		String nombreClaseBeanDAO = anotación.beanDAOClassName();
+		// Obtenemos la clase del BeanDAO
+		classBeanDAO = Class.forName(nombreClaseBeanDAO);
+		try {
+			// Buscamos el constructor de BeanDAO con el parámetro Class.
+			// NOTA: Podría ser un BeanDAO personalizado que no tuviera este constructor.
+			// En ese caso, lanzaría una excepción NoSuchMethodException.
+			Constructor constructorDAO = classBeanDAO.getConstructor(Class.class);
+			// Creamos el objeto DAO
+			return (BeanDAO) constructorDAO.newInstance(beanClass);
 		}
-		// Si es un BeanJPADAO o subclase
+		catch (NoSuchMethodException ignorada) { }
 		try {
-			if (classBeanDAO.asSubclass(BeanJPADAO.class) != null) {
-				// Obtenemos el constructor del beanJPADAO
-				Constructor constructorDAO =
-					classBeanDAO.getConstructor(Class.class, EntityManager.class);
-				// Creamos el objeto DAO
-				return (BeanDAO) constructorDAO.newInstance(nestedBeanClass, ((BeanJPADAO)beanDAOFather).getEntityManager());
-			}
-		} catch (ClassCastException ignorada) { }
-		// Si es un BeanMongoDAO o subclase
-		try {
-			if (classBeanDAO.asSubclass(BeanMongoDAO.class) != null) {
-				// TODO Podría ser un BeanMongoDAO personalizado que no tuviera este constructor
-				// En ese caso, lanzaría una excepción NoSuchMethodException
-				try {
-					// Obtenemos el constructor del beanMongoDAO
-					Constructor constructorDAO =
-						classBeanDAO.getConstructor(Class.class, Datastore.class);
-					// Creamos el objeto DAO
-					return (BeanDAO) constructorDAO.newInstance(nestedBeanClass, ((BeanMongoDAO)beanDAOFather).getDatastore());
-				}
-				catch (NoSuchMethodException ignorada) { }
-				try {
-					// Si no tiene el constructor genérico, buscamos si tiene constructo con sólo Datastore
-					Constructor constructorDAO =
-						classBeanDAO.getConstructor(Datastore.class);
-					// Creamos el objeto DAO
-					return (BeanDAO) constructorDAO.newInstance(((BeanMongoDAO)beanDAOFather).getDatastore());
-				}
-				catch (NoSuchMethodException ignorada) { }
-			}
-		} catch (ClassCastException ignorada) { }
+			// Si no tiene el constructor con parámetro Class, buscamos constructor sin parámetros
+			Constructor constructorDAO = classBeanDAO.getConstructor();
+			// Creamos el objeto DAO
+			return (BeanDAO) constructorDAO.newInstance();
+		}
+		catch (NoSuchMethodException ignorada) { }
 		// Si no es BeanJPADAO ni BeanMongoDAO
-		throw new ClassNotFoundException("No se ha podido determinar el BeanDAO");
+		throw new ClassNotFoundException("No se ha podido crear el BeanDAO");
 	}
 	
 	/**
@@ -300,13 +266,13 @@ abstract public class Utils {
 	
 	/**
 	 * Returns true if the subClass is a subclass of the superClass
-	 * @param superClass
 	 * @param subClass
+	 * @param superClass
 	 * @return
 	 */
-	public static boolean isSubClass(Class<?> superClass, Class<?> subClass) {
+	public static boolean isSubClass(Class<?> subClass, Class<?> superClass) {
 		try {
-			if (superClass.asSubclass(subClass) != null) {
+			if (subClass.asSubclass(superClass) != null) {
 				return true;
 			}
 		} catch (ClassCastException ignorada) { }

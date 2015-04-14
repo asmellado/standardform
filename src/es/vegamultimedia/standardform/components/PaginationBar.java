@@ -1,5 +1,6 @@
 package es.vegamultimedia.standardform.components;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -21,7 +22,7 @@ public class PaginationBar extends CustomField<Long> {
     /**
 	 * Interface for pagination
 	 */
-	public interface PaginationListener {
+	public interface PaginationListener extends Serializable {
 		/**
 		 * Called to refresh the table with a new pagination
 		 */

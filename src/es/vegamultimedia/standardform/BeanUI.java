@@ -11,19 +11,19 @@ import es.vegamultimedia.standardform.DAO.SearchCriterion;
 import es.vegamultimedia.standardform.model.Bean;
 
 @SuppressWarnings("serial")
-public class BeanUI<T extends Bean, K> implements Serializable {
+public class BeanUI<BEAN extends Bean, KEY> implements Serializable {
 	
 	public static int DEFAULT_ELEMENTS_PER_PAGE = 15;
 	
 	/**
 	 * Bean class
 	 */
-	protected Class<T> beanClass;
+	protected Class<BEAN> beanClass;
 
 	/**
 	 * Bean data access object (DAO) for this bean
 	 */
-	protected BeanDAO<T, K> beanDAO;
+	protected BeanDAO<BEAN, KEY> beanDAO;
 	
 	/**
 	 * Current search in the list form
@@ -40,7 +40,7 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 */
 	protected int elementsPerPage;
 	
-	public BeanUI(Class<T> beanClass, BeanDAO<T, K> beanDAO)
+	public BeanUI(Class<BEAN> beanClass, BeanDAO<BEAN, KEY> beanDAO)
 			throws ClassNotFoundException, SecurityException, NoSuchMethodException,
 			IllegalArgumentException, InstantiationException, 
 			IllegalAccessException, InvocationTargetException {
@@ -56,9 +56,9 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 */
-	public Component buildDetailForm(T bean) 
+	public Component buildDetailForm(BEAN bean) 
 			throws InstantiationException, IllegalAccessException {
-		return new DetailForm<T, K>(this, bean);
+		return new DetailForm<BEAN, KEY>(this, bean);
 	}
 	
 	/**
@@ -67,14 +67,14 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 * @throws BeanDAOException 
 	 */
 	public Component buidListForm() throws BeanDAOException {
-		return new ListForm<T, K>(this);
+		return new ListForm<BEAN, KEY>(this);
 	}
 	
 	/**
 	 * Returns the bean class
 	 * @return
 	 */
-	public Class<T> getBeanClass() {
+	public Class<BEAN> getBeanClass() {
 		return beanClass;
 	}
 	
@@ -82,8 +82,12 @@ public class BeanUI<T extends Bean, K> implements Serializable {
 	 * Returns the beanDAO object for this bean
 	 * @return
 	 */
-	public BeanDAO<T, K> getBeanDAO() {
+	public BeanDAO<BEAN, KEY> getBeanDAO() {
 		return beanDAO;
+	}
+
+	public void setBeanDAO(BeanDAO<BEAN, KEY> beanDAO) {
+		this.beanDAO = beanDAO;
 	}
 
 	public SearchCriterion[] getCurrentSearch() {

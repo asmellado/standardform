@@ -26,15 +26,10 @@ public @interface StandardForm {
 	public DAOType daoType();
 	
 	/**
-	 * BeanDAO Class name, qualified name containing package
-	 * You only need to specify it if the bean uses a custom BeanDAO
-	 * If you use a BeanJPADAO or BeanMongoDAO, you don't specify it 
-	 * (standard form obtains the name depending on the DAOType)
+	 * BeanDAO Class name, qualified name containing package.
 	 * @return
 	 */
-	
-	// TODO Este campo no es necesario, pues el beanUI contiene ya el beanDAO.
-	public String beanDAOClassName() default "";
+	public String beanDAOClassName();
 	
 	/**
 	 * List View Name showed in the URL

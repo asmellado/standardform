@@ -1,5 +1,6 @@
 package es.vegamultimedia.standardform;
 
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -81,7 +82,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	/**
 	 * Interface for listening for a show event, before showing a DetailForm
 	 */
-	public interface ShowDetailListener<BEAN> {
+	public interface ShowDetailListener<BEAN> extends Serializable {
 		/**
 		 * Called after creating the form
 		 * @param bean Showed bean, null in insert mode
@@ -93,7 +94,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	/**
 	 * Interface for listening for a event in a DetailForm
 	 */
-	public interface SaveListener<BEAN>{
+	public interface SaveListener<BEAN> extends Serializable {
 		/**
 		 * Called before saving the bean
 		 * @param oldBean Bean before modifications, null if insert
@@ -443,8 +444,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 						if (insertMode) {
 							embeddedBean = null;
 						}
-						BeanDAO searchDAO = 
-    							Utils.getBeanDAO(embeddedBeanClass, beanUI.getBeanDAO());
+						BeanDAO searchDAO = Utils.createBeanDAO(embeddedBeanClass);
 						BeanUI searchBeanUI = new BeanUI(embeddedBeanClass, searchDAO);
 						currentFields[i] = new SearchField(caption, searchBeanUI, embeddedBean);
 						break;
@@ -503,8 +503,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 						Utils.setFieldValue(currentBean, currentBeanFields[i], collection);
 					}
 					// Creamos el BeanUI
-					BeanDAO embeddedDAO = 
-							Utils.getBeanDAO((Class)parametrizedType, beanUI.getBeanDAO());
+					BeanDAO embeddedDAO = Utils.createBeanDAO((Class)parametrizedType);
 					BeanUI embeddedBeanUI = new BeanUI((Class)parametrizedType, embeddedDAO);
 					// Campo de tipo MULTIPLE_SEARCH
 					if (tipo == StandardFormField.Type.MULTIPLE_SEARCH) {
@@ -849,7 +848,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
     					// TODO Sólo se permite un nivel de anidamiento
     					// Obtenemos el DAO
     					BeanDAO dao = 
-    							Utils.getBeanDAO((Class)(beanFields[i].getType()), beanUI.getBeanDAO());
+    							Utils.createBeanDAO((Class)(beanFields[i].getType()));
     					// Obtenemos el bean anidado
     					Bean embeddedBean = (Bean) Utils.getFieldValue(bean, beanFields[i]);
     					// Tenemos que insertar o actualizar el bean
@@ -1082,7 +1081,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 						!standardFormField.disabled() &&
 						!standardFormField.hidden())) {
 				// Obtenemos una instancia del BeanDAO anidado
-				BeanDAO<? extends Bean, KEY> beanDAO = Utils.getBeanDAO(tipoElementos, beanUI.getBeanDAO());
+				BeanDAO<? extends Bean, KEY> beanDAO = Utils.createBeanDAO(tipoElementos);
 				// Obtenemos todos los elementos del bean anidado
 				listaElementos = beanDAO.getElements(null, 0, 0);
 			}
@@ -1213,7 +1212,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					if (value != null) {
 						// Creamos un BeanMongoDAO para obtener el datastore
 						BeanMongoDAO<? extends Bean, KEY> beanMongoDAO = (BeanMongoDAO<? extends Bean, KEY>)
-							Utils.getBeanDAO(slaveBeanClass, beanUI.getBeanDAO());
+							Utils.createBeanDAO(slaveBeanClass);
 						Datastore datastore = beanMongoDAO.getDatastore();
 						// Creamos una query para obtener los elementos del bean esclavo 
 						Query<?> query = datastore.createQuery(slaveBeanClass);
