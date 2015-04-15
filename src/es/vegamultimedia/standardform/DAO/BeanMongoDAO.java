@@ -3,7 +3,6 @@ package es.vegamultimedia.standardform.DAO;
 import java.util.List;
 
 import org.mongodb.morphia.Datastore;
-import org.mongodb.morphia.dao.BasicDAO;
 import org.mongodb.morphia.query.Criteria;
 import org.mongodb.morphia.query.Query;
 
@@ -11,34 +10,20 @@ import es.vegamultimedia.standardform.Utils;
 import es.vegamultimedia.standardform.model.Bean;
 import es.vegamultimedia.standardform.model.BeanMongo;
 
-public abstract class BeanMongoDAO<BEAN extends BeanMongo, KEY> extends BasicDAO<BEAN, KEY>
-	implements BeanDAO<BEAN, KEY> {
+public abstract class BeanMongoDAO<BEAN extends BeanMongo, KEY> implements BeanDAO<BEAN, KEY> {
 	
 	private static final long serialVersionUID = 5452933644770639709L;
 
 	// Bean class
 	protected Class<BEAN> beanClass;
-	
-	// Datastore
-	protected Datastore datastore;
 
 	/**
 	 * Create an instance of this Data Object Access (DAO)
 	 * @param beanClass
 	 * @param datastore
 	 */
-	public BeanMongoDAO(Class<BEAN> beanClass, Datastore datastore) {
-		super(beanClass, datastore);
+	public BeanMongoDAO(Class<BEAN> beanClass) {
 		this.beanClass = beanClass;
-		this.datastore = datastore;
-	}
-	
-	/**
-	 * Get the Datastore
-	 * @return
-	 */
-	public Datastore getDatastore() {
-		return datastore;
 	}
 	
 	@Override
@@ -57,17 +42,17 @@ public abstract class BeanMongoDAO<BEAN extends BeanMongo, KEY> extends BasicDAO
 		if (existingBean != null) {
 			throw new BeanDAOException("Ya existe un elemento con la misma clave");
 		}
-		datastore.save(bean);
+		getDatastore().save(bean);
 	}
-	
+
 	@Override
 	public void update(BEAN bean) {
-		datastore.save(bean);
+		getDatastore().save(bean);
 	}
 	
 	@Override
 	public BEAN get(KEY id) {
-		return datastore.get(beanClass, id);
+		return getDatastore().get(beanClass, id);
 	}
 
 	@Override
@@ -79,7 +64,7 @@ public abstract class BeanMongoDAO<BEAN extends BeanMongo, KEY> extends BasicDAO
 	
 	@Override
 	public void remove(BEAN bean) {
-		datastore.delete(bean);
+		getDatastore().delete(bean);
 	}
 
 	@Override
@@ -141,4 +126,20 @@ public abstract class BeanMongoDAO<BEAN extends BeanMongo, KEY> extends BasicDAO
 		query.and(morphiaCriteria);
 		return query;
 	}
+	
+	/**
+	 * Starts a query for this DAO entities type
+	 * @return
+	 */
+	public Query<BEAN> createQuery() {
+		return getDatastore().createQuery(beanClass);
+	}
+	
+	/**
+	 * Returns the EntityManager. You must implement this method because EntityManager isn't
+	 * serializable, so you must supply a way to get it, avoiding a possible NullPointerException
+	 * 
+	 * @return The entity manager
+	 */
+	abstract public Datastore getDatastore();
 }
