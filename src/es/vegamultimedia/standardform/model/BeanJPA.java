@@ -13,7 +13,6 @@ import es.vegamultimedia.standardform.annotations.StandardFormField;
 /**
  * An object of this class represents a bean that uses Java Persistence API (JPA) for persistence
  */
-@SuppressWarnings("serial")
 @MappedSuperclass
 public class BeanJPA implements BeanWithId, Serializable {
 
@@ -41,6 +40,6 @@ public class BeanJPA implements BeanWithId, Serializable {
 	public boolean equals(Object obj) {
 		if (obj==null || !(obj instanceof BeanJPA))
 			return false;
-		return (id==((BeanJPA)obj).getId());
+		return (id.equals(((BeanJPA)obj).getId()));
 	}
 }
