@@ -16,7 +16,6 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
-import es.vegamultimedia.standardform.BeanUI;
 import es.vegamultimedia.standardform.model.BeanJPA;
 
 public abstract class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<BEAN, KEY>{
@@ -27,11 +26,6 @@ public abstract class BeanJPADAO<BEAN extends BeanJPA, KEY> implements BeanDAO<B
 	 * Bean class
 	 */
 	protected Class<BEAN> beanClass;
-	
-	/**
-	 * BeanJPAUI (to get the EntityManager)
-	 */
-	protected BeanUI<BEAN, KEY> beanUI;
 
 	/**
 	 * Create an instance of this Data Object Access (DAO)

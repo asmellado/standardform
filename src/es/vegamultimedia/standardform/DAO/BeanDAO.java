@@ -48,7 +48,7 @@ public interface BeanDAO<BEAN extends Bean, KEY> extends Serializable {
 	 * Gets the elements that match a search criteria from the database
 	 * @param searchCriteria Array with the search criteria or null if there are no criteria
 	 * @param firstResult position of the first result to retrieve
-	 * @param limitResult maximun number of results to retrieve
+	 * @param limitResult maximum number of results to retrieve
 	 * @return Elements that match the search criteria with the specified firstResult and limitResult
 	 */
 	public abstract List<BEAN> getElements(SearchCriterion[] searchCriteria,

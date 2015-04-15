@@ -32,8 +32,9 @@ import com.vaadin.ui.Upload.SucceededListener;
 
 import es.vegamultimedia.standardform.model.File;
 
-@SuppressWarnings("serial")
 public class FileComponent extends CustomField<File> {
+	
+	private static final long serialVersionUID = -3237883491982186336L;
 	
 	private GridLayout mainLayout;
 	private Upload upload;
@@ -79,6 +80,8 @@ public class FileComponent extends CustomField<File> {
 		loadButton = new Button("Subir");
 		loadButton.setId(id + ".upload");
 		loadButton.addClickListener(new ClickListener(){
+			private static final long serialVersionUID = -8098482680262177608L;
+
 			@Override
 			public void buttonClick(ClickEvent event) {
 				upload.submitUpload();
@@ -102,6 +105,8 @@ public class FileComponent extends CustomField<File> {
 			downloadButton = new Button("Descargar");
 			downloadButton.setId(id + ".download");
 			StreamSource streamSource = new StreamSource(){
+				private static final long serialVersionUID = -1918426259383979729L;
+
 				@Override
 				public InputStream getStream() {
 					byte[] bytes = file.getBytes();
@@ -148,6 +153,8 @@ public class FileComponent extends CustomField<File> {
 	
 	public class FileUploader implements Receiver, ChangeListener, SucceededListener {
 		
+		private static final long serialVersionUID = -7281897987664087131L;
+
 		private ByteArrayOutputStream byteArrayOutputStream;
 		private String filename;
 		private String mimeType;

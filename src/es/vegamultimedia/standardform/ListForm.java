@@ -137,8 +137,7 @@ public class ListForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	protected Component[] searchFields;
 	
 	// Tipos de los campos de búsqueda
-	@SuppressWarnings("rawtypes")
-	protected Class[] searchFieldTypes;
+	protected Class<?>[] searchFieldTypes;
 	
 	// Etiqueta de información de búsqueda
 	protected Label searchInfo;

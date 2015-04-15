@@ -1,7 +1,8 @@
 package es.vegamultimedia.standardform.DAO;
 
-@SuppressWarnings("serial")
 public class BeanDAOException extends Exception {
+
+	private static final long serialVersionUID = 7024218868598613268L;
 
 	public BeanDAOException(String message) {
 		super(message);

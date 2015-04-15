@@ -9,9 +9,9 @@ import org.mongodb.morphia.annotations.Id;
  * An object of this class represents a bean that uses MongoDB and Morphia for persistence
  * This bean has an automatic id field of the ObjectId type
  */
-@SuppressWarnings("serial")
 public abstract class BeanMongoWithId extends BeanMongoEntity implements BeanWithId, Serializable {
 
+	private static final long serialVersionUID = 6340875997552472012L;
 	@Id
 	protected ObjectId id;
 	

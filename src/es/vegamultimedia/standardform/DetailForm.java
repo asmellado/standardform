@@ -76,9 +76,10 @@ import es.vegamultimedia.standardform.model.BeanMongo;
 import es.vegamultimedia.standardform.model.File;
 import es.vegamultimedia.standardform.model.Image;
 
-@SuppressWarnings("serial")
 public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	
+	private static final long serialVersionUID = -358899005758249764L;
+
 	/**
 	 * Interface for listening for a show event, before showing a DetailForm
 	 */
@@ -229,6 +230,8 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 					saveButton.setId("saveButton");
 					saveButton.setClickShortcut(KeyCode.ENTER);
 					saveButton.addClickListener(new ClickListener(){
+						private static final long serialVersionUID = 354681697317644344L;
+
 						@Override
 						public void buttonClick(ClickEvent event) {
 							save(event);
@@ -240,6 +243,8 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 				cancelButton = new Button("Cancelar");
 				cancelButton.setId("cancelButton");
 				cancelButton.addClickListener(new ClickListener(){
+					private static final long serialVersionUID = 4216644049510314485L;
+
 					@Override
 					public void buttonClick(ClickEvent event) {
 						try {
@@ -1196,6 +1201,8 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		AbstractSelect masterSelect = (AbstractSelect) masterField;
 		// Añadimos un escuchador al campo maestro para cuando cambie su valor
 		masterSelect.addValueChangeListener(new ValueChangeListener() {
+			private static final long serialVersionUID = -6266675358058148965L;
+
 			// En ese caso, tenemos que obtener los elementos del bean esclavo 
 			// que tengan el valor seleccionado en el campo maestro
 			@Override

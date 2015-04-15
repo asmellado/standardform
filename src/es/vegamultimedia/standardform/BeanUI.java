@@ -10,9 +10,10 @@ import es.vegamultimedia.standardform.DAO.BeanDAOException;
 import es.vegamultimedia.standardform.DAO.SearchCriterion;
 import es.vegamultimedia.standardform.model.Bean;
 
-@SuppressWarnings("serial")
 public class BeanUI<BEAN extends Bean, KEY> implements Serializable {
 	
+	private static final long serialVersionUID = -9051686374754286164L;
+
 	public static int DEFAULT_ELEMENTS_PER_PAGE = 15;
 	
 	/**

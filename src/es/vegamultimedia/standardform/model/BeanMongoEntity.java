@@ -7,9 +7,10 @@ import es.vegamultimedia.standardform.Utils;
  * This class overrides the methods hashCode() and equals(). So, it's possible to include objects
  * of this class inside a BeanItemContainer
  */
-@SuppressWarnings("serial")
 public abstract class BeanMongoEntity implements BeanMongo {
 	
+	private static final long serialVersionUID = -563064858467526371L;
+
 	/**
 	 * Returns the hashCode of this BeanMongo.
 	 * The hashCode of a BeanMongo is the hasCode of the id field with the annotation Id
