@@ -67,6 +67,7 @@ public class MultipleSearchField<T extends Collection<BEAN>, BEAN extends Bean, 
 		final SearchField<BEAN, KEY> searchField =
 				new SearchField<BEAN, KEY>(null, beanUI, bean);
 		searchField.setSearchListener(new SearchListener<BEAN>(){
+			private static final long serialVersionUID = -5585071262860927660L;
 
 			@Override
 			public void remove(BEAN removedBean) {

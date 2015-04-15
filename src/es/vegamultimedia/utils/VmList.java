@@ -14,7 +14,9 @@ import java.util.LinkedList;
  */
 public class VmList extends LinkedList<Object> {
     
-    //# VmList
+	private static final long serialVersionUID = -4398599977504432219L;
+
+	//# VmList
     public VmList() {
         super();
     }

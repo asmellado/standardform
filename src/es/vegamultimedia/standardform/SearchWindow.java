@@ -1,5 +1,7 @@
 package es.vegamultimedia.standardform;
 
+import java.io.Serializable;
+
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
@@ -18,7 +20,7 @@ public class SearchWindow<T extends Bean, K> extends Window {
 	/**
 	 * Interface for listening for a selection in a searchWindow
 	 */
-	public interface SelectionListener<T> {
+	public interface SelectionListener<T> extends Serializable {
 		/**
 		 * Called when an element has been selected in a searchWindow
 		 * @param element selected

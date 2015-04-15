@@ -1,5 +1,7 @@
 package es.vegamultimedia.standardform.components;
 
+import java.io.Serializable;
+
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
@@ -22,7 +24,7 @@ public class SearchField<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	 * Interface for listening for an event in a SearchField
 	 * @param <BEAN>
 	 */
-	public interface SearchListener<BEAN> {
+	public interface SearchListener<BEAN> extends Serializable {
 		/**
 		 * Called when the user selects an element in the search field
 		 * @param oldBean old selected element
@@ -82,6 +84,8 @@ public class SearchField<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			public void buttonClick(ClickEvent event) {
 				SearchWindow<BEAN, KEY> searchWindow =
 						new SearchWindow<BEAN, KEY>(beanUI, new SelectionListener<BEAN>() {
+					private static final long serialVersionUID = -6402516322271114921L;
+
 					@Override
 					public void select(BEAN newElement) {
 						setSelection(newElement);

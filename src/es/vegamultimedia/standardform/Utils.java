@@ -4,6 +4,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -12,8 +13,6 @@ import java.util.Iterator;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Size;
-
-import org.mongodb.morphia.annotations.Id;
 
 import com.vaadin.ui.AbstractSelect;
 import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
@@ -25,31 +24,33 @@ import es.vegamultimedia.standardform.annotations.StandardForm;
 import es.vegamultimedia.standardform.annotations.StandardFormEnum;
 import es.vegamultimedia.standardform.annotations.StandardFormField;
 import es.vegamultimedia.standardform.model.Bean;
-import es.vegamultimedia.standardform.model.BeanMongo;
 import es.vegamultimedia.standardform.model.BeanWithId;
 
 abstract public class Utils {
 	
 	/**
-	 * Gets every fields of a bean class, adding every fields of every superclass
+	 * Gets every non-static field of a bean class, adding every non-static field of every superclass
 	 * @param currentBean
 	 * @return
 	 */
-	public static java.lang.reflect.Field[] getBeanFields(Class<? extends Bean> beanClass) {
-		// Obtenemos los campos del bean elementoActual
-		java.lang.reflect.Field[] currentBeanFields = beanClass.getDeclaredFields();
-		// Añadimos los campos de las superclases hasta llegar a Object
-		Class<?> superclass = beanClass.getSuperclass();
-		while (superclass != Object.class) {
+	public static java.lang.reflect.Field[] getBeanFields(Class<? extends Bean> beanClass)
+			throws SecurityException {
+		java.lang.reflect.Field[] currentBeanFields = new java.lang.reflect.Field[0];
+		Class<?> superclass = beanClass;
+		do {
 			java.lang.reflect.Field[] fields = superclass.getDeclaredFields();
 			ArrayList<java.lang.reflect.Field> beanFieldsList = new ArrayList<java.lang.reflect.Field>();
 			beanFieldsList.addAll(Arrays.asList(currentBeanFields));
 			for (java.lang.reflect.Field field : fields) {
-				beanFieldsList.add(field);
+				if (!Modifier.isStatic(field.getModifiers())) {
+					beanFieldsList.add(field);
+				}
 			}
 			currentBeanFields = beanFieldsList.toArray(new java.lang.reflect.Field[beanFieldsList.size()]);
 			superclass = superclass.getSuperclass();
 		}
+		// Añadimos los campos de sus superclases hasta llegar a Object
+		while (superclass != Object.class);
 		return currentBeanFields;
 	}
 	
@@ -86,8 +87,8 @@ abstract public class Utils {
 	public static java.lang.reflect.Field getIdField(Class<? extends Bean> beanClass) {
 		java.lang.reflect.Field[] fieldsBean = Utils.getBeanFields(beanClass);
 		for (java.lang.reflect.Field fieldBean : fieldsBean) {
-			// TODO Pendiente de hacer para JPA
-			if (fieldBean.getAnnotation(Id.class) != null) {
+			if (fieldBean.getAnnotation(javax.persistence.Id.class) != null ||
+					fieldBean.getAnnotation(org.mongodb.morphia.annotations.Id.class) != null) {
 				return fieldBean;
 			}
 		}
@@ -242,26 +243,13 @@ abstract public class Utils {
 	 */
 	public static Object getId(Bean bean) throws NoSuchMethodException, SecurityException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		// Si el bean tiene campo id
+		// Si el bean implementa BeanWithId
 		if (bean instanceof BeanWithId) {
 			// Retornamoes el valor del id
 			return ((BeanWithId)bean).getId();
 		}
-		// Si el bean es un BeanMongo sin campo id
-		else if (bean instanceof BeanMongo) {
-			// Obtenemos todos los campos del bean
-			Field[] fields = getBeanFields(bean.getClass());
-			// Recorremos los campos
-			for (Field field : fields) {
-				// Si el campo tiene la anotación Id de Morphia
-				if (field.getAnnotation(Id.class) != null) {
-					// Retornamos el valor del campo
-					return getFieldValue(bean, field);
-				}
-			}
-			throw new IllegalArgumentException("No se encuentra un identificador para el elemento");
-		}
-		throw new IllegalArgumentException("Tipo de bean no soportado");
+		// Si no, obtenemos el campo id por reflexión
+		return getFieldValue(bean, getIdField(bean.getClass()));
 	}
 	
 	/**

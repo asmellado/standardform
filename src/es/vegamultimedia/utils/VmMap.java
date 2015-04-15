@@ -16,7 +16,9 @@ import java.util.TreeMap;
  */
 public class VmMap extends TreeMap<String, Object> {
     
-    //# VmMap
+	private static final long serialVersionUID = 5159204599916833245L;
+
+	//# VmMap
     public VmMap() {
         super();
     }

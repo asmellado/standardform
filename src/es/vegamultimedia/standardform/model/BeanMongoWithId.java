@@ -12,6 +12,7 @@ import org.mongodb.morphia.annotations.Id;
 public abstract class BeanMongoWithId extends BeanMongoEntity implements BeanWithId, Serializable {
 
 	private static final long serialVersionUID = 6340875997552472012L;
+	
 	@Id
 	protected ObjectId id;
 	

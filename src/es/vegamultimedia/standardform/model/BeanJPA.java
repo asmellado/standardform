@@ -16,6 +16,8 @@ import es.vegamultimedia.standardform.annotations.StandardFormField;
 @MappedSuperclass
 public class BeanJPA implements BeanWithId, Serializable {
 
+	private static final long serialVersionUID = 2722402737890863274L;
+	
 	@Id
 	@Column(name="id")
 	@GeneratedValue(strategy = GenerationType.SEQUENCE)
@@ -38,7 +40,7 @@ public class BeanJPA implements BeanWithId, Serializable {
 	}
 	@Override
 	public boolean equals(Object obj) {
-		if (obj==null || !(obj instanceof BeanJPA))
+		if (obj==null || id==null || !(obj instanceof BeanJPA))
 			return false;
 		return (id.equals(((BeanJPA)obj).getId()));
 	}
