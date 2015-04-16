@@ -55,25 +55,18 @@ abstract public class Utils {
 	}
 	
 	/**
-	 * Try to get the field of a bean class, searching in its superclasses
+	 * Try to get the non-static field of a bean class, searching in its superclasses
 	 * @param beanClass
 	 * @param nameField
 	 * @return The field if found, or null otherwise
 	 */
 	public static java.lang.reflect.Field getBeanField(Class<? extends Bean> beanClass, String nameField) {
-		// Añadimos los campos de las superclases hasta llegar a Object
-		Class<?> currentClass = beanClass;
-		do {
-			// Obtenemos los campos del bean elementoActual
-			for (java.lang.reflect.Field field : currentClass.getDeclaredFields()) {
-				if (field.getName().equals(nameField)) {
-					return field;
-				}
+		// Recorremos los campos del bean
+		for (java.lang.reflect.Field field : getBeanFields(beanClass)) {
+			if (field.getName().equals(nameField)) {
+				return field;
 			}
-			// Si no lo encuentra en la clase actual buscamos en su superclase hasta Object
-			currentClass = currentClass.getSuperclass();
 		}
-		while (currentClass != null);
 		// Si no lo encuentra, retorna null
 		return null;
 	}
@@ -94,7 +87,6 @@ abstract public class Utils {
 		}
 		return null;
 	}
-	
 	
 	/**
 	 * Return the string with the first letter capitalized
@@ -298,6 +290,41 @@ abstract public class Utils {
 		java.lang.reflect.Type[] parameterizedtypes =
 				((ParameterizedType)genericType).getActualTypeArguments();
 		return parameterizedtypes[0];
+	}
+	
+	/**
+	 * Return a new bean instance. Its nested beans are instantiated recursively
+	 * @param beanClass
+	 * @return
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 * @throws InvocationTargetException
+	 * @throws NoSuchMethodException
+	 * @throws SecurityException
+	 */
+	@SuppressWarnings("unchecked")
+	public static Bean createNewBean(Class<? extends Bean> beanClass)
+			throws InstantiationException, IllegalAccessException, 
+			IllegalArgumentException, InvocationTargetException, 
+			NoSuchMethodException, SecurityException {
+		Bean bean = beanClass.newInstance();
+		// Recorremos todos los campos
+		for (java.lang.reflect.Field fieldBean : getBeanFields(beanClass)) {
+			// Si el campo es un bean anidado
+			if (Utils.isSubClass(fieldBean.getType(), Bean.class)) {
+				// Comprobamos que no es de la misma clase que el bean actual para evitar bucle infinito
+				if (beanClass != fieldBean.getType()) {
+					// Creamos el objeto del bean anidado
+					Bean nestedBean = createNewBean((Class<? extends Bean>) fieldBean.getType());
+					// Obtenemos el método "Set" del campo actual
+					Method setMethod = Utils.getSetMethod(bean.getClass(), fieldBean);
+					// Llamamos al método set para asignar el bean anidado vacío
+					setMethod.invoke(bean, nestedBean);
+				}
+			}
+		}
+		return bean;
 	}
 	
 	/**

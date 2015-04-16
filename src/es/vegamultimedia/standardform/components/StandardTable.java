@@ -145,16 +145,24 @@ public class StandardTable<BEAN extends Bean, KEY> extends Table {
 		else if (standardFormAnnotation.columns()[0].isEmpty()) {
 			// Se muestran todas excepto el id
 			visibledColumns = new ArrayList<String>();
-			// Obtenemos sólo los campos declarados en el bean
-			Field[] beanFields = beanUI.getBeanClass().getDeclaredFields();
+			// Obtenemos los campos del bean
+			Field[] beanFields = Utils.getBeanFields(beanUI.getBeanClass());
+			// Obtenemos el campo id
+			Field idField = Utils.getIdField(beanUI.getBeanClass());
 			// Recorremos los campos
 			for (int i=0; i<beanFields.length; i++) {
 				// Si no es el id
-				if (!beanFields[i].getName().equals("id")) {
-					// Añadimos el campo a las columnas visibles
-					visibledColumns.add(beanFields[i].getName());
-					// Añadimos la cabecera de la columna
-					addHeaderColumn(beanFields[i]);
+				if (!beanFields[i].getName().equals(idField.getName())) {
+					// Si el campo no tiene anotación StandardFormField o hidden = false
+					StandardFormField standardFormField =
+							beanFields[i].getAnnotation(StandardFormField.class);
+					if (standardFormField == null || !standardFormField.hidden()) {
+						// Añadimos el campo a las columnas visibles
+						visibledColumns.add(beanFields[i].getName());
+						// Añadimos la cabecera de la columna
+						addHeaderColumn(beanFields[i]);
+						
+					}
 				}
 			}
 		}

@@ -40,7 +40,8 @@ public @interface StandardFormField {
 	public boolean createField() default true;	
 	
 	/**
-	 * Specifies if the field is hidden or not
+	 * Specifies if the field is hidden or not. In the ListForm the column is not visible.
+	 * In the DetailForm, the field exists but is not visible.
 	 * @return
 	 */
 	public boolean hidden() default false;

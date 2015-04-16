@@ -188,7 +188,7 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			// Inicializamos el elemento actual
 			if (bean == null) {
 				insertMode = true;
-				bean = (BEAN) newBean(beanUI.getBeanClass());
+				bean = (BEAN) Utils.createNewBean(beanUI.getBeanClass());
 			}
 			
 			// Creamos el mapa de binders
@@ -306,41 +306,6 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 		this.saveListener = saveListener;
 	}
 	
-	/**
-	 * Return a new bean instance. Its nested beans are instantiated recursively
-	 * @param beanClass
-	 * @return
-	 * @throws InstantiationException
-	 * @throws IllegalAccessException
-	 * @throws IllegalArgumentException
-	 * @throws InvocationTargetException
-	 * @throws NoSuchMethodException
-	 * @throws SecurityException
-	 */
-	@SuppressWarnings("unchecked")
-	protected Bean newBean(Class<? extends Bean> beanClass)
-			throws InstantiationException, IllegalAccessException, 
-			IllegalArgumentException, InvocationTargetException, 
-			NoSuchMethodException, SecurityException {
-		Bean bean = beanClass.newInstance();
-		// Recorremos todos los campos
-		for (java.lang.reflect.Field fieldBean : beanClass.getDeclaredFields()) {
-			// Si el campo es un bean anidado
-			if (Utils.isSubClass(fieldBean.getType(), Bean.class)) {
-				// Comprobamos que no es de la misma clase que el bean actual para evitar bucle infinito
-				if (beanClass != fieldBean.getType()) {
-					// Creamos el objeto del bean anidado
-					Bean nestedBean = newBean((Class<? extends Bean>) fieldBean.getType());
-					// Obtenemos el método "Set" del campo actual
-					Method setMethod = Utils.getSetMethod(bean.getClass(), fieldBean);
-					// Llamamos al método set para asignar el bean anidado vacío
-					setMethod.invoke(bean, nestedBean);
-				}
-			}
-		}
-		return bean;
-	}
-
 	/**
 	 * Returns an array of Vaadin fields from the argument currentBean.
 	 * This method is recursive for nested beans
@@ -1029,9 +994,10 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 
 	/**
 	 * It creates a select field (Vaadin abstract select, ComboBox or Option Group) for a specific beanField
-	 * It gets everty options using the BeanDAO, adds then to the abstract field and selects the current element(s)
+	 * It gets every option using the BeanDAO, adds then to the abstract field and selects the current element(s)
 	 * It suports nested beans, enums and ArrayLists (multiple selection)
 	 * @param currentBean
+	 * @param prefixParentBean
 	 * @param field
 	 * @param type
 	 * @param caption
@@ -1042,9 +1008,9 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 	 * @throws ClassNotFoundException
 	 * @throws IllegalArgumentException
 	 * @throws InstantiationException
-	 * @throws BeanDAOException 
+	 * @throws BeanDAOException
 	 */
-	@SuppressWarnings({"rawtypes", "unchecked" })
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected AbstractSelect getSelectField(
 				final Bean currentBean,
 				String prefixParentBean,
@@ -1158,7 +1124,8 @@ public class DetailForm<BEAN extends Bean, KEY> extends CustomField<BEAN> {
 			// Asignamos los captions del enum select
 			Utils.setCaptionsEnumSelect(campoSelect, enumeradoClass, elementosEnum);
 		}
-		if (campoSelect != null) {
+		// Si no estamos en modo inserción
+		if (campoSelect != null && !insertMode) {
 			// Obtenemos el valor del elemento actual para seleccionarlo
 			Object beanAnidado = Utils.getFieldValue(currentBean, field);
 			// Seleccionamos el elemento actual del bean anidado
